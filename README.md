@@ -1,8 +1,8 @@
-# L'Illusione delle Saliency Maps
+# The Illusion of Saliency Maps
 
-Stress test su Grad-CAM e Integrated Gradients con AwA2.
+Stress testing Grad-CAM and Integrated Gradients on AwA2.
 
-## Setup directory
+## Directory Setup
 
 ```text
 Deep_Learning_XAI/
@@ -18,18 +18,19 @@ Deep_Learning_XAI/
   src/
 ```
 
-AwA2 richiede circa 13 GB. Puoi copiare manualmente `JPEGImages/` in
-`data/AWA2/JPEGImages/`, oppure usare lo script con `--download`.
+AwA2 requires roughly 13 GB of storage. You can either copy `JPEGImages/`
+manually into `data/AWA2/JPEGImages/`, or use the preparation script with
+`--download`.
 
-## FASE 1
+## Phase 1
 
-Preparazione manifest:
+Prepare the full manifest:
 
 ```bash
 python scripts/prepare_awa2.py --data-root data/AWA2
 ```
 
-Manifest debug leggero:
+Prepare a lightweight debug manifest:
 
 ```bash
 python scripts/prepare_awa2.py \
@@ -40,19 +41,19 @@ python scripts/prepare_awa2.py \
   --class-map-name class_to_idx_debug.csv
 ```
 
-Download opzionale:
+Optional download:
 
 ```bash
 python scripts/prepare_awa2.py --data-root data/AWA2 --download
 ```
 
-Smoke test DataLoader:
+Run the DataLoader smoke test:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
 ```
 
-Smoke test sul subset:
+Run the smoke test on the subset:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv

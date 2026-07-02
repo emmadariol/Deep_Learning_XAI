@@ -95,7 +95,7 @@ class AwA2Dataset(Dataset):
 def build_resnet_transforms(train: bool = False) -> transforms.Compose:
     """Return standard ImageNet preprocessing for ResNet fine-tuning.
 
-    The train flag is intentionally conservative in FASE 1: no stochastic
+    The train flag is intentionally conservative in Phase 1: no stochastic
     augmentation yet, so normalization checks are identical across splits.
     """
     _ = train
@@ -150,4 +150,3 @@ def denormalize_batch(batch: torch.Tensor) -> torch.Tensor:
     mean = torch.tensor(IMAGENET_MEAN, device=batch.device).view(1, 3, 1, 1)
     std = torch.tensor(IMAGENET_STD, device=batch.device).view(1, 3, 1, 1)
     return batch * std + mean
-

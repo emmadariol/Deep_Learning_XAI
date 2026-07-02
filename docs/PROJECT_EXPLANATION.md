@@ -1,57 +1,57 @@
-# L'Illusione delle Saliency Maps
+# The Illusion of Saliency Maps
 
-## 1. Sintesi del progetto
+## 1. Project Summary
 
-Il progetto costruisce una pipeline sperimentale in PyTorch per analizzare in modo critico due metodi post-hoc di Explainable AI applicati alla Computer Vision:
+This project builds a PyTorch experimental pipeline to critically evaluate two post-hoc Explainable AI methods for Computer Vision:
 
 - Grad-CAM
 - Integrated Gradients
 
-Il caso studio usa il dataset Animals with Attributes 2, abbreviato AwA2, composto da immagini di animali appartenenti a 50 classi. L'obiettivo non e' soltanto classificare correttamente gli animali, ma stressare le spiegazioni prodotte dal modello per verificare se le saliency maps siano realmente legate alla morfologia dell'animale oppure a correlazioni spurie, in particolare allo sfondo.
+The case study uses Animals with Attributes 2, abbreviated as AwA2, a dataset containing animal images from 50 classes. The objective is not only to classify the animals correctly, but to stress test the explanations produced by the model and verify whether the saliency maps are actually tied to animal morphology or instead to spurious correlations, especially the background.
 
-La tesi sperimentale e':
+The experimental hypothesis is:
 
-> se una saliency map cambia drasticamente quando viene perturbato solo lo sfondo, pur mantenendo invariata la predizione del modello, allora la spiegazione non e' stabile rispetto al contenuto semantico principale dell'immagine.
+> if a saliency map changes drastically when only the background is perturbed while the model prediction stays unchanged, then the explanation is not stable with respect to the main semantic content of the image.
 
-In altre parole, il progetto vuole mostrare quantitativamente e visivamente che alcune spiegazioni post-hoc possono dare una falsa impressione di affidabilita': sembrano indicare l'oggetto corretto, ma possono essere sensibili a segnali non causali.
+In other words, the project aims to show quantitatively and visually that some post-hoc explanations can create a false sense of reliability: they may appear to point to the right object, while still being sensitive to non-causal signals.
 
-## 2. Motivazione
+## 2. Motivation
 
-Le saliency maps vengono spesso usate per interpretare modelli deep learning in classificazione di immagini. In un caso ideale, se una ResNet predice "zebra", ci aspetteremmo che la mappa di salienza evidenzi:
+Saliency maps are often used to interpret deep learning models for image classification. In an ideal case, if a ResNet predicts "zebra", we would expect the saliency map to highlight:
 
-- corpo dell'animale;
-- testa;
-- zampe;
-- texture del mantello;
-- pattern morfologici rilevanti.
+- the animal body;
+- the head;
+- the legs;
+- coat texture;
+- relevant morphological patterns.
 
-Tuttavia, i modelli convoluzionali possono imparare correlazioni spurie:
+However, convolutional models can learn spurious correlations:
 
-- erba associata a erbivori;
-- neve associata ad animali polari;
-- acqua associata a mammiferi marini;
-- foresta associata ad alcuni animali selvatici;
-- colori e texture dello sfondo associati a una classe.
+- grass associated with herbivores;
+- snow associated with polar animals;
+- water associated with marine mammals;
+- forest backgrounds associated with some wild animals;
+- background colors and textures associated with a class.
 
-Questo e' particolarmente importante per AwA2, perche' molte classi animali sono fotografate in contesti naturali ricorrenti. Se il modello usa lo sfondo come scorciatoia, una saliency map puo' diventare una spiegazione esteticamente convincente ma concettualmente fragile.
+This is particularly important for AwA2 because many animal classes are photographed in recurring natural contexts. If the model uses the background as a shortcut, a saliency map can become visually convincing but conceptually fragile.
 
-## 3. Obiettivo tecnico
+## 3. Technical Goal
 
-L'obiettivo tecnico e' costruire una pipeline completa che:
+The technical goal is to build a complete pipeline that:
 
-1. prepara il dataset AwA2;
-2. addestra una baseline ResNet50 sulle 50 classi;
-3. genera Grad-CAM e Integrated Gradients su immagini predette correttamente;
-4. perturba selettivamente lo sfondo;
-5. ricalcola predizioni e saliency maps;
-6. misura quanto le spiegazioni cambiano;
-7. produce report CSV e griglie visive per analisi o blog post.
+1. prepares the AwA2 dataset;
+2. trains a ResNet50 baseline on the 50 classes;
+3. generates Grad-CAM and Integrated Gradients for correctly predicted images;
+4. selectively perturbs the background;
+5. recomputes predictions and saliency maps;
+6. measures how much the explanations change;
+7. produces CSV reports and visual comparison grids for analysis or a blog post.
 
-Il punto centrale non e' ottenere la massima accuratezza possibile, ma avere una baseline sufficientemente buona da rendere significative le mappe XAI e lo stress test.
+The central aim is not to achieve the highest possible accuracy, but to obtain a baseline that is strong enough to make the XAI maps and stress test meaningful.
 
-## 4. Struttura del progetto
+## 4. Project Structure
 
-La struttura prevista e':
+The intended structure is:
 
 ```text
 Deep_Learning_XAI/
@@ -89,20 +89,20 @@ Deep_Learning_XAI/
   requirements.txt
 ```
 
-Al momento e' stata implementata la FASE 1, cioe':
+At the moment, Phase 1 has been implemented:
 
-- preparazione manifest;
-- Dataset PyTorch custom;
-- trasformazioni ResNet standard;
-- DataLoader;
-- smoke test;
-- modalita' subset debug.
+- manifest preparation;
+- custom PyTorch Dataset;
+- standard ResNet transforms;
+- DataLoader construction;
+- smoke testing;
+- lightweight debug subset mode.
 
-Le fasi successive verranno implementate solo dopo conferma esplicita, per rispettare la modularita' rigida del progetto.
+The next phases should only be implemented after explicit confirmation, to preserve the project's strict modular workflow.
 
 ## 5. Dataset: AwA2
 
-AwA2 contiene immagini JPEG organizzate per classe:
+AwA2 contains JPEG images organized by class:
 
 ```text
 data/AWA2/JPEGImages/
@@ -112,29 +112,29 @@ data/AWA2/JPEGImages/
   ...
 ```
 
-Ogni sottocartella rappresenta una classe. Lo script `scripts/prepare_awa2.py` scansiona queste directory e produce un manifest CSV con le colonne:
+Each subdirectory represents a class. The script `scripts/prepare_awa2.py` scans these directories and produces a CSV manifest with the columns:
 
 ```text
 filepath,label,class_name,split
 ```
 
-Esempio concettuale:
+Conceptual example:
 
 ```text
 /path/to/JPEGImages/zebra/zebra_10001.jpg,49,zebra,train
 ```
 
-Il mapping classe-indice viene salvato separatamente in:
+The class-to-index mapping is saved separately in:
 
 ```text
 data/AWA2/class_to_idx.csv
 ```
 
-Questo rende esplicita e riproducibile la codifica delle 50 classi.
+This makes the encoding of the 50 classes explicit and reproducible.
 
-## 6. Strategia subset debug
+## 6. Debug Subset Strategy
 
-AwA2 pesa circa 13 GB. Usarlo subito a piena scala rallenterebbe sviluppo, debug e iterazione. Per questo la FASE 1 include una modalita' subset:
+AwA2 is roughly 13 GB. Using the full dataset immediately would slow down development, debugging, and iteration. For this reason, Phase 1 includes a subset mode:
 
 ```bash
 python scripts/prepare_awa2.py \
@@ -145,18 +145,18 @@ python scripts/prepare_awa2.py \
   --class-map-name class_to_idx_debug.csv
 ```
 
-Questa modalita' permette di:
+This mode makes it possible to:
 
-- validare codice rapidamente;
-- controllare trasformazioni e DataLoader;
-- testare training su poche classi;
-- sviluppare Grad-CAM e Integrated Gradients senza costi eccessivi.
+- validate the code quickly;
+- inspect transforms and DataLoaders;
+- test training on a small number of classes;
+- develop Grad-CAM and Integrated Gradients without excessive compute cost.
 
-La selezione e' deterministica, guidata da seed, quindi gli esperimenti debug sono riproducibili.
+The selection is deterministic and seed-driven, so debug experiments are reproducible.
 
-## 7. FASE 1: Data Preparation e DataLoader
+## 7. Phase 1: Data Preparation and DataLoader
 
-### 7.1 Script di preparazione
+### 7.1 Preparation Script
 
 File:
 
@@ -164,17 +164,17 @@ File:
 scripts/prepare_awa2.py
 ```
 
-Responsabilita':
+Responsibilities:
 
-- trovare `JPEGImages/`;
-- opzionalmente scaricare AwA2;
-- raccogliere immagini per classe;
-- generare split train/val/test;
-- creare manifest CSV;
-- creare mapping classe-indice;
-- supportare subset debug.
+- find `JPEGImages/`;
+- optionally download AwA2;
+- collect images by class;
+- generate train/validation/test splits;
+- create the CSV manifest;
+- create the class-to-index mapping;
+- support debug subsets.
 
-Split default:
+Default split:
 
 ```text
 train: 70%
@@ -182,9 +182,9 @@ val:   15%
 test:  15%
 ```
 
-Lo split e' fatto dentro ogni classe, cosi' ogni split conserva una distribuzione bilanciata rispetto alle classi selezionate.
+The split is performed within each class, so every split preserves a balanced distribution over the selected classes.
 
-### 7.2 Dataset PyTorch
+### 7.2 PyTorch Dataset
 
 File:
 
@@ -192,23 +192,23 @@ File:
 src/data.py
 ```
 
-Classe principale:
+Main class:
 
 ```python
 AwA2Dataset
 ```
 
-Ogni elemento restituisce:
+Each item returns:
 
 ```python
 image_tensor, label, class_name, filepath
 ```
 
-Il `filepath` viene mantenuto perche' sara' utile nelle fasi XAI e stress test, dove bisognera' salvare immagini, heatmaps e report associati al campione originale.
+The `filepath` is kept because it will be useful in the XAI and stress-test phases, where images, heatmaps, and reports must be associated with the original sample.
 
-### 7.3 Trasformazioni
+### 7.3 Transforms
 
-Le trasformazioni seguono lo standard usato per ResNet pre-addestrata su ImageNet:
+The transforms follow the standard preprocessing used for ImageNet-pretrained ResNet models:
 
 ```text
 Resize(256)
@@ -217,9 +217,9 @@ ToTensor()
 Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
 ```
 
-Questa scelta e' importante perche' la FASE 2 usera' una ResNet50 pre-addestrata su ImageNet. Usare statistiche diverse introdurrebbe uno shift non necessario.
+This matters because Phase 2 will use a ResNet50 pretrained on ImageNet. Using different statistics would introduce unnecessary distribution shift.
 
-### 7.4 Smoke test
+### 7.4 Smoke Test
 
 File:
 
@@ -227,32 +227,32 @@ File:
 scripts/check_dataloader.py
 ```
 
-Controlla:
+Checks:
 
-- numero di immagini per split;
-- numero classi;
-- shape del batch;
-- statistiche dei tensori normalizzati;
-- statistiche dei tensori denormalizzati;
-- range pre-normalizzazione.
+- number of images per split;
+- number of classes;
+- batch shape;
+- normalized tensor statistics;
+- denormalized tensor statistics;
+- pre-normalization range.
 
-Questo e' coerente con la regola "niente scatole nere": gia' dalla FASE 1 si ispezionano i tensori, non solo il codice.
+This follows the "no black boxes" rule: even in Phase 1, tensors are inspected instead of merely trusting the code path.
 
-## 8. FASE 2: Training e fine-tuning baseline
+## 8. Phase 2: Baseline Training and Fine-Tuning
 
-Questa fase verra' implementata dopo conferma.
+This phase will be implemented after confirmation.
 
-Obiettivo:
+Goal:
 
-- caricare ResNet50 pre-addestrata su ImageNet;
-- sostituire il layer finale con una testa a 50 classi;
-- congelare i blocchi iniziali;
-- rendere addestrabili gli ultimi blocchi, in particolare `layer3`, `layer4` e `fc`;
-- ottimizzare con Cross-Entropy;
-- salvare il checkpoint migliore;
-- usare Early Stopping.
+- load a ResNet50 pretrained on ImageNet;
+- replace the final layer with a 50-class head;
+- freeze the early blocks;
+- train the later blocks, especially `layer3`, `layer4`, and `fc`;
+- optimize Cross-Entropy loss;
+- save the best checkpoint;
+- use Early Stopping.
 
-Architettura prevista:
+Planned architecture:
 
 ```text
 src/model.py
@@ -260,13 +260,13 @@ src/train.py
 scripts/train_baseline.py
 ```
 
-Checkpoint previsto:
+Planned checkpoint:
 
 ```text
 outputs/checkpoints/best_resnet50_awa2.pt
 ```
 
-Metriche minime:
+Minimum metrics:
 
 - training loss;
 - validation loss;
@@ -275,29 +275,29 @@ Metriche minime:
 - best epoch;
 - early stopping counter.
 
-## 9. FASE 3: Estrazione XAI
+## 9. Phase 3: XAI Extraction
 
-Questa fase verra' implementata dopo conferma.
+This phase will be implemented after confirmation.
 
-Metodi:
+Methods:
 
 - Grad-CAM;
 - Integrated Gradients.
 
-Per Grad-CAM il target layer sara':
+For Grad-CAM, the target layer will be:
 
 ```python
 model.layer4[-1]
 ```
 
-Per Integrated Gradients la baseline non sara' un'immagine nera. Useremo invece una baseline sfocata ottenuta applicando Gaussian Blur estremo all'immagine originale.
+For Integrated Gradients, the baseline will not be a black image. Instead, it will be a blurred baseline produced by applying extreme Gaussian Blur to the original image.
 
-Motivo:
+Reason:
 
-- una baseline nera introduce un riferimento artificiale;
-- puo' alterare drasticamente luminosita' e distribuzione cromatica;
-- per immagini naturali, una baseline sfocata preserva colore medio e illuminazione;
-- il confronto diventa piu' coerente con il contenuto visivo dell'immagine.
+- a black baseline introduces an artificial reference point;
+- it can drastically alter brightness and color distribution;
+- for natural images, a blurred baseline preserves average color and illumination;
+- the comparison becomes more coherent with the visual content of the image.
 
 Output:
 
@@ -305,92 +305,92 @@ Output:
 outputs/figures/xai_examples/
 ```
 
-Ogni figura dovrebbe confrontare:
+Each figure should compare:
 
-- immagine originale;
+- original image;
 - Grad-CAM overlay;
 - Integrated Gradients overlay;
-- classe vera;
-- classe predetta;
-- confidenza.
+- true class;
+- predicted class;
+- confidence.
 
-## 10. FASE 4: Stress test
+## 10. Phase 4: Stress Test
 
-Questa fase verra' implementata dopo conferma.
+This phase will be implemented after confirmation.
 
-L'obiettivo e' perturbare lo sfondo preservando, per quanto possibile, l'animale.
+The objective is to perturb the background while preserving the animal as much as possible.
 
-Approccio principale:
+Main approach:
 
-- usare `torchvision.models.detection.maskrcnn_resnet50_fpn`;
-- tentare di ottenere una maschera approssimata dell'animale;
-- applicare perturbazioni solo ai pixel fuori dalla maschera.
+- use `torchvision.models.detection.maskrcnn_resnet50_fpn`;
+- try to obtain an approximate animal mask;
+- apply perturbations only to pixels outside the mask.
 
-Perturbazioni previste:
+Planned perturbations:
 
-1. Gaussian Noise sullo sfondo;
-2. Color Shift con inversione canali RGB sullo sfondo;
-3. Background Swap con rumore uniforme.
+1. Gaussian Noise on the background;
+2. Color Shift through RGB channel inversion on the background;
+3. Background Swap with uniform noise.
 
-Problema noto:
+Known issue:
 
-Mask R-CNN e' addestrata su COCO, che non contiene tutte le classi AwA2. Alcuni animali potrebbero non essere segmentati correttamente.
+Mask R-CNN is trained on COCO, which does not contain all AwA2 classes. Some animals may not be segmented correctly.
 
 Fallback:
 
-- se la maschera fallisce, usare perturbazioni globali controllate;
-- registrare nel report che il campione ha usato fallback;
-- analizzare comunque la stabilita' della saliency rispetto a variazioni non semantiche.
+- if the mask fails, use controlled global perturbations;
+- record in the report that the sample used the fallback;
+- still analyze saliency stability with respect to non-semantic input changes.
 
-Questa scelta non invalida il progetto: se la mappa cambia molto anche per perturbazioni non semantiche, il punto critico resta valido.
+This does not invalidate the project: if the map changes substantially even under non-semantic perturbations, the critical point remains valid.
 
-## 11. FASE 5: Metriche quantitative
+## 11. Phase 5: Quantitative Metrics
 
-Questa fase verra' implementata dopo conferma.
+This phase will be implemented after confirmation.
 
-Per ogni immagine originale e perturbata:
+For every original and perturbed image:
 
-1. calcolare predizione modello;
-2. verificare se la predizione resta uguale;
-3. calcolare saliency originale;
-4. calcolare saliency perturbata;
-5. confrontare le due mappe.
+1. compute the model prediction;
+2. check whether the prediction is preserved;
+3. compute the original saliency;
+4. compute the perturbed saliency;
+5. compare the two maps.
 
-### 11.1 IoU della saliency
+### 11.1 Saliency IoU
 
-Si prendono i top 20% pixel piu' salienti nella mappa originale e nella mappa perturbata. Da ciascuna si ottiene una maschera binaria.
+Take the top 20% most salient pixels in the original map and in the perturbed map. Convert each map into a binary mask.
 
 Formula:
 
 ```text
-IoU = area(intersezione) / area(unione)
+IoU = area(intersection) / area(union)
 ```
 
-Interpretazione:
+Interpretation:
 
-- IoU alta: la spiegazione resta spazialmente simile;
-- IoU bassa: la spiegazione si sposta;
-- IoU bassa con predizione invariata: possibile instabilita' della spiegazione.
+- high IoU: the explanation remains spatially similar;
+- low IoU: the explanation moves;
+- low IoU with unchanged prediction: possible explanation instability.
 
 ### 11.2 Spearman Rank Correlation
 
-Si appiattiscono i tensori di salienza e si calcola la correlazione di rango di Spearman.
+Flatten the saliency tensors and compute Spearman rank correlation.
 
-Interpretazione:
+Interpretation:
 
-- correlazione alta: l'ordine di importanza dei pixel resta simile;
-- correlazione bassa o negativa: la gerarchia di importanza cambia;
-- correlazione bassa con predizione invariata: la spiegazione non e' robusta.
+- high correlation: the pixel-importance ordering remains similar;
+- low or negative correlation: the importance hierarchy changes;
+- low correlation with unchanged prediction: the explanation is not robust.
 
-## 12. Report finale
+## 12. Final Report
 
-Output previsto:
+Planned output:
 
 ```text
 outputs/reports/stress_test_results.csv
 ```
 
-Colonne previste:
+Planned columns:
 
 ```text
 image_id
@@ -410,78 +410,78 @@ spearman_correlation
 notes
 ```
 
-Figure previste:
+Planned figures:
 
 ```text
 outputs/figures/stress_test_grids/
 ```
 
-Ogni griglia dovrebbe mostrare:
+Each grid should show:
 
-- originale;
-- immagine perturbata;
-- Grad-CAM originale;
-- Grad-CAM perturbata;
-- Integrated Gradients originale;
-- Integrated Gradients perturbata.
+- original image;
+- perturbed image;
+- original Grad-CAM;
+- perturbed Grad-CAM;
+- original Integrated Gradients;
+- perturbed Integrated Gradients.
 
-## 13. Criterio di successo
+## 13. Success Criteria
 
-Il progetto ha successo se produce evidenza che:
+The project succeeds if it produces evidence that:
 
-- il modello mantiene spesso la stessa predizione dopo perturbazione dello sfondo;
-- le mappe XAI cambiano sensibilmente;
-- l'IoU tra saliency originali e perturbate diminuisce;
-- la correlazione di Spearman tra saliency originali e perturbate diminuisce;
-- le visualizzazioni mostrano spostamenti della salienza verso regioni non semantiche o instabili.
+- the model often preserves the same prediction after background perturbation;
+- the XAI maps change substantially;
+- IoU between original and perturbed saliency maps decreases;
+- Spearman correlation between original and perturbed saliency maps decreases;
+- visualizations show saliency shifts toward non-semantic or unstable regions.
 
-Non serve dimostrare che Grad-CAM o Integrated Gradients siano sempre inutili. L'obiettivo e' piu' preciso: mostrare che, in questo setting, possono essere fragili e fuorvianti se interpretati come spiegazioni causali.
+The goal is not to prove that Grad-CAM or Integrated Gradients are always useless. The claim is narrower: in this setting, they can be fragile and misleading if interpreted naively as causal explanations.
 
-## 14. Rischi sperimentali
+## 14. Experimental Risks
 
-### 14.1 Accuracy bassa
+### 14.1 Low Accuracy
 
-Se la baseline non impara abbastanza bene, le mappe XAI saranno poco informative. Soluzione:
+If the baseline does not learn well enough, the XAI maps will be less informative. Mitigations:
 
-- usare piu' immagini;
-- aumentare epoche;
-- sbloccare piu' layer;
-- controllare learning rate;
-- verificare class mapping e normalizzazione.
+- use more images;
+- increase epochs;
+- unfreeze more layers;
+- check the learning rate;
+- verify class mapping and normalization.
 
-### 14.2 Segmentazione fallita
+### 14.2 Failed Segmentation
 
-Mask R-CNN potrebbe non segmentare molti animali AwA2. Soluzione:
+Mask R-CNN may fail to segment many AwA2 animals. Mitigations:
 
-- usare fallback globale;
-- salvare `mask_status`;
-- non nascondere il fallimento, ma includerlo nell'analisi critica.
+- use the global fallback;
+- save `mask_status`;
+- do not hide the failure, but include it in the critical analysis.
 
-### 14.3 Integrated Gradients costoso
+### 14.3 Integrated Gradients Cost
 
-IG richiede molti forward pass. Soluzione:
+Integrated Gradients requires many forward passes. Mitigations:
 
-- usare GPU;
-- limitare numero immagini;
-- ridurre temporaneamente `n_steps` in debug;
-- usare batch piccoli;
-- calcolare IG solo su immagini predette correttamente.
+- use a GPU;
+- limit the number of images;
+- temporarily reduce `n_steps` in debug mode;
+- use small batches;
+- compute Integrated Gradients only for correctly predicted images.
 
-### 14.4 Interpretazione eccessiva delle saliency
+### 14.4 Over-Interpreting Saliency
 
-Le saliency maps non sono automaticamente spiegazioni causali. Il progetto deve evitare claim troppo forti. La formulazione corretta e':
+Saliency maps are not automatically causal explanations. The project must avoid overly strong claims. The correct framing is:
 
-> le saliency maps osservate sono instabili sotto perturbazioni controllate, quindi non dovrebbero essere interpretate ingenuamente come prova che il modello stia usando la morfologia dell'animale.
+> the observed saliency maps are unstable under controlled perturbations, so they should not be naively interpreted as proof that the model uses animal morphology.
 
-## 15. Comandi operativi FASE 1
+## 15. Phase 1 Commands
 
-Preparazione manifest completo:
+Prepare the full manifest:
 
 ```bash
 python scripts/prepare_awa2.py --data-root data/AWA2
 ```
 
-Preparazione manifest debug:
+Prepare the debug manifest:
 
 ```bash
 python scripts/prepare_awa2.py \
@@ -492,33 +492,32 @@ python scripts/prepare_awa2.py \
   --class-map-name class_to_idx_debug.csv
 ```
 
-Smoke test manifest completo:
+Smoke test the full manifest:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
 ```
 
-Smoke test manifest debug:
+Smoke test the debug manifest:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
 ```
 
-## 16. Stato attuale
+## 16. Current Status
 
-Implementato:
+Implemented:
 
-- setup directory;
-- FASE 1;
-- subset debug;
-- documentazione iniziale.
+- directory setup;
+- Phase 1;
+- debug subset mode;
+- initial documentation.
 
-Non ancora implementato:
+Not implemented yet:
 
-- FASE 2 training baseline;
-- FASE 3 XAI;
-- FASE 4 stress test;
-- FASE 5 metriche e report.
+- Phase 2 baseline training;
+- Phase 3 XAI;
+- Phase 4 stress test;
+- Phase 5 metrics and report.
 
-La prossima fase, dopo conferma, sara' la FASE 2.
-
+The next phase, after confirmation, will be Phase 2.
