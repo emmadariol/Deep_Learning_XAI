@@ -51,6 +51,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-ratio", type=float, default=0.70)
     parser.add_argument("--val-ratio", type=float, default=0.15)
     parser.add_argument("--test-ratio", type=float, default=0.15)
+    parser.add_argument(
+        "--max-classes",
+        type=int,
+        default=None,
+        help="Use only the first N sorted classes. Useful for debug manifests.",
+    )
+    parser.add_argument(
+        "--max-images-per-class",
+        type=int,
+        default=None,
+        help="Use at most N images per class before splitting. Useful for fast runs.",
+    )
+    parser.add_argument(
+        "--manifest-name",
+        type=str,
+        default="awa2_manifest.csv",
+        help="Output manifest filename.",
+    )
+    parser.add_argument(
+        "--class-map-name",
+        type=str,
+        default="class_to_idx.csv",
+        help="Output class mapping filename.",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
@@ -105,6 +129,42 @@ def collect_class_images(jpeg_dir: Path) -> dict[str, list[Path]]:
     return class_to_images
 
 
+def apply_subset(
+    class_to_images: dict[str, list[Path]],
+    max_classes: int | None,
+    max_images_per_class: int | None,
+    seed: int,
+) -> dict[str, list[Path]]:
+    """Return a deterministic class/image subset for fast pipeline debugging."""
+    selected_class_names = sorted(class_to_images)
+    if max_classes is not None:
+        if max_classes <= 0:
+            raise ValueError("--max-classes must be positive")
+        selected_class_names = selected_class_names[:max_classes]
+
+    rng = random.Random(seed)
+    subset: dict[str, list[Path]] = {}
+    for class_name in selected_class_names:
+        images = list(class_to_images[class_name])
+        if max_images_per_class is not None:
+            if max_images_per_class <= 0:
+                raise ValueError("--max-images-per-class must be positive")
+            rng.shuffle(images)
+            images = sorted(images[:max_images_per_class])
+        subset[class_name] = images
+
+    if max_classes is not None or max_images_per_class is not None:
+        total_images = sum(len(images) for images in subset.values())
+        LOGGER.info(
+            "Subset active: %d classes, %d total images, max_images_per_class=%s",
+            len(subset),
+            total_images,
+            max_images_per_class,
+        )
+
+    return subset
+
+
 def split_images(
     images: list[Path],
     train_ratio: float,
@@ -131,14 +191,16 @@ def split_images(
 def write_manifests(
     class_to_images: dict[str, list[Path]],
     manifest_dir: Path,
+    manifest_name: str,
+    class_map_name: str,
     train_ratio: float,
     val_ratio: float,
     test_ratio: float,
     seed: int,
 ) -> tuple[Path, Path]:
     manifest_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = manifest_dir / "awa2_manifest.csv"
-    class_map_path = manifest_dir / "class_to_idx.csv"
+    manifest_path = manifest_dir / manifest_name
+    class_map_path = manifest_dir / class_map_name
     rng = random.Random(seed)
     class_names = sorted(class_to_images)
     class_to_idx = {class_name: idx for idx, class_name in enumerate(class_names)}
@@ -201,12 +263,20 @@ def main() -> None:
 
     LOGGER.info("Using JPEGImages directory: %s", jpeg_dir)
     class_to_images = collect_class_images(jpeg_dir)
+    class_to_images = apply_subset(
+        class_to_images=class_to_images,
+        max_classes=args.max_classes,
+        max_images_per_class=args.max_images_per_class,
+        seed=args.seed,
+    )
     total_images = sum(len(images) for images in class_to_images.values())
     LOGGER.info("Collected %d images across %d classes", total_images, len(class_to_images))
 
     write_manifests(
         class_to_images=class_to_images,
         manifest_dir=manifest_dir,
+        manifest_name=args.manifest_name,
+        class_map_name=args.class_map_name,
         train_ratio=args.train_ratio,
         val_ratio=args.val_ratio,
         test_ratio=args.test_ratio,
@@ -216,4 +286,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

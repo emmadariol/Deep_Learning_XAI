@@ -29,6 +29,17 @@ Preparazione manifest:
 python scripts/prepare_awa2.py --data-root data/AWA2
 ```
 
+Manifest debug leggero:
+
+```bash
+python scripts/prepare_awa2.py \
+  --data-root data/AWA2 \
+  --max-classes 10 \
+  --max-images-per-class 200 \
+  --manifest-name awa2_manifest_debug.csv \
+  --class-map-name class_to_idx_debug.csv
+```
+
 Download opzionale:
 
 ```bash
@@ -41,3 +52,8 @@ Smoke test DataLoader:
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
 ```
 
+Smoke test sul subset:
+
+```bash
+python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
+```
