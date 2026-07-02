@@ -65,6 +65,9 @@ Deep_Learning_XAI/
       class_to_idx_debug.csv
   docs/
     PROJECT_EXPLANATION.md
+  notebooks/
+    01_phase1_prepare_awa2.ipynb
+    02_phase1_dataloader_smoke_test.ipynb
   outputs/
     checkpoints/
     figures/
@@ -97,6 +100,7 @@ At the moment, Phase 1 has been implemented:
 - DataLoader construction;
 - smoke testing;
 - lightweight debug subset mode.
+- notebook walkthroughs for the Phase 1 data pipeline.
 
 The next phases should only be implemented after explicit confirmation, to preserve the project's strict modular workflow.
 
@@ -235,8 +239,16 @@ Checks:
 - normalized tensor statistics;
 - denormalized tensor statistics;
 - pre-normalization range.
+- examples from the stable class mapping.
 
-This follows the "no black boxes" rule: even in Phase 1, tensors are inspected instead of merely trusting the code path.
+Notebook versions are also provided:
+
+```text
+notebooks/01_phase1_prepare_awa2.ipynb
+notebooks/02_phase1_dataloader_smoke_test.ipynb
+```
+
+Phase 1 is intentionally data-only. No gradients are tracked here; gradients will be enabled explicitly in the later XAI phase when Grad-CAM and Integrated Gradients are implemented.
 
 ## 8. Phase 2: Baseline Training and Fine-Tuning
 
