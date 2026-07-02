@@ -14,7 +14,14 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data import AwA2Dataset, build_dataloaders, build_debug_transform, denormalize_batch
+from src.data import (
+    AwA2Dataset,
+    build_dataloaders,
+    build_debug_transform,
+    denormalize_batch,
+    infer_class_map_path,
+    load_class_mapping,
+)
 from src.utils import set_seed, setup_logging
 
 LOGGER = logging.getLogger("check_dataloader")
@@ -26,6 +33,12 @@ def parse_args() -> argparse.Namespace:
         "--manifest",
         type=Path,
         default=PROJECT_ROOT / "data" / "AWA2" / "awa2_manifest.csv",
+    )
+    parser.add_argument(
+        "--class-map",
+        type=Path,
+        default=None,
+        help="Optional class_to_idx CSV. If omitted, the script infers it.",
     )
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--num-workers", type=int, default=0)
@@ -60,19 +73,41 @@ def print_manifest_summary(manifest_path: Path) -> None:
         )
 
 
+def print_class_mapping_examples(class_map_path: Path | None) -> None:
+    if class_map_path is None:
+        LOGGER.warning("No class mapping CSV found next to the manifest")
+        return
+
+    class_to_idx = load_class_mapping(class_map_path)
+    examples = list(class_to_idx.items())[:10]
+    LOGGER.info("Class mapping file: %s", class_map_path)
+    LOGGER.info("Number of mapped classes: %d", len(class_to_idx))
+    LOGGER.info("First class mapping rows:")
+    for class_name, label in examples:
+        LOGGER.info("  label=%d class=%s", label, class_name)
+
+
 def main() -> None:
     args = parse_args()
     setup_logging(args.log_level)
     set_seed(args.seed)
 
     manifest = args.manifest.expanduser().resolve()
+    class_map = (
+        args.class_map.expanduser().resolve()
+        if args.class_map is not None
+        else infer_class_map_path(manifest)
+    )
+
     print_manifest_summary(manifest)
+    print_class_mapping_examples(class_map)
 
     loaders = build_dataloaders(
         manifest_path=manifest,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=torch.cuda.is_available(),
+        class_map_path=class_map,
     )
 
     images, labels, class_names, paths = next(iter(loaders["train"]))
@@ -101,6 +136,7 @@ def main() -> None:
         manifest_path=manifest,
         split="train",
         transform=build_debug_transform(),
+        class_map_path=class_map,
     )
     raw_tensor, raw_label, raw_class, _ = debug_dataset[0]
     LOGGER.info(
@@ -115,4 +151,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

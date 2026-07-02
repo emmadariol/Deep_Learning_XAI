@@ -1,0 +1,23 @@
+# Local environments
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dataset and generated artifacts
+data/
+sample_data/
+outputs/
+
+# Notebook runtime files
+.ipynb_checkpoints/
+
+# Local project notes
+assumptions.md
+
+# Local OS/editor files
+.DS_Store
