@@ -45,7 +45,27 @@ python scripts/prepare_awa2.py \
   --class-map-name class_to_idx_debug.csv
 ```
 
-Create a portable subset from a full AwA2 copy:
+Create a full portable AwA2 copy resized to `128x128`:
+
+```bash
+python scripts/create_awa2_subset.py \
+  --source-root /path/to/AwA2 \
+  --output-root data/AWA2_resized_128 \
+  --preset none \
+  --num-classes 50 \
+  --max-images-per-class 100000 \
+  --resize-size 128 \
+  --resize-method pad \
+  --jpeg-quality 92 \
+  --seed 42 \
+  --make-zip
+```
+
+This keeps all available classes and images, only resizing the image files.
+AwA2 metadata/features files are not modified by this image-subset script; keep
+the original metadata alongside the resized image folder if needed.
+
+Create a reduced portable subset resized to `128x128`:
 
 ```bash
 python scripts/create_awa2_subset.py \
@@ -53,14 +73,18 @@ python scripts/create_awa2_subset.py \
   --output-root data/AWA2_subset_background20 \
   --preset background20 \
   --max-images-per-class 200 \
+  --resize-size 128 \
+  --resize-method pad \
+  --jpeg-quality 92 \
   --seed 42 \
   --make-zip
 ```
 
 The subset contains copied images plus `awa2_manifest_subset.csv`,
-`class_to_idx_subset.csv`, and `subset_summary.json`. Its manifest uses paths
-relative to the subset folder, and the project DataLoader resolves those paths
-from the manifest location.
+`class_to_idx_subset.csv`, and `subset_summary.json`. With the command above,
+images are saved as `128x128` JPEGs using aspect-ratio preserving padding. The
+manifest uses paths relative to the subset folder, and the project DataLoader
+resolves those paths from the manifest location.
 
 Optional download:
 

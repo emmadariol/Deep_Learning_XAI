@@ -138,6 +138,31 @@ def parse_args() -> argparse.Namespace:
         help="Create output-root.zip after the subset is generated.",
     )
     parser.add_argument(
+        "--resize-size",
+        type=int,
+        default=None,
+        help=(
+            "Optionally save each image as a square SIZE x SIZE image. "
+            "The default is no resizing."
+        ),
+    )
+    parser.add_argument(
+        "--resize-method",
+        choices=["pad", "crop", "stretch"],
+        default="pad",
+        help=(
+            "Resize strategy when --resize-size is set. 'pad' preserves the "
+            "whole image, 'crop' fills the square with center crop, and "
+            "'stretch' distorts to the target size."
+        ),
+    )
+    parser.add_argument(
+        "--jpeg-quality",
+        type=int,
+        default=92,
+        help="JPEG quality used when resized images are saved.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the selected classes and counts without copying files.",
@@ -313,9 +338,67 @@ def prepare_output_root(output_root: Path, allow_existing: bool) -> Path:
     return output_root
 
 
-def copy_image(source: Path, destination: Path, copy_mode: str) -> None:
+def resize_image(
+    source: Path,
+    destination: Path,
+    resize_size: int,
+    resize_method: str,
+    jpeg_quality: int,
+) -> None:
+    try:
+        from PIL import Image, ImageOps
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "Pillow is required for --resize-size. Install it with: pip install Pillow"
+        ) from exc
+
+    resampling = getattr(Image, "Resampling", Image).LANCZOS
+    with Image.open(source) as image:
+        image = ImageOps.exif_transpose(image).convert("RGB")
+        target_size = (resize_size, resize_size)
+
+        if resize_method == "pad":
+            resized = ImageOps.contain(image, target_size, method=resampling)
+            canvas = Image.new("RGB", target_size, color=(124, 116, 104))
+            offset = (
+                (resize_size - resized.width) // 2,
+                (resize_size - resized.height) // 2,
+            )
+            canvas.paste(resized, offset)
+            output = canvas
+        elif resize_method == "crop":
+            output = ImageOps.fit(image, target_size, method=resampling, centering=(0.5, 0.5))
+        elif resize_method == "stretch":
+            output = image.resize(target_size, resample=resampling)
+        else:
+            raise ValueError(f"Unsupported resize method: {resize_method}")
+
+        save_kwargs: dict[str, int | bool] = {}
+        if destination.suffix.lower() in {".jpg", ".jpeg"}:
+            save_kwargs = {"quality": jpeg_quality, "optimize": True}
+        output.save(destination, **save_kwargs)
+
+
+def copy_image(
+    source: Path,
+    destination: Path,
+    copy_mode: str,
+    resize_size: int | None,
+    resize_method: str,
+    jpeg_quality: int,
+) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists():
+        return
+
+    if resize_size is not None:
+        resize_image(
+            source=source,
+            destination=destination,
+            resize_size=resize_size,
+            resize_method=resize_method,
+            jpeg_quality=jpeg_quality,
+        )
         return
 
     if copy_mode == "copy":
@@ -377,6 +460,9 @@ def write_summary(
         "output_root": str(output_root),
         "seed": args.seed,
         "copy_mode": args.copy_mode,
+        "resize_size": args.resize_size,
+        "resize_method": args.resize_method if args.resize_size is not None else None,
+        "jpeg_quality": args.jpeg_quality if args.resize_size is not None else None,
         "max_images_per_class": args.max_images_per_class,
         "ratios": {
             "train": args.train_ratio,
@@ -413,6 +499,9 @@ Files:
 
 The manifest uses paths relative to this folder, so the subset can be moved to a
 different machine without rewriting the CSV.
+
+If the subset was generated with `--resize-size`, images were resized before
+being written. The resize configuration is stored in `subset_summary.json`.
 """
     path.write_text(text, encoding="utf-8")
     return path
@@ -444,6 +533,12 @@ def main() -> int:
     validate_ratios(args.train_ratio, args.val_ratio, args.test_ratio)
     if args.max_images_per_class <= 0:
         raise ValueError("--max-images-per-class must be positive")
+    if args.resize_size is not None and args.resize_size <= 0:
+        raise ValueError("--resize-size must be positive")
+    if not 1 <= args.jpeg_quality <= 100:
+        raise ValueError("--jpeg-quality must be between 1 and 100")
+    if args.resize_size is not None and args.copy_mode != "copy":
+        raise ValueError("--resize-size requires --copy-mode copy")
 
     jpeg_dir = find_jpeg_images_dir(args.source_root)
     class_to_images = collect_class_images(jpeg_dir)
@@ -475,7 +570,14 @@ def main() -> int:
         for split_name in ("train", "val", "test"):
             for source_path in split_to_images[split_name]:
                 destination = output_root / "JPEGImages" / class_name / source_path.name
-                copy_image(source_path, destination, args.copy_mode)
+                copy_image(
+                    source=source_path,
+                    destination=destination,
+                    copy_mode=args.copy_mode,
+                    resize_size=args.resize_size,
+                    resize_method=args.resize_method,
+                    jpeg_quality=args.jpeg_quality,
+                )
                 relative_path = destination.relative_to(output_root).as_posix()
                 samples.append(
                     CopiedSample(
