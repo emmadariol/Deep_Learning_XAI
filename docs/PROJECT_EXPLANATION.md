@@ -215,13 +215,15 @@ The `filepath` is kept because it will be useful in the XAI and stress-test phas
 The transforms follow the standard preprocessing used for ImageNet-pretrained ResNet models:
 
 ```text
-Resize(256)
-CenterCrop(224)
+Resize(128)
+CenterCrop(128)
 ToTensor()
 Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
 ```
 
-This matters because Phase 2 will use a ResNet50 pretrained on ImageNet. Using different statistics would introduce unnecessary distribution shift.
+The project keeps ImageNet mean and standard deviation because Phase 2 uses a
+ResNet50 architecture. The resized subset uses `128x128` inputs to keep the
+training and XAI loops lightweight.
 
 ### 7.4 Smoke Test
 
@@ -252,7 +254,7 @@ Phase 1 is intentionally data-only. No gradients are tracked here; gradients wil
 
 ## 8. Phase 2: Baseline Training and Fine-Tuning
 
-This phase will be implemented after confirmation.
+This phase has a minimal implementation.
 
 Goal:
 
@@ -264,7 +266,7 @@ Goal:
 - save the best checkpoint;
 - use Early Stopping.
 
-Planned architecture:
+Implemented architecture:
 
 ```text
 src/model.py
@@ -289,7 +291,7 @@ Minimum metrics:
 
 ## 9. Phase 3: XAI Extraction
 
-This phase will be implemented after confirmation.
+This phase has a minimal implementation.
 
 Methods:
 
@@ -523,13 +525,14 @@ Implemented:
 - directory setup;
 - Phase 1;
 - debug subset mode;
-- initial documentation.
+- resized portable subset generation;
+- initial documentation;
+- Phase 2 baseline training;
+- Phase 3 XAI extraction with explicit gradients.
 
 Not implemented yet:
 
-- Phase 2 baseline training;
-- Phase 3 XAI;
 - Phase 4 stress test;
 - Phase 5 metrics and report.
 
-The next phase, after confirmation, will be Phase 2.
+The next phase, after confirmation, will be Phase 4.

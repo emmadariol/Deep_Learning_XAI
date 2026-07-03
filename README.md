@@ -133,3 +133,66 @@ notebooks/02_phase1_dataloader_smoke_test.ipynb
 
 Phase 1 is data-only. Gradients are intentionally not tracked here; they will
 be enabled explicitly in the later XAI phase.
+
+## Phase 2 Baseline Training
+
+Quick smoke test without downloading pretrained weights:
+
+```bash
+python scripts/train_baseline.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --batch-size 8 \
+  --epochs 1 \
+  --max-train-batches 2 \
+  --max-val-batches 1 \
+  --no-pretrained
+```
+
+Baseline training with ImageNet pretrained ResNet50:
+
+```bash
+python scripts/train_baseline.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --batch-size 32 \
+  --epochs 5
+```
+
+Outputs:
+
+```text
+outputs/checkpoints/best_resnet50_awa2.pt
+outputs/reports/training_history.csv
+```
+
+## Phase 3 XAI Extraction
+
+After training, generate a small XAI grid:
+
+```bash
+python scripts/run_xai.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --output outputs/figures/xai_examples.png \
+  --max-images 4 \
+  --ig-steps 16
+```
+
+For a code-only smoke test from a weak checkpoint, allow misclassified examples:
+
+```bash
+python scripts/run_xai.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --output outputs/figures/xai_smoke_test.png \
+  --max-images 2 \
+  --ig-steps 4 \
+  --allow-incorrect
+```
+
+Implemented attribution methods:
+
+```text
+input gradient: explicit d(class score) / d(image)
+Grad-CAM: gradient of the class score at model.layer4[-1]
+Integrated Gradients: explicit gradient loop from a blurred baseline to the image
+```
