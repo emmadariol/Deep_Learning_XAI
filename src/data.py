@@ -83,6 +83,14 @@ def load_class_mapping(class_map_path: str | Path) -> dict[str, int]:
     return dict(sorted(class_to_idx.items(), key=lambda item: item[1]))
 
 
+def resolve_manifest_filepath(manifest_path: Path, filepath: str) -> Path:
+    """Resolve manifest image paths, accepting absolute or manifest-relative paths."""
+    path = Path(filepath).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (manifest_path.parent / path).resolve()
+
+
 class AwA2Dataset(Dataset):
     """PyTorch Dataset backed by a CSV manifest produced by prepare_awa2.py."""
 
@@ -146,7 +154,10 @@ class AwA2Dataset(Dataset):
                     continue
                 samples.append(
                     AwA2Sample(
-                        filepath=Path(row["filepath"]).expanduser().resolve(),
+                        filepath=resolve_manifest_filepath(
+                            self.manifest_path,
+                            row["filepath"],
+                        ),
                         label=int(row["label"]),
                         class_name=row["class_name"],
                         split=row["split"],

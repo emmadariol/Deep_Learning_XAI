@@ -45,6 +45,23 @@ python scripts/prepare_awa2.py \
   --class-map-name class_to_idx_debug.csv
 ```
 
+Create a portable subset from a full AwA2 copy:
+
+```bash
+python scripts/create_awa2_subset.py \
+  --source-root /path/to/AwA2 \
+  --output-root data/AWA2_subset_background20 \
+  --preset background20 \
+  --max-images-per-class 200 \
+  --seed 42 \
+  --make-zip
+```
+
+The subset contains copied images plus `awa2_manifest_subset.csv`,
+`class_to_idx_subset.csv`, and `subset_summary.json`. Its manifest uses paths
+relative to the subset folder, and the project DataLoader resolves those paths
+from the manifest location.
+
 Optional download:
 
 ```bash
@@ -74,6 +91,13 @@ Run the smoke test on the subset:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
+```
+
+Run the smoke test on a portable subset:
+
+```bash
+python scripts/check_dataloader.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv
 ```
 
 Notebook versions:
