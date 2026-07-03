@@ -8,8 +8,6 @@ import random
 from pathlib import Path
 
 import numpy as np
-import torch
-
 
 def setup_logging(level: str = "INFO") -> None:
     """Configure a compact, timestamped logger."""
@@ -22,13 +20,18 @@ def setup_logging(level: str = "INFO") -> None:
 
 
 def set_seed(seed: int) -> None:
-    """Seed Python, NumPy and PyTorch for reproducible data splits."""
+    """Seed Python, NumPy and PyTorch when it is installed."""
     random.seed(seed)
     np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
 
+    try:
+        import torch
+    except ModuleNotFoundError:
+        return
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
@@ -36,4 +39,3 @@ def set_seed(seed: int) -> None:
 def resolve_path(path: str | Path) -> Path:
     """Return an expanded absolute path."""
     return Path(path).expanduser().resolve()
-

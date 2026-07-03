@@ -1,87 +1,82 @@
-# The Illusion of Saliency Maps
+# Saliency Stress Test
 
-Stress testing Grad-CAM and Integrated Gradients on AwA2.
+Minimal PyTorch pipeline for Oxford-IIIT Pet classification, to support later Grad-CAM and Integrated Gradients analysis.
 
-## Directory Setup
+## Setup
 
-```text
-Deep_Learning_XAI/
-  configs/
-  data/
-    AWA2/
-      JPEGImages/
-  outputs/
-    checkpoints/
-    figures/
-    reports/
-  notebooks/
-  scripts/
-  src/
-```
-
-AwA2 requires roughly 13 GB of storage. You can either copy `JPEGImages/`
-manually into `data/AWA2/JPEGImages/`, or use the preparation script with
-`--download`.
-
-Do not commit the full dataset. Keep raw images in `data/`, on an external
-drive, or on shared storage; those paths are intentionally ignored by Git.
-
-## Phase 1
-
-Prepare the full manifest:
+Install dependencies:
 
 ```bash
-python scripts/prepare_awa2.py --data-root data/AWA2
+python3 -m pip install -r requirements.txt
 ```
 
-Prepare a lightweight debug manifest:
+Prepare Oxford-IIIT Pet:
 
 ```bash
-python scripts/prepare_awa2.py \
-  --data-root data/AWA2 \
-  --max-classes 10 \
-  --max-images-per-class 200 \
-  --manifest-name awa2_manifest_debug.csv \
+python3 scripts/prepare_oxford_pets.py --data-root data/OxfordPets --download
+```
+
+Optional debug manifest:
+
+```bash
+python3 scripts/prepare_oxford_pets.py \
+  --data-root data/OxfordPets \
+  --max-classes 8 \
+  --max-images-per-class 80 \
+  --manifest-name oxford_pets_manifest_debug.csv \
   --class-map-name class_to_idx_debug.csv
 ```
 
-Optional download:
+## Train Baseline
+
+Full manifest:
 
 ```bash
-python scripts/prepare_awa2.py --data-root data/AWA2 --download
+python3 scripts/train_baseline.py \
+  --manifest data/OxfordPets/oxford_pets_manifest.csv \
+  --batch-size 32 \
+  --epochs 20 \
+  --patience 5 \
+  --lr 1e-4
 ```
 
-Create a tiny synthetic dataset for local smoke tests:
+Debug manifest:
 
 ```bash
-python scripts/create_sample_awa2.py --output-root sample_data/AWA2
-python scripts/prepare_awa2.py \
-  --data-root sample_data/AWA2 \
-  --manifest-dir sample_data/AWA2 \
-  --manifest-name awa2_manifest_sample.csv \
-  --class-map-name class_to_idx_sample.csv
-python scripts/check_dataloader.py \
-  --manifest sample_data/AWA2/awa2_manifest_sample.csv
+python3 scripts/train_baseline.py \
+  --manifest data/OxfordPets/oxford_pets_manifest_debug.csv \
+  --batch-size 16 \
+  --epochs 5 \
+  --patience 2
 ```
 
-Run the DataLoader smoke test:
-
-```bash
-python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
-```
-
-Run the smoke test on the subset:
-
-```bash
-python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
-```
-
-Notebook versions:
+## Current Code
 
 ```text
-notebooks/01_phase1_prepare_awa2.ipynb
-notebooks/02_phase1_dataloader_smoke_test.ipynb
+src/data.py                  Dataset and DataLoaders
+src/model.py                 ResNet50 classifier
+src/train.py                 Training loop and checkpointing
+src/utils.py                 Logging, seeding, path helpers
+scripts/prepare_oxford_pets.py
+scripts/train_baseline.py
+notebooks/project_flow.ipynb Minimal function-call flow
 ```
 
-Phase 1 is data-only. Gradients are intentionally not tracked here; they will
-be enabled explicitly in the later XAI phase.
+## XAI Examples
+
+After training the baseline, generate Grad-CAM and Integrated Gradients examples:
+
+```bash
+python3 scripts/run_xai.py \
+  --manifest data/OxfordPets/oxford_pets_manifest.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_oxford_pets.pt \
+  --output outputs/figures/xai_examples.png \
+  --max-images 4
+```
+
+Outputs:
+
+```text
+outputs/checkpoints/best_resnet50_oxford_pets.pt
+outputs/reports/training_history_resnet50_oxford_pets.csv
+```

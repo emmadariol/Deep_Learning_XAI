@@ -1,2 +1,1 @@
-"""AwA2 saliency stress-test package."""
-
+"""Oxford-IIIT Pet saliency stress-test package."""

@@ -1,23 +1,31 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 # Local environments
 .venv/
 venv/
 env/
 
-# Python caches
-__pycache__/
-*.py[cod]
-*$py.class
+# Oxford-IIIT Pet dataset and large archives
+data/OxfordPets/images/
+data/OxfordPets/annotations/
+data/OxfordPets/*.tar.gz
+data/OxfordPets/*.tgz
+data/OxfordPets/*.zip
 
-# Dataset and generated artifacts
-data/
-sample_data/
-outputs/
+# Training and generated experiment artifacts
+outputs/checkpoints/
+outputs/figures/
+outputs/reports/
+*.pt
+*.pth
+*.ckpt
 
-# Notebook runtime files
-.ipynb_checkpoints/
-
-# Local project notes
-assumptions.md
-
-# Local OS/editor files
-.DS_Store
+# Keep output directories in the tree via .gitkeep if needed
+!outputs/checkpoints/.gitkeep
+!outputs/figures/.gitkeep
+!outputs/reports/.gitkeep
