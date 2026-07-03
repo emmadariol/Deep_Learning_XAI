@@ -12,6 +12,7 @@ __pycache__/
 data/
 sample_data/
 outputs/
+notebooks/outputs/
 
 # Notebook runtime files
 .ipynb_checkpoints/

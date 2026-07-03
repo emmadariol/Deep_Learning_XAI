@@ -92,32 +92,19 @@ Optional download:
 python scripts/prepare_awa2.py --data-root data/AWA2 --download
 ```
 
-Create a tiny synthetic dataset for local smoke tests:
-
-```bash
-python scripts/create_sample_awa2.py --output-root sample_data/AWA2
-python scripts/prepare_awa2.py \
-  --data-root sample_data/AWA2 \
-  --manifest-dir sample_data/AWA2 \
-  --manifest-name awa2_manifest_sample.csv \
-  --class-map-name class_to_idx_sample.csv
-python scripts/check_dataloader.py \
-  --manifest sample_data/AWA2/awa2_manifest_sample.csv
-```
-
-Run the DataLoader smoke test:
+Run the DataLoader sanity check:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
 ```
 
-Run the smoke test on the subset:
+Run the sanity check on the debug manifest:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
 ```
 
-Run the smoke test on a portable subset:
+Run the sanity check on a portable subset:
 
 ```bash
 python scripts/check_dataloader.py \
@@ -136,7 +123,7 @@ be enabled explicitly in the later XAI phase.
 
 ## Phase 2 Baseline Training
 
-Quick smoke test without downloading pretrained weights:
+Quick CPU/GPU sanity run without downloading pretrained weights:
 
 ```bash
 python scripts/train_baseline.py \
@@ -177,7 +164,7 @@ python scripts/run_xai.py \
   --ig-steps 16
 ```
 
-For a code-only smoke test from a weak checkpoint, allow misclassified examples:
+For a code-only sanity run from a weak checkpoint, allow misclassified examples:
 
 ```bash
 python scripts/run_xai.py \

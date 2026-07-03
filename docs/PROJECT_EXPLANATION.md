@@ -77,32 +77,33 @@ Deep_Learning_XAI/
     check_dataloader.py
     train_baseline.py
     run_xai.py
-    run_stress_test.py
-    generate_report.py
   src/
     __init__.py
     data.py
     model.py
     train.py
     xai.py
-    perturb.py
-    metrics.py
     utils.py
   README.md
   requirements.txt
 ```
 
-At the moment, Phase 1 has been implemented:
+At the moment, Phases 1-3 have been implemented:
 
 - manifest preparation;
 - custom PyTorch Dataset;
 - standard ResNet transforms;
 - DataLoader construction;
-- smoke testing;
+- DataLoader sanity checking;
 - lightweight debug subset mode.
-- notebook walkthroughs for the Phase 1 data pipeline.
+- ResNet50 baseline training;
+- checkpoint saving;
+- Grad-CAM extraction;
+- input-gradient saliency;
+- Integrated Gradients from a blurred baseline;
+- notebook walkthroughs for the current data, training and XAI pipeline.
 
-The next phases should only be implemented after explicit confirmation, to preserve the project's strict modular workflow.
+The next phases are the stress-test interventions and quantitative degradation metrics.
 
 ## 5. Dataset: AwA2
 
@@ -225,7 +226,7 @@ The project keeps ImageNet mean and standard deviation because Phase 2 uses a
 ResNet50 architecture. The resized subset uses `128x128` inputs to keep the
 training and XAI loops lightweight.
 
-### 7.4 Smoke Test
+### 7.4 Sanity Check
 
 File:
 
@@ -506,13 +507,13 @@ python scripts/prepare_awa2.py \
   --class-map-name class_to_idx_debug.csv
 ```
 
-Smoke test the full manifest:
+Sanity check the full manifest:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
 ```
 
-Smoke test the debug manifest:
+Sanity check the debug manifest:
 
 ```bash
 python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
