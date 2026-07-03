@@ -17,6 +17,7 @@ LOGGER = logging.getLogger(__name__)
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
+INPUT_IMAGE_SIZE = 128
 
 
 @dataclass(frozen=True)
@@ -213,8 +214,8 @@ def build_resnet_transforms(train: bool = False) -> transforms.Compose:
     _ = train
     return transforms.Compose(
         [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
+            transforms.Resize(INPUT_IMAGE_SIZE),
+            transforms.CenterCrop(INPUT_IMAGE_SIZE),
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]
@@ -225,8 +226,8 @@ def build_debug_transform() -> transforms.Compose:
     """Return preprocessing without normalization for tensor range inspection."""
     return transforms.Compose(
         [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
+            transforms.Resize(INPUT_IMAGE_SIZE),
+            transforms.CenterCrop(INPUT_IMAGE_SIZE),
             transforms.ToTensor(),
         ]
     )
