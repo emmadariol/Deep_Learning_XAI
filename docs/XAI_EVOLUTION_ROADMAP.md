@@ -154,7 +154,7 @@ how reliable was the explanation?
 
 ## Phase 5: Quantitative Metrics
 
-Status: future phase.
+Status: implemented for saliency degradation under Phase 4 perturbations.
 
 Metrics to implement:
 
@@ -162,8 +162,20 @@ Metrics to implement:
 - Spearman rank correlation between saliency maps;
 - confidence drop;
 - prediction flip rate;
+
+Main files:
+
+```text
+src/metrics.py
+scripts/run_phase5_metrics.py
+notebooks/05_phase5_metrics.ipynb
+```
+
+Still useful future extensions:
+
 - feature drift in internal ResNet layers;
-- saliency mass shift under perturbation.
+- saliency mass shift under perturbation;
+- aggregation plots across classes and perturbation types.
 
 Goal:
 

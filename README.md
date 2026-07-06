@@ -234,3 +234,44 @@ Outputs:
 outputs/figures/phase4_stress_test.png
 outputs/reports/phase4_stress_test.csv
 ```
+
+## Phase 5 Saliency Metrics
+
+Phase 5 recomputes saliency maps on the original and perturbed images from the
+Phase 4 setup, then measures explanation degradation.
+
+Implemented metrics:
+
+```text
+IoU top 20%: overlap between the most salient pixels before/after perturbation
+Spearman: rank correlation between flattened saliency maps
+confidence_delta: prediction confidence change after perturbation
+prediction_changed: whether the predicted class changed
+```
+
+Run Phase 5:
+
+```bash
+python scripts/run_phase5_metrics.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --csv-output outputs/reports/phase5_saliency_metrics.csv \
+  --figure-output outputs/figures/phase5_saliency_comparison.png \
+  --max-images 4 \
+  --xai-methods gradcam integrated_gradients \
+  --ig-steps 16 \
+  --mask-strategy center_ellipse
+```
+
+For a faster run:
+
+```bash
+python scripts/run_phase5_metrics.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --csv-output outputs/reports/phase5_saliency_metrics_fast.csv \
+  --figure-output outputs/figures/phase5_saliency_comparison_fast.png \
+  --max-images 2 \
+  --xai-methods gradcam \
+  --mask-strategy center_ellipse
+```
