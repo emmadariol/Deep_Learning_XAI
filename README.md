@@ -183,3 +183,54 @@ input gradient: explicit d(class score) / d(image)
 Grad-CAM: gradient of the class score at model.layer4[-1]
 Integrated Gradients: explicit gradient loop from a blurred baseline to the image
 ```
+
+## Phase 4 Background Stress Test
+
+AwA2 does not provide segmentation masks. The Phase 4 implementation therefore
+uses explicit approximate masks:
+
+```text
+center_ellipse: preserve the central elliptical region and perturb the outside
+center_box: preserve the central rectangular region and perturb the outside
+global: perturb the whole image as a fallback
+```
+
+Run the default background stress test:
+
+```bash
+python scripts/run_stress_test.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --figure-output outputs/figures/phase4_stress_test.png \
+  --csv-output outputs/reports/phase4_stress_test.csv \
+  --max-images 6 \
+  --mask-strategy center_ellipse
+```
+
+Implemented perturbations:
+
+```text
+gaussian_noise: add Gaussian noise only to approximate background pixels
+color_shift: invert RGB values only on approximate background pixels
+background_swap: replace approximate background pixels with uniform random noise
+```
+
+If the approximation is too weak for a specific image, run the fallback global
+test:
+
+```bash
+python scripts/run_stress_test.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --figure-output outputs/figures/phase4_stress_test_global.png \
+  --csv-output outputs/reports/phase4_stress_test_global.csv \
+  --max-images 6 \
+  --mask-strategy global
+```
+
+Outputs:
+
+```text
+outputs/figures/phase4_stress_test.png
+outputs/reports/phase4_stress_test.csv
+```
