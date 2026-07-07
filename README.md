@@ -275,3 +275,58 @@ python scripts/run_phase5_metrics.py \
   --xai-methods gradcam \
   --mask-strategy center_ellipse
 ```
+
+Inspect the generated metric CSV in a more intuitive way:
+
+```bash
+python scripts/inspect_phase5_metrics.py \
+  --csv outputs/reports/phase5_saliency_metrics.csv \
+  --output-dir outputs/reports
+```
+
+This creates summary CSVs and plots such as:
+
+```text
+outputs/reports/phase5_metric_summary.csv
+outputs/reports/phase5_prediction_transitions.csv
+outputs/reports/phase5_mean_iou_by_method.png
+outputs/reports/phase5_iou_vs_spearman.png
+```
+
+## Phase 6 Concept-Level Analysis
+
+Phase 6 moves from pixel-level saliency to AwA2 semantic concepts. It reads
+AwA2 attributes such as stripes, horns, hooves, furry, aquatic and color
+attributes, then connects prediction flips to concept-level class differences.
+
+Run Phase 6:
+
+```bash
+python scripts/run_phase6_concepts.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --metadata-root data/AWA2 \
+  --stress-csv outputs/reports/phase5_saliency_metrics.csv \
+  --class-profile-output outputs/reports/phase6_class_concepts.csv \
+  --transition-output outputs/reports/phase6_concept_transitions.csv \
+  --heatmap-output outputs/figures/phase6_class_concept_heatmap.png \
+  --transition-figure-output outputs/figures/phase6_concept_transition_examples.png
+```
+
+Outputs:
+
+```text
+outputs/reports/phase6_class_concepts.csv
+outputs/reports/phase6_concept_transitions.csv
+outputs/figures/phase6_class_concept_heatmap.png
+outputs/figures/phase6_concept_transition_examples.png
+```
+
+Notebook:
+
+```text
+notebooks/06_phase6_concepts.ipynb
+```
+
+This phase is the bridge toward TCAV: before training Concept Activation
+Vectors, the project now has an explicit concept vocabulary and a way to inspect
+whether saliency failures correspond to semantic class confusions.

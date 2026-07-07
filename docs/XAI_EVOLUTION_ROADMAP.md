@@ -187,7 +187,7 @@ This phase closes the critique of saliency maps.
 
 ## Phase 6: From Pixels to Concepts
 
-Status: future phase.
+Status: implemented as a concept-level AwA2 attribute audit.
 
 The next conceptual step is to move from:
 
@@ -228,6 +228,44 @@ to:
 ```text
 Which human-understandable concepts are important?
 ```
+
+Implemented files:
+
+```text
+src/concepts.py
+scripts/run_phase6_concepts.py
+notebooks/06_phase6_concepts.ipynb
+```
+
+Implemented outputs:
+
+```text
+outputs/reports/phase6_class_concepts.csv
+outputs/reports/phase6_concept_transitions.csv
+outputs/figures/phase6_class_concept_heatmap.png
+outputs/figures/phase6_concept_transition_examples.png
+```
+
+The first report lists the strongest semantic attributes for each animal class.
+The second report connects Phase 4/5 prediction flips to concept-vector changes,
+for example:
+
+```text
+original_prediction -> perturbed_prediction
+antelope -> horse
+```
+
+For every changed prediction, the script computes:
+
+- cosine similarity between class concept vectors;
+- mean absolute concept delta;
+- concepts gained in the perturbed prediction;
+- concepts lost from the original prediction;
+- concepts shared by both animals.
+
+This phase turns the saliency critique into a bridge toward concept-based XAI:
+instead of only saying "the heatmap moved", we can say which semantic animal
+profile the prediction moved toward.
 
 ## Phase 7: TCAV
 

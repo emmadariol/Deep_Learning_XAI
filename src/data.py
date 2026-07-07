@@ -1,4 +1,4 @@
-"""Data loading utilities for the Animals with Attributes 2 dataset."""
+"""Dataset and DataLoader utilities for image-classification manifests."""
 
 from __future__ import annotations
 
@@ -17,132 +17,68 @@ LOGGER = logging.getLogger(__name__)
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
-INPUT_IMAGE_SIZE = 128
 
 
 @dataclass(frozen=True)
-class AwA2Sample:
+class ManifestSample:
+    """One image-classification sample loaded from a CSV manifest."""
+
     filepath: Path
     label: int
     class_name: str
     split: str
+    extra: dict[str, str]
 
 
-def infer_class_map_path(manifest_path: str | Path) -> Path | None:
-    """Return the matching class mapping path when it follows project naming."""
-    manifest = Path(manifest_path).expanduser().resolve()
-    candidates: list[Path] = []
+class ImageManifestDataset(Dataset):
+    """PyTorch Dataset backed by a manifest with filepath/label/class/split columns.
 
-    if manifest.stem.startswith("awa2_manifest"):
-        suffix = manifest.stem.removeprefix("awa2_manifest")
-        candidates.append(manifest.with_name(f"class_to_idx{suffix}.csv"))
+    Required columns:
 
-    candidates.append(manifest.with_name("class_to_idx.csv"))
+    - ``filepath``
+    - ``label``
+    - ``class_name``
+    - ``split``
 
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def load_class_mapping(class_map_path: str | Path) -> dict[str, int]:
-    """Load a stable class_name -> label mapping produced by prepare_awa2.py."""
-    path = Path(class_map_path).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"Class mapping not found: {path}")
-
-    class_to_idx: dict[str, int] = {}
-    seen_labels: set[int] = set()
-    with path.open("r", newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        required = {"class_name", "label"}
-        missing = required.difference(reader.fieldnames or [])
-        if missing:
-            raise ValueError(f"Class mapping is missing columns: {sorted(missing)}")
-
-        for row in reader:
-            class_name = row["class_name"]
-            label = int(row["label"])
-            if class_name in class_to_idx:
-                raise ValueError(f"Duplicate class name in mapping: {class_name}")
-            if label in seen_labels:
-                raise ValueError(f"Duplicate label in mapping: {label}")
-            class_to_idx[class_name] = label
-            seen_labels.add(label)
-
-    if not class_to_idx:
-        raise ValueError(f"Class mapping is empty: {path}")
-
-    labels = sorted(class_to_idx.values())
-    expected = list(range(len(labels)))
-    if labels != expected:
-        raise ValueError(
-            "Class mapping labels must be contiguous and zero-based: "
-            f"expected {expected}, found {labels}"
-        )
-
-    return dict(sorted(class_to_idx.items(), key=lambda item: item[1]))
-
-
-def resolve_manifest_filepath(manifest_path: Path, filepath: str) -> Path:
-    """Resolve manifest image paths, accepting absolute or manifest-relative paths."""
-    path = Path(filepath).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    return (manifest_path.parent / path).resolve()
-
-
-class AwA2Dataset(Dataset):
-    """PyTorch Dataset backed by a CSV manifest produced by prepare_awa2.py."""
+    Additional columns, such as Oxford Pets ``mask_path`` or ``species``, are preserved
+    in ``sample.extra`` but are not required by the AwA2 pipeline.
+    """
 
     def __init__(
         self,
         manifest_path: str | Path,
         split: str,
         transform: Callable | None = None,
-        class_map_path: str | Path | None = None,
     ) -> None:
         self.manifest_path = Path(manifest_path).expanduser().resolve()
+        self.manifest_dir = self.manifest_path.parent
         self.split = split
         self.transform = transform
-        self.class_map_path = (
-            Path(class_map_path).expanduser().resolve()
-            if class_map_path is not None
-            else infer_class_map_path(self.manifest_path)
-        )
-        self.class_to_idx = (
-            load_class_mapping(self.class_map_path)
-            if self.class_map_path is not None
-            else {}
-        )
         self.samples = self._load_samples()
 
         if not self.samples:
-            raise ValueError(
-                f"No samples found for split='{split}' in {self.manifest_path}"
-            )
+            raise ValueError(f"No samples found for split='{split}' in {self.manifest_path}")
 
-        if self.class_to_idx:
-            self._validate_samples_against_mapping()
-        else:
-            self.class_to_idx = self._mapping_from_samples()
-
-        self.idx_to_class = {label: name for name, label in self.class_to_idx.items()}
-        self.classes = [self.idx_to_class[idx] for idx in sorted(self.idx_to_class)]
-        self.visible_classes = sorted({sample.class_name for sample in self.samples})
+        self.classes = sorted({sample.class_name for sample in self.samples})
         LOGGER.info(
-            "Loaded AwA2 split=%s with %d samples, %d visible classes and %d mapped classes",
+            "Loaded manifest split=%s with %d samples and %d visible classes from %s",
             split,
             len(self.samples),
-            len(self.visible_classes),
             len(self.classes),
+            self.manifest_path,
         )
 
-    def _load_samples(self) -> list[AwA2Sample]:
+    def _resolve_image_path(self, value: str) -> Path:
+        path = Path(value).expanduser()
+        if path.is_absolute():
+            return path.resolve()
+        return (self.manifest_dir / path).resolve()
+
+    def _load_samples(self) -> list[ManifestSample]:
         if not self.manifest_path.exists():
             raise FileNotFoundError(f"Manifest not found: {self.manifest_path}")
 
-        samples: list[AwA2Sample] = []
+        samples: list[ManifestSample] = []
         with self.manifest_path.open("r", newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
             required = {"filepath", "label", "class_name", "split"}
@@ -154,43 +90,19 @@ class AwA2Dataset(Dataset):
                 if row["split"] != self.split:
                     continue
                 samples.append(
-                    AwA2Sample(
-                        filepath=resolve_manifest_filepath(
-                            self.manifest_path,
-                            row["filepath"],
-                        ),
+                    ManifestSample(
+                        filepath=self._resolve_image_path(row["filepath"]),
                         label=int(row["label"]),
                         class_name=row["class_name"],
                         split=row["split"],
+                        extra={
+                            key: value
+                            for key, value in row.items()
+                            if key not in {"filepath", "label", "class_name", "split"}
+                        },
                     )
                 )
         return samples
-
-    def _mapping_from_samples(self) -> dict[str, int]:
-        class_to_idx: dict[str, int] = {}
-        for sample in self.samples:
-            existing = class_to_idx.get(sample.class_name)
-            if existing is not None and existing != sample.label:
-                raise ValueError(
-                    "Inconsistent labels for class "
-                    f"{sample.class_name}: {existing} and {sample.label}"
-                )
-            class_to_idx[sample.class_name] = sample.label
-        return dict(sorted(class_to_idx.items(), key=lambda item: item[1]))
-
-    def _validate_samples_against_mapping(self) -> None:
-        for sample in self.samples:
-            expected_label = self.class_to_idx.get(sample.class_name)
-            if expected_label is None:
-                raise ValueError(
-                    f"Class {sample.class_name} is missing from {self.class_map_path}"
-                )
-            if sample.label != expected_label:
-                raise ValueError(
-                    "Manifest label does not match class mapping for "
-                    f"{sample.class_name}: manifest={sample.label}, "
-                    f"mapping={expected_label}"
-                )
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -205,17 +117,17 @@ class AwA2Dataset(Dataset):
         return image, sample.label, sample.class_name, str(sample.filepath)
 
 
-def build_resnet_transforms(train: bool = False) -> transforms.Compose:
-    """Return standard ImageNet preprocessing for ResNet fine-tuning.
+AwA2Dataset = ImageManifestDataset
+OxfordPetDataset = ImageManifestDataset
 
-    The train flag is intentionally conservative in Phase 1: no stochastic
-    augmentation yet, so normalization checks are identical across splits.
-    """
+
+def build_resnet_transforms(train: bool = False) -> transforms.Compose:
+    """Return standard ImageNet preprocessing for ResNet fine-tuning."""
     _ = train
     return transforms.Compose(
         [
-            transforms.Resize(INPUT_IMAGE_SIZE),
-            transforms.CenterCrop(INPUT_IMAGE_SIZE),
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]
@@ -226,8 +138,8 @@ def build_debug_transform() -> transforms.Compose:
     """Return preprocessing without normalization for tensor range inspection."""
     return transforms.Compose(
         [
-            transforms.Resize(INPUT_IMAGE_SIZE),
-            transforms.CenterCrop(INPUT_IMAGE_SIZE),
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
             transforms.ToTensor(),
         ]
     )
@@ -238,16 +150,14 @@ def build_dataloaders(
     batch_size: int,
     num_workers: int,
     pin_memory: bool = True,
-    class_map_path: str | Path | None = None,
 ) -> dict[str, DataLoader]:
-    """Build train/val/test dataloaders from the AwA2 manifest."""
+    """Build train/val/test dataloaders from an image-classification manifest."""
     dataloaders: dict[str, DataLoader] = {}
     for split in ("train", "val", "test"):
-        dataset = AwA2Dataset(
+        dataset = ImageManifestDataset(
             manifest_path=manifest_path,
             split=split,
             transform=build_resnet_transforms(train=split == "train"),
-            class_map_path=class_map_path,
         )
         dataloaders[split] = DataLoader(
             dataset,
