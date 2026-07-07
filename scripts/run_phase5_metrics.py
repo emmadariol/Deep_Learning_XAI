@@ -278,7 +278,7 @@ def main() -> None:
     model.to(device)
     model.eval()
 
-    images, _labels, true_names, _predicted_names, _confidences = collect_correct_examples(
+    images, _labels, true_names, _predicted_names, _confidences, _image_paths = collect_correct_examples(
         model=model,
         loader=loaders["test"],
         device=device,

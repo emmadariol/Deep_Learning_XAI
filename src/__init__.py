@@ -1,2 +1,1 @@
-"""AwA2 saliency stress-test package."""
-
+"""AwA2 saliency and concept-level explainability package."""
