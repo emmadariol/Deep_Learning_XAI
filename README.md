@@ -380,3 +380,62 @@ Use `layer3` by default for TCAV. The final `layer4` output in ResNet50 is
 followed only by average pooling and the linear classifier, so class-score
 gradients can become nearly constant per class and TCAV scores can collapse to
 0/1.
+
+## Phase 8 Concept Bottleneck Model
+
+Phase 8 trains a simple interpretable-by-design model:
+
+```text
+image -> predicted AwA2 concepts -> class
+```
+
+The project uses AwA2 class-level semantic attributes as concept supervision.
+This means every image from a class receives the same concept vector. It is a
+useful bottleneck baseline, but it should be interpreted as class-level concept
+supervision rather than image-level concept annotation.
+
+Run Phase 8:
+
+```bash
+python scripts/run_phase8_cbm.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --metadata-root data/AWA2 \
+  --backbone-checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --checkpoint-output outputs/checkpoints/phase8_cbm.pt \
+  --history-output outputs/reports/phase8_cbm_history.csv \
+  --concept-metrics-output outputs/reports/phase8_concept_metrics.csv \
+  --predictions-output outputs/reports/phase8_cbm_predictions.csv \
+  --intervention-output outputs/reports/phase8_concept_interventions.csv \
+  --training-figure-output outputs/figures/phase8_cbm_training.png \
+  --concept-figure-output outputs/figures/phase8_concept_prediction_metrics.png \
+  --intervention-figure-output outputs/figures/phase8_concept_interventions.png \
+  --top-concepts 20 \
+  --epochs 5
+```
+
+Outputs:
+
+```text
+outputs/checkpoints/phase8_cbm.pt
+outputs/reports/phase8_cbm_history.csv
+outputs/reports/phase8_concept_metrics.csv
+outputs/reports/phase8_cbm_predictions.csv
+outputs/reports/phase8_concept_interventions.csv
+outputs/figures/phase8_cbm_training.png
+outputs/figures/phase8_concept_prediction_metrics.png
+outputs/figures/phase8_concept_interventions.png
+```
+
+Notebook:
+
+```text
+notebooks/08_phase8_concept_bottleneck.ipynb
+```
+
+Interpretation:
+
+```text
+high concept accuracy -> the image encoder can recover the selected semantic attributes
+high class accuracy   -> the predicted concepts are sufficient for classification
+large intervention    -> manually changing a concept strongly affects a class probability
+```
