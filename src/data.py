@@ -49,7 +49,9 @@ class ImageManifestDataset(Dataset):
         manifest_path: str | Path,
         split: str,
         transform: Callable | None = None,
+        class_map_path: str | Path | None = None,
     ) -> None:
+        _ = class_map_path
         self.manifest_path = Path(manifest_path).expanduser().resolve()
         self.manifest_dir = self.manifest_path.parent
         self.split = split
@@ -121,6 +123,53 @@ AwA2Dataset = ImageManifestDataset
 OxfordPetDataset = ImageManifestDataset
 
 
+def infer_class_map_path(manifest_path: str | Path) -> Path:
+    """Infer the class-to-index CSV path associated with a manifest."""
+    manifest = Path(manifest_path).expanduser().resolve()
+    manifest_dir = manifest.parent
+    candidates = [
+        manifest_dir / "class_to_idx.csv",
+        manifest_dir / "class_to_idx_debug.csv",
+        manifest_dir / "class_to_idx_subset.csv",
+    ]
+
+    if "debug" in manifest.stem:
+        candidates.insert(0, manifest_dir / "class_to_idx_debug.csv")
+    if "subset" in manifest.stem:
+        candidates.insert(0, manifest_dir / "class_to_idx_subset.csv")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        f"Could not infer class map for {manifest}. Expected one of: "
+        + ", ".join(str(path) for path in candidates)
+    )
+
+
+def load_class_mapping(class_map_path: str | Path) -> dict[int, str]:
+    """Load a class mapping CSV as label -> class_name."""
+    path = Path(class_map_path).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(path)
+
+    mapping: dict[int, str] = {}
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        required = {"class_name", "label"}
+        missing = required.difference(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"Class map is missing columns: {sorted(missing)}")
+
+        for row in reader:
+            mapping[int(row["label"])] = row["class_name"]
+
+    if not mapping:
+        raise ValueError(f"No class mappings found in {path}")
+    return dict(sorted(mapping.items()))
+
+
 def build_resnet_transforms(train: bool = False) -> transforms.Compose:
     """Return standard ImageNet preprocessing for ResNet fine-tuning."""
     _ = train
@@ -150,8 +199,10 @@ def build_dataloaders(
     batch_size: int,
     num_workers: int,
     pin_memory: bool = True,
+    class_map_path: str | Path | None = None,
 ) -> dict[str, DataLoader]:
     """Build train/val/test dataloaders from an image-classification manifest."""
+    _ = class_map_path
     dataloaders: dict[str, DataLoader] = {}
     for split in ("train", "val", "test"):
         dataset = ImageManifestDataset(

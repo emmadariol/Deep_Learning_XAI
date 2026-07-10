@@ -185,16 +185,33 @@ def save_xai_grid(
     gradcam_maps: torch.Tensor,
     ig_maps: torch.Tensor,
     true_names: list[str],
-    pred_names: list[str],
-    confidences: list[float],
-    output_path: str | Path,
+    pred_names: list[str] | None = None,
+    confidences: list[float] | None = None,
+    output_path: str | Path | None = None,
+    input_gradient_maps: torch.Tensor | None = None,
+    predicted_names: list[str] | None = None,
 ) -> None:
-    """Save image, Grad-CAM and Integrated Gradients overlays."""
+    """Save image and XAI overlays.
+
+    Supports both the older 3-column API and the richer notebook API that also
+    passes input-gradient saliency maps and ``predicted_names``.
+    """
+    if pred_names is None:
+        pred_names = predicted_names
+    if pred_names is None:
+        raise ValueError("pred_names or predicted_names must be provided.")
+    if confidences is None:
+        confidences = [float("nan")] * len(pred_names)
+    if output_path is None:
+        raise ValueError("output_path must be provided.")
+
     output_path = Path(output_path).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     denorm = denormalize_batch(images.detach().cpu()).clamp(0, 1)
     n_images = images.shape[0]
-    fig, axes = plt.subplots(n_images, 3, figsize=(10, 3.2 * n_images))
+    has_input_gradients = input_gradient_maps is not None
+    n_columns = 4 if has_input_gradients else 3
+    fig, axes = plt.subplots(n_images, n_columns, figsize=(3.4 * n_columns, 3.2 * n_images))
     if n_images == 1:
         axes = np.expand_dims(axes, axis=0)
 
@@ -205,10 +222,21 @@ def save_xai_grid(
 
         axes[idx, 0].imshow(image_np)
         axes[idx, 0].set_title(f"image\ntrue={true_names[idx]}")
-        axes[idx, 1].imshow(overlay_heatmap(image_np, gradcam_np))
-        axes[idx, 1].set_title(f"Grad-CAM\npred={pred_names[idx]} ({confidences[idx]:.2f})")
-        axes[idx, 2].imshow(overlay_heatmap(image_np, ig_np))
-        axes[idx, 2].set_title("Integrated Gradients\nblurred baseline")
+        next_col = 1
+
+        if has_input_gradients:
+            input_gradient_np = input_gradient_maps[idx, 0].detach().cpu().numpy()
+            axes[idx, next_col].imshow(overlay_heatmap(image_np, input_gradient_np))
+            axes[idx, next_col].set_title("Input gradients")
+            next_col += 1
+
+        axes[idx, next_col].imshow(overlay_heatmap(image_np, gradcam_np))
+        axes[idx, next_col].set_title(f"Grad-CAM\npred={pred_names[idx]} ({confidences[idx]:.2f})")
+        next_col += 1
+
+        axes[idx, next_col].imshow(overlay_heatmap(image_np, ig_np))
+        axes[idx, next_col].set_title("Integrated Gradients\nblurred baseline")
+
         for axis in axes[idx]:
             axis.axis("off")
 
