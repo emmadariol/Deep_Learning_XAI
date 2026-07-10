@@ -269,7 +269,7 @@ profile the prediction moved toward.
 
 ## Phase 7: TCAV
 
-Status: future phase.
+Status: implemented as a first TCAV pipeline over AwA2 semantic attributes.
 
 TCAV means:
 
@@ -286,6 +286,23 @@ Core idea:
 5. train a linear separator in activation space;
 6. use the separator direction as a Concept Activation Vector;
 7. measure whether moving along that concept direction increases the class score.
+
+Implemented files:
+
+```text
+src/tcav.py
+scripts/run_phase7_tcav.py
+notebooks/07_phase7_tcav.ipynb
+```
+
+Implemented outputs:
+
+```text
+outputs/reports/phase7_tcav_scores.csv
+outputs/reports/phase7_cav_summary.csv
+outputs/figures/phase7_tcav_heatmap.png
+outputs/figures/phase7_tcav_top_scores.png
+```
 
 Example:
 
@@ -398,7 +415,7 @@ Phase 6:
 load AwA2 semantic attributes as concept labels
 
 Phase 7:
-extract layer activations and implement TCAV
+extract layer activations and implement TCAV (implemented)
 
 Phase 8:
 train a simple image -> attributes -> class bottleneck model
