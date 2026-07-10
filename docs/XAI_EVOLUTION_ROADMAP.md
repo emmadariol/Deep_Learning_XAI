@@ -329,7 +329,7 @@ TCAV asks: which concept matters?
 
 ## Phase 8: Concept Bottleneck Models
 
-Status: future phase.
+Status: implemented as a first AwA2 class-attribute bottleneck baseline.
 
 A standard classifier works like this:
 
@@ -342,6 +342,33 @@ A Concept Bottleneck Model works like this:
 ```text
 image -> concepts -> class
 ```
+
+Implemented files:
+
+```text
+src/bottleneck.py
+scripts/run_phase8_cbm.py
+notebooks/08_phase8_concept_bottleneck.ipynb
+```
+
+Implemented outputs:
+
+```text
+outputs/checkpoints/phase8_cbm.pt
+outputs/reports/phase8_cbm_history.csv
+outputs/reports/phase8_concept_metrics.csv
+outputs/reports/phase8_cbm_predictions.csv
+outputs/reports/phase8_concept_interventions.csv
+outputs/figures/phase8_cbm_training.png
+outputs/figures/phase8_concept_prediction_metrics.png
+outputs/figures/phase8_concept_interventions.png
+```
+
+The current implementation uses AwA2 class-level attributes as concept targets.
+This makes the bottleneck explicit and inspectable, but it is not the same as
+image-level concept annotation. The correct interpretation is a lightweight
+concept-supervised baseline for comparing saliency, TCAV and bottleneck-style
+explanations.
 
 For AwA2:
 
@@ -418,7 +445,7 @@ Phase 7:
 extract layer activations and implement TCAV (implemented)
 
 Phase 8:
-train a simple image -> attributes -> class bottleneck model
+train a simple image -> attributes -> class bottleneck model (implemented)
 
 Phase 9:
 write the final comparison: saliency vs TCAV vs bottleneck
