@@ -330,3 +330,53 @@ notebooks/06_phase6_concepts.ipynb
 This phase is the bridge toward TCAV: before training Concept Activation
 Vectors, the project now has an explicit concept vocabulary and a way to inspect
 whether saliency failures correspond to semantic class confusions.
+
+## Phase 7 TCAV
+
+Phase 7 implements Testing with Concept Activation Vectors. It uses the AwA2
+semantic attributes from Phase 6 to select positive and negative concept
+examples, extracts pooled internal activations from the ResNet layer, trains a
+linear CAV, and measures whether each concept direction increases a target class
+score.
+
+Run Phase 7:
+
+```bash
+python scripts/run_phase7_tcav.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --metadata-root data/AWA2 \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --concepts stripes furry hooves horns flippers \
+  --layer layer3 \
+  --score-output outputs/reports/phase7_tcav_scores.csv \
+  --cav-output outputs/reports/phase7_cav_summary.csv \
+  --heatmap-output outputs/figures/phase7_tcav_heatmap.png \
+  --bar-output outputs/figures/phase7_tcav_top_scores.png
+```
+
+Outputs:
+
+```text
+outputs/reports/phase7_tcav_scores.csv
+outputs/reports/phase7_cav_summary.csv
+outputs/figures/phase7_tcav_heatmap.png
+outputs/figures/phase7_tcav_top_scores.png
+```
+
+Notebook:
+
+```text
+notebooks/07_phase7_tcav.ipynb
+```
+
+Interpretation:
+
+```text
+high TCAV score -> moving along the concept direction tends to increase the target class score
+low TCAV score  -> the class score is not consistently sensitive to that concept direction
+```
+
+Use `layer3` by default for TCAV. The final `layer4` output in ResNet50 is
+followed only by average pooling and the linear classifier, so class-score
+gradients can become nearly constant per class and TCAV scores can collapse to
+0/1.

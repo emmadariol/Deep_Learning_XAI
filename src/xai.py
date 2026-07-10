@@ -182,7 +182,7 @@ def overlay_heatmap(image: np.ndarray, heatmap: np.ndarray, alpha: float = 0.45)
 
 def save_xai_grid(
     images: torch.Tensor,
-    input_gradient_maps: torch.Tensor,  # <-- Aggiunto nuovo parametro
+    input_gradient_maps: torch.Tensor,
     gradcam_maps: torch.Tensor,
     ig_maps: torch.Tensor,
     true_names: list[str],
@@ -196,30 +196,25 @@ def save_xai_grid(
     denorm = denormalize_batch(images.detach().cpu()).clamp(0, 1)
     n_images = images.shape[0]
     
-    # Modificato da 3 a 4 colonne, e aumentata la larghezza della figura (figsize)
     fig, axes = plt.subplots(n_images, 4, figsize=(13, 3.2 * n_images))
     if n_images == 1:
         axes = np.expand_dims(axes, axis=0)
 
     for idx in range(n_images):
         image_np = denorm[idx].permute(1, 2, 0).numpy()
-        input_grad_np = input_gradient_maps[idx, 0].detach().cpu().numpy() # <-- Estratto numpy map
+        input_grad_np = input_gradient_maps[idx, 0].detach().cpu().numpy()
         gradcam_np = gradcam_maps[idx, 0].detach().cpu().numpy()
         ig_np = ig_maps[idx, 0].detach().cpu().numpy()
 
-        # Colonna 0: Immagine originale
         axes[idx, 0].imshow(image_np)
         axes[idx, 0].set_title(f"image\ntrue={true_names[idx]}")
         
-        # Colonna 1: Input Gradients (Nuova)
         axes[idx, 1].imshow(overlay_heatmap(image_np, input_grad_np))
         axes[idx, 1].set_title("Input Gradients")
 
-        # Colonna 2: Grad-CAM
         axes[idx, 2].imshow(overlay_heatmap(image_np, gradcam_np))
         axes[idx, 2].set_title(f"Grad-CAM\npred={pred_names[idx]} ({confidences[idx]:.2f})")
         
-        # Colonna 3: Integrated Gradients
         axes[idx, 3].imshow(overlay_heatmap(image_np, ig_np))
         axes[idx, 3].set_title("Integrated Gradients\nblurred baseline")
         
