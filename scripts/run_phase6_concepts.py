@@ -226,11 +226,7 @@ def main() -> None:
         PROJECT_ROOT / "data" / "AWA2",
         PROJECT_ROOT / "data",
     ]
-    metadata_root = (
-        args.metadata_root.expanduser().resolve()
-        if args.metadata_root is not None
-        else find_awa2_metadata_root([path for path in search_roots if path is not None])
-    )
+    metadata_root = find_awa2_metadata_root([path for path in search_roots if path is not None])
     LOGGER.info("manifest=%s", manifest)
     LOGGER.info("metadata_root=%s", metadata_root)
 

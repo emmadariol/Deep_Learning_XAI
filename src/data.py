@@ -51,9 +51,13 @@ class ImageManifestDataset(Dataset):
         transform: Callable | None = None,
         class_map_path: str | Path | None = None,
     ) -> None:
-        _ = class_map_path
         self.manifest_path = Path(manifest_path).expanduser().resolve()
         self.manifest_dir = self.manifest_path.parent
+        self.class_map_path = (
+            Path(class_map_path).expanduser().resolve()
+            if class_map_path is not None
+            else None
+        )
         self.split = split
         self.transform = transform
         self.samples = self._load_samples()
@@ -61,11 +65,21 @@ class ImageManifestDataset(Dataset):
         if not self.samples:
             raise ValueError(f"No samples found for split='{split}' in {self.manifest_path}")
 
-        self.classes = sorted({sample.class_name for sample in self.samples})
+        self.visible_classes = sorted({sample.class_name for sample in self.samples})
+        if self.class_map_path is not None:
+            self.idx_to_class = load_class_mapping(self.class_map_path)
+            self.classes = [self.idx_to_class[index] for index in sorted(self.idx_to_class)]
+        else:
+            self.idx_to_class = {
+                index: class_name for index, class_name in enumerate(self.visible_classes)
+            }
+            self.classes = list(self.visible_classes)
+
         LOGGER.info(
-            "Loaded manifest split=%s with %d samples and %d visible classes from %s",
+            "Loaded manifest split=%s with %d samples, %d visible classes, %d mapped classes from %s",
             split,
             len(self.samples),
+            len(self.visible_classes),
             len(self.classes),
             self.manifest_path,
         )
@@ -202,13 +216,13 @@ def build_dataloaders(
     class_map_path: str | Path | None = None,
 ) -> dict[str, DataLoader]:
     """Build train/val/test dataloaders from an image-classification manifest."""
-    _ = class_map_path
     dataloaders: dict[str, DataLoader] = {}
     for split in ("train", "val", "test"):
         dataset = ImageManifestDataset(
             manifest_path=manifest_path,
             split=split,
             transform=build_resnet_transforms(train=split == "train"),
+            class_map_path=class_map_path,
         )
         dataloaders[split] = DataLoader(
             dataset,

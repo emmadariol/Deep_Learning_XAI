@@ -58,13 +58,24 @@ def find_awa2_metadata_root(paths: list[str | Path]) -> Path:
     )
     required_all = ("classes.txt", "predicates.txt")
 
+    def is_metadata_root(candidate: Path) -> bool:
+        return all((candidate / name).exists() for name in required_all) and any(
+            (candidate / name).exists() for name in required_any
+        )
+
     for raw_path in paths:
         root = Path(raw_path).expanduser().resolve()
-        candidates = [root] + [path for path in root.rglob("*") if path.is_dir()]
+        candidates = [
+            root,
+            root / "Animals_with_Attributes2",
+            root / "AwA2" / "Animals_with_Attributes2",
+        ]
         for candidate in candidates:
-            if all((candidate / name).exists() for name in required_all) and any(
-                (candidate / name).exists() for name in required_any
-            ):
+            if candidate.is_dir() and is_metadata_root(candidate):
+                return candidate
+
+        for candidate in root.iterdir() if root.is_dir() else []:
+            if candidate.is_dir() and is_metadata_root(candidate):
                 return candidate
 
     raise FileNotFoundError(
