@@ -15,6 +15,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from src.data import IMAGENET_MEAN, IMAGENET_STD, denormalize_batch
@@ -178,6 +179,22 @@ def _replace_by_mask(original: torch.Tensor, replacement: torch.Tensor, mask: to
     return torch.where(mask_rgb, replacement, original)
 
 
+def _match_baseline_to_inputs(inputs: torch.Tensor, baseline: torch.Tensor) -> torch.Tensor:
+    baseline = baseline.detach().to(device=inputs.device, dtype=inputs.dtype)
+    if baseline.dim() != 4 or baseline.size(1) != inputs.size(1):
+        raise ValueError("baseline must have shape [N, C, H, W] with the same C as inputs.")
+    if baseline.shape[-2:] != inputs.shape[-2:]:
+        baseline = F.interpolate(baseline, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
+    if baseline.size(0) == inputs.size(0):
+        return baseline
+    if baseline.size(0) == 1:
+        return baseline.expand_as(inputs)
+    if baseline.size(0) < inputs.size(0):
+        repeats = (inputs.size(0) + baseline.size(0) - 1) // baseline.size(0)
+        baseline = baseline.repeat(repeats, 1, 1, 1)
+    return baseline[: inputs.size(0)]
+
+
 def deletion_insertion_curves(
     model: nn.Module,
     inputs: torch.Tensor,
@@ -194,6 +211,7 @@ def deletion_insertion_curves(
     """
     if baseline is None:
         baseline = blurred_baseline(inputs)
+    baseline = _match_baseline_to_inputs(inputs, baseline)
 
     deletion_scores: list[torch.Tensor] = []
     insertion_scores: list[torch.Tensor] = []
