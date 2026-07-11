@@ -405,11 +405,12 @@
       <span class="eyebrow">AwA2 explainability audit</span>
       <h1>The Illusion of Saliency Maps</h1>
       <p class="subtitle">
-        A complete PyTorch XAI project showing that visually convincing heatmaps can be unstable,
-        background-sensitive and weak evidence for semantic reasoning.
+        A complete PyTorch explainability project showing that visually convincing heatmaps can be
+        unstable, background-sensitive and weak evidence for semantic reasoning.
       </p>
       <div class="hero-actions">
-        <a class="button primary" href="#results">Read the results</a>
+        <a class="button primary" href="#explainability">Start with XAI</a>
+        <a class="button" href="#results">Read the results</a>
         <a class="button" href="#algorithms">Understand the algorithms</a>
         <a class="button" href="#beyond">Beyond saliency</a>
       </div>
@@ -418,6 +419,7 @@
 
   <main class="page">
     <nav class="toc" aria-label="Table of contents">
+      <a href="#explainability">Explainability</a>
       <a href="#problem">Problem</a>
       <a href="#pipeline">Pipeline</a>
       <a href="#algorithms">Algorithms</a>
@@ -428,6 +430,100 @@
       <a href="#advanced">Advanced audit</a>
       <a href="#conclusion">Conclusion</a>
     </nav>
+
+    <section id="explainability">
+      <div class="kicker">Foundations</div>
+      <h2>Explainability makes model behavior inspectable, testable and accountable.</h2>
+      <p class="lead">
+        Explainable AI studies how to expose the reasons, sensitivities and internal structure behind a
+        model prediction. In computer vision, this usually means connecting a class score to visual
+        evidence: pixels, regions, feature maps, concepts or explicit intermediate variables.
+      </p>
+
+      <div class="callout" style="margin-top: 24px;">
+        <strong>Working definition.</strong>
+        An explanation is useful when it helps a human understand which evidence the model used, how the
+        prediction would change under interventions, and whether the decision process is aligned with the
+        intended task rather than with dataset shortcuts.
+      </div>
+
+      <div class="grid three" style="margin-top: 24px;">
+        <div class="panel teal">
+          <h3>Transparency</h3>
+          <p>
+            The explanation should expose something about the model mechanism: gradients, activations,
+            concept directions, bottleneck variables or prediction changes after intervention.
+          </p>
+        </div>
+        <div class="panel blue">
+          <h3>Faithfulness</h3>
+          <p>
+            The explanation should track the evidence actually used by the model. If highlighted evidence
+            is removed, the class score should change in a coherent direction.
+          </p>
+        </div>
+        <div class="panel amber">
+          <h3>Human alignment</h3>
+          <p>
+            The explanation should be interpretable at the right abstraction level. Pixel heatmaps are
+            useful for localization; concepts such as stripes, horns or flippers are closer to human
+            semantic reasoning.
+          </p>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 32px;">A compact taxonomy of explanations</h3>
+      <table aria-label="Taxonomy of explainability methods">
+        <thead>
+          <tr>
+            <th>Axis</th>
+            <th>Meaning</th>
+            <th>Examples in this project</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Local vs global</td>
+            <td>Local explanations describe one prediction; global explanations describe broader model behavior.</td>
+            <td>Grad-CAM and Integrated Gradients are local. TCAV and concept summaries are closer to global diagnostics.</td>
+          </tr>
+          <tr>
+            <td>Post-hoc vs intrinsic</td>
+            <td>Post-hoc methods explain an already trained model; intrinsic methods build interpretability into the architecture.</td>
+            <td>Saliency maps are post-hoc. The Concept Bottleneck Model is intrinsic because concepts are part of the prediction path.</td>
+          </tr>
+          <tr>
+            <td>Feature vs concept level</td>
+            <td>Feature-level explanations assign relevance to pixels or activations; concept-level explanations use semantic attributes.</td>
+            <td>Input gradients operate on pixels. TCAV and the bottleneck operate on AwA2 semantic attributes.</td>
+          </tr>
+          <tr>
+            <td>Associational vs interventional</td>
+            <td>Associational explanations describe sensitivity; interventional tests modify evidence and measure prediction changes.</td>
+            <td>Gradients are sensitivity signals. Background perturbations, deletion and insertion curves are intervention-based tests.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="grid two" style="margin-top: 24px;">
+        <div class="panel rose">
+          <h3>The central risk</h3>
+          <p>
+            A model can classify an animal correctly for the wrong reason: snow for polar bear, water for
+            seal, grassland for antelope, texture or color statistics instead of morphology. A saliency map
+            can look convincing while still reflecting this shortcut.
+          </p>
+        </div>
+        <div class="panel green">
+          <h3>The audit principle</h3>
+          <p>
+            Explanations should be treated as hypotheses. A heatmap is credible only after testing
+            stability, class-specificity, faithfulness under deletion/insertion, and agreement with
+            higher-level concepts.
+          </p>
+        </div>
+      </div>
+    </section>
 
     <section id="problem">
       <div class="kicker">Research question</div>
