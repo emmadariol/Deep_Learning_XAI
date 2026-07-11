@@ -495,7 +495,7 @@
           <tr>
             <td>Feature vs concept level</td>
             <td>Feature-level explanations assign relevance to pixels or activations; concept-level explanations use semantic attributes.</td>
-            <td>Input gradients operate on pixels. TCAV and the bottleneck operate on AwA2 semantic attributes.</td>
+            <td>Input gradients measure derivatives with respect to normalized pixels. Grad-CAM operates on convolutional activations. TCAV and the bottleneck operate on AwA2 semantic attributes.</td>
           </tr>
           <tr>
             <td>Associational vs interventional</td>
@@ -594,9 +594,11 @@
           <div>
             <h3>Local attribution maps</h3>
             <p>
-              Input gradients, Grad-CAM and Integrated Gradients are computed for correctly and incorrectly
-              classified examples. Intermediate tensors are logged to inspect gradient magnitude,
-              activation scale and saliency normalization.
+              Input gradients, Grad-CAM and Integrated Gradients are computed for selected target classes
+              on correctly and incorrectly classified examples. These maps are local score-sensitivity
+              diagnostics: they indicate where the chosen logit is sensitive, not where the model
+              necessarily performs human-like semantic recognition. Intermediate tensors are logged to
+              inspect gradient magnitude, activation scale and saliency normalization.
             </p>
           </div>
         </div>
@@ -663,7 +665,7 @@
           <p>
             For class score <em>S<sub>c</sub>(x)</em>, vanilla saliency measures local sensitivity of the
             score to infinitesimal pixel changes. High values indicate pixels where a small perturbation
-            would most affect the selected class logit.
+            would most affect the selected class logit around the current input.
           </p>
           <div class="formula">M_grad(x, c) = reduce_channels(|d S_c(x) / d x|)</div>
           <p class="small">
@@ -675,17 +677,17 @@
         <div class="panel teal">
           <h3>Grad-CAM</h3>
           <p>
-            Grad-CAM explains a class score using the final convolutional feature maps. The gradient of the
-            class score with respect to each channel is globally averaged to obtain channel importance
-            weights. A weighted sum of activations is then rectified and upsampled.
+            Grad-CAM builds a coarse class-conditional localization map from the final convolutional
+            feature maps. The gradient of the class score with respect to each channel is globally averaged
+            to obtain channel weights. A weighted sum of activations is then rectified and upsampled.
           </p>
           <div class="formula">
 alpha_k^c = mean_{i,j}(d S_c / d A^k_{i,j})<br />
 M_cam^c = ReLU(sum_k alpha_k^c A^k)
           </div>
           <p class="small">
-            Interpretation limit: spatial resolution is coarse because ResNet50 layer4 activations are
-            7 x 7 before upsampling to image size.
+            Interpretation limit: the map is not pixel evidence. It is an upsampled 7 x 7 activation-level
+            signal, so apparent object boundaries can be visually suggestive but spatially imprecise.
           </p>
         </div>
 
@@ -694,7 +696,8 @@ M_cam^c = ReLU(sum_k alpha_k^c A^k)
           <p>
             Integrated Gradients accumulates gradients along a path from a baseline image to the original
             image. This project uses a heavily blurred version of the same image as baseline, preserving
-            global brightness and color statistics better than a black image.
+            global brightness and color statistics better than a black image while removing much of the
+            fine object structure.
           </p>
           <div class="formula">
 IG_i(x) = (x_i - x'_i) * integral_{a=0}^{1} d S_c(x' + a(x - x')) / d x_i da
@@ -760,24 +763,111 @@ TCAV(k,c) = P_x[D_{k,c}(x) &gt; 0]
       <h2>Correct and incorrect predictions reveal different attribution behavior.</h2>
       <p class="lead">
         The first visual inspection compares the original image with input gradients, Grad-CAM and
-        Integrated Gradients. Correct predictions often produce plausible object-centered maps, while
-        incorrect predictions expose ambiguity: the attribution can still look structured even when the
-        predicted class is wrong.
+        Integrated Gradients. These maps should be interpreted as target-score diagnostics, not as direct
+        statements about what the model understands. A correct prediction can have a misleading heatmap,
+        and an incorrect prediction can still produce a visually structured attribution map.
       </p>
+
+      <div class="callout" style="margin-top: 24px;">
+        <strong>How to read local attribution maps.</strong>
+        Input Gradients show immediate input sensitivity; Grad-CAM shows coarse sensitivity of the target
+        score to late convolutional activations; Integrated Gradients distributes score difference along a
+        path from the baseline to the image. None of these maps alone proves that the highlighted region is
+        causal, semantic or sufficient for the prediction.
+      </div>
+
+      <h3 style="margin-top: 32px;">Why some attribution interpretations are wrong</h3>
+      <p>
+        The most common mistake is to read a heatmap as if it were a human visual explanation. In this
+        project, the map is instead a mathematical object tied to a specific target score, preprocessing
+        pipeline and attribution method. The same image can produce different maps for the true class, the
+        predicted class and the second-best class.
+      </p>
+
+      <table aria-label="Common attribution interpretation errors">
+        <thead>
+          <tr>
+            <th>Incorrect interpretation</th>
+            <th>More precise interpretation</th>
+            <th>Why it matters here</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>The model is looking at this region.</td>
+            <td>The selected class score is sensitive to this region or activation pattern.</td>
+            <td>Sensitivity is not attention and not causal evidence. A highlighted background can still influence the logit.</td>
+          </tr>
+          <tr>
+            <td>The highlighted pixels caused the prediction.</td>
+            <td>The method assigns high attribution under its own assumptions. Causality requires intervention.</td>
+            <td>Deletion, insertion and background perturbations are needed to test whether the highlighted evidence is actually used.</td>
+          </tr>
+          <tr>
+            <td>A correct prediction means the explanation is correct.</td>
+            <td>The prediction and the explanation must be evaluated separately.</td>
+            <td>The model can predict the right animal using context, texture or dataset bias rather than morphology.</td>
+          </tr>
+          <tr>
+            <td>A coherent heatmap on a wrong prediction is useless.</td>
+            <td>It can still explain why the wrong class score became high.</td>
+            <td>Misclassified examples are valuable because they expose which evidence supports the model's error.</td>
+          </tr>
+          <tr>
+            <td>Grad-CAM precisely localizes the animal.</td>
+            <td>Grad-CAM is an upsampled low-resolution map from late convolutional activations.</td>
+            <td>Sharp-looking overlays can hide the fact that the original ResNet50 layer4 map is only about 7 x 7.</td>
+          </tr>
+          <tr>
+            <td>Integrated Gradients gives an absolute explanation.</td>
+            <td>Integrated Gradients explains score change relative to a chosen baseline.</td>
+            <td>The blurred baseline is intentionally used because a black baseline can introduce unrealistic contrast and brightness shifts.</td>
+          </tr>
+          <tr>
+            <td>Input gradients show semantic object parts.</td>
+            <td>Input gradients show local derivatives with respect to normalized RGB input values.</td>
+            <td>They can emphasize edges, texture, normalization artifacts or high-frequency sensitivity rather than animal morphology.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="grid two" style="margin-top: 24px;">
+        <div class="panel amber">
+          <h3>Target-class dependence</h3>
+          <p>
+            Every attribution map is conditioned on a target score. For a misclassified image, explaining
+            the predicted class and explaining the true class are different operations. A map for the wrong
+            predicted class should be read as evidence for the model's error, not as evidence for the true
+            label.
+          </p>
+        </div>
+        <div class="panel blue">
+          <h3>Normalization dependence</h3>
+          <p>
+            Heatmaps are usually min-max normalized independently per image. This makes visual overlays
+            readable, but it can exaggerate weak signals and make maps with different absolute magnitudes
+            look equally strong. Tensor statistics are therefore logged before relying on the visualization.
+          </p>
+        </div>
+      </div>
 
       <div class="figure">
         <img src="assets/xai-report/correct-attributions.png" alt="Correctly classified examples with saliency maps" />
         <p class="caption">
-          Correctly classified examples. Grad-CAM tends to emphasize broad discriminative regions; Integrated
-          Gradients and input gradients expose higher-frequency sensitivity.
+          Correctly classified examples. Grad-CAM gives a low-resolution class-conditional localization
+          signal, while Integrated Gradients and input gradients expose input-space sensitivity. The
+          relevant question is whether these signals remain stable and faithful under intervention, not
+          whether they look visually aligned with the animal.
         </p>
       </div>
 
       <div class="figure">
         <img src="assets/xai-report/incorrect-attributions.png" alt="Incorrectly classified examples with saliency maps" />
         <p class="caption">
-          Misclassified examples. The key diagnostic point is that a visually coherent heatmap can accompany
-          an incorrect label, so plausibility is insufficient as an explanation criterion.
+          Misclassified examples. The attribution is computed for the selected target score, often the
+          wrong predicted class. A coherent-looking heatmap can therefore explain the model's wrong score
+          assignment rather than the true animal identity. This is why visual plausibility is insufficient
+          as an explanation criterion.
         </p>
       </div>
     </section>
