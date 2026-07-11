@@ -20,7 +20,16 @@ from torch import nn
 from src.data import IMAGENET_MEAN, IMAGENET_STD, denormalize_batch
 from src.explainability_audit import rank_correlation, topk_iou
 from src.perturb import make_background_mask
-from src.xai import GradCAM, blurred_baseline, input_gradient_saliency, integrated_gradients_maps, normalize_maps, overlay_heatmap
+from src.xai import (
+    GradCAM,
+    ScoreCAM,
+    blurred_baseline,
+    expected_gradients_maps,
+    input_gradient_saliency,
+    integrated_gradients_maps,
+    normalize_maps,
+    overlay_heatmap,
+)
 
 
 @dataclass(frozen=True)
@@ -58,11 +67,16 @@ def compute_attribution(
     ig_steps: int = 24,
     ig_internal_batch_size: int | None = 4,
     blur_radius: float = 18.0,
+    scorecam_max_channels: int | None = 64,
+    scorecam_batch_size: int = 16,
+    expected_gradients_samples: int = 24,
+    expected_gradients_baselines: torch.Tensor | None = None,
 ) -> AttributionBundle:
     """Compute one normalized attribution map batch.
 
-    Supported methods are ``gradcam``, ``integrated_gradients`` and
-    ``input_gradients``. Maps are always returned with shape ``[B, 1, H, W]``.
+    Supported methods are ``gradcam``, ``scorecam``, ``integrated_gradients``,
+    ``expected_gradients`` and ``input_gradients``. Maps are always returned
+    with shape ``[B, 1, H, W]``.
     """
     if method == "gradcam":
         gradcam = GradCAM(model, model.layer4[-1])
@@ -70,6 +84,18 @@ def compute_attribution(
             return AttributionBundle(maps=gradcam(inputs, targets))
         finally:
             gradcam.close()
+    if method == "scorecam":
+        scorecam = ScoreCAM(
+            model,
+            model.layer4[-1],
+            max_channels=scorecam_max_channels,
+            batch_size=scorecam_batch_size,
+            blur_radius=blur_radius,
+        )
+        try:
+            return AttributionBundle(maps=scorecam(inputs, targets))
+        finally:
+            scorecam.close()
     if method == "integrated_gradients":
         maps, raw_attributions, baseline = integrated_gradients_maps(
             model=model,
@@ -80,9 +106,23 @@ def compute_attribution(
             blur_radius=blur_radius,
         )
         return AttributionBundle(maps=maps, raw_attributions=raw_attributions, baseline=baseline)
+    if method == "expected_gradients":
+        maps, raw_attributions, baseline_pool = expected_gradients_maps(
+            model=model,
+            inputs=inputs,
+            targets=targets,
+            baselines=expected_gradients_baselines,
+            n_samples=expected_gradients_samples,
+            internal_batch_size=ig_internal_batch_size,
+            blur_radius=blur_radius,
+        )
+        return AttributionBundle(maps=maps, raw_attributions=raw_attributions, baseline=baseline_pool)
     if method == "input_gradients":
         return AttributionBundle(maps=input_gradient_saliency(model, inputs, targets))
-    raise ValueError("method must be one of: gradcam, integrated_gradients, input_gradients")
+    raise ValueError(
+        "method must be one of: gradcam, scorecam, integrated_gradients, "
+        "expected_gradients, input_gradients"
+    )
 
 
 def saliency_entropy(maps: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
@@ -183,6 +223,10 @@ def sensitivity_to_noise(
     ig_steps: int = 16,
     ig_internal_batch_size: int | None = 4,
     blur_radius: float = 18.0,
+    scorecam_max_channels: int | None = 64,
+    scorecam_batch_size: int = 16,
+    expected_gradients_samples: int = 12,
+    expected_gradients_baselines: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Compare attribution maps before and after a small input perturbation."""
     reference = compute_attribution(
@@ -193,6 +237,10 @@ def sensitivity_to_noise(
         ig_steps=ig_steps,
         ig_internal_batch_size=ig_internal_batch_size,
         blur_radius=blur_radius,
+        scorecam_max_channels=scorecam_max_channels,
+        scorecam_batch_size=scorecam_batch_size,
+        expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_baselines=expected_gradients_baselines,
     ).maps
     noisy_inputs = (inputs + torch.randn_like(inputs) * noise_std).detach()
     candidate = compute_attribution(
@@ -203,6 +251,10 @@ def sensitivity_to_noise(
         ig_steps=ig_steps,
         ig_internal_batch_size=ig_internal_batch_size,
         blur_radius=blur_radius,
+        scorecam_max_channels=scorecam_max_channels,
+        scorecam_batch_size=scorecam_batch_size,
+        expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_baselines=expected_gradients_baselines,
     ).maps
     with torch.no_grad():
         reference_predictions = torch.softmax(model(inputs), dim=1).argmax(dim=1)
@@ -219,6 +271,10 @@ def class_discriminativeness(
     ig_internal_batch_size: int | None = 4,
     blur_radius: float = 18.0,
     top_fraction: float = 0.2,
+    scorecam_max_channels: int | None = 64,
+    scorecam_batch_size: int = 16,
+    expected_gradients_samples: int = 12,
+    expected_gradients_baselines: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Compare maps for top-1 and top-2 predicted classes on the same image."""
     logits, top1, _confidence = predict_with_logits(model, inputs)
@@ -231,6 +287,10 @@ def class_discriminativeness(
         ig_steps=ig_steps,
         ig_internal_batch_size=ig_internal_batch_size,
         blur_radius=blur_radius,
+        scorecam_max_channels=scorecam_max_channels,
+        scorecam_batch_size=scorecam_batch_size,
+        expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_baselines=expected_gradients_baselines,
     ).maps
     top2_maps = compute_attribution(
         model,
@@ -240,6 +300,10 @@ def class_discriminativeness(
         ig_steps=ig_steps,
         ig_internal_batch_size=ig_internal_batch_size,
         blur_radius=blur_radius,
+        scorecam_max_channels=scorecam_max_channels,
+        scorecam_batch_size=scorecam_batch_size,
+        expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_baselines=expected_gradients_baselines,
     ).maps
     ious = torch.tensor(
         [topk_iou(top1_maps[index], top2_maps[index], top_fraction) for index in range(inputs.size(0))],

@@ -1,4 +1,4 @@
-"""Grad-CAM and Integrated Gradients utilities for AwA2."""
+"""Attribution utilities for the AwA2 explainability audit."""
 
 from __future__ import annotations
 
@@ -71,6 +71,110 @@ class GradCAM:
         log_tensor_stats("gradcam.weights", weights)
         log_tensor_stats("gradcam.map", cam)
         return cam.detach()
+
+
+class ScoreCAM:
+    """Score-CAM implementation for one convolutional layer.
+
+    Score-CAM is gradient-free. It turns each selected activation channel into
+    an input mask, runs the masked image through the model, and uses the target
+    class probability as the channel weight.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        target_layer: nn.Module,
+        max_channels: int | None = 64,
+        batch_size: int = 16,
+        blur_radius: float = 18.0,
+    ) -> None:
+        self.model = model
+        self.target_layer = target_layer
+        self.max_channels = max_channels
+        self.batch_size = batch_size
+        self.blur_radius = blur_radius
+        self.activations: torch.Tensor | None = None
+        self._forward_handle = target_layer.register_forward_hook(self._save_activations)
+
+    def close(self) -> None:
+        self._forward_handle.remove()
+
+    def _save_activations(
+        self,
+        _module: nn.Module,
+        _inputs: tuple[torch.Tensor, ...],
+        output: torch.Tensor,
+    ) -> None:
+        self.activations = output.detach()
+
+    def __call__(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Return normalized Score-CAM maps with shape [B, 1, H, W]."""
+        self.model.eval()
+        with torch.no_grad():
+            _ = self.model(inputs)
+
+        if self.activations is None:
+            raise RuntimeError("Score-CAM hook did not capture activations.")
+
+        activations = F.relu(self.activations)
+        baseline = blurred_baseline(inputs, blur_radius=self.blur_radius)
+        maps: list[torch.Tensor] = []
+        selected_weights: list[torch.Tensor] = []
+
+        for index in range(inputs.size(0)):
+            sample_activations = activations[index : index + 1]
+            channel_scores = sample_activations.flatten(start_dim=2).amax(dim=2).squeeze(0)
+            if self.max_channels is not None and self.max_channels < channel_scores.numel():
+                channel_indices = torch.topk(channel_scores, k=self.max_channels).indices
+                sample_activations = sample_activations[:, channel_indices]
+            else:
+                channel_indices = torch.arange(channel_scores.numel(), device=inputs.device)
+
+            masks = F.interpolate(
+                sample_activations,
+                size=inputs.shape[-2:],
+                mode="bilinear",
+                align_corners=False,
+            )
+            masks = normalize_maps(masks)
+            masked_inputs = baseline[index : index + 1] + masks.transpose(0, 1) * (
+                inputs[index : index + 1] - baseline[index : index + 1]
+            )
+
+            weights: list[torch.Tensor] = []
+            for start in range(0, masked_inputs.size(0), self.batch_size):
+                batch = masked_inputs[start : start + self.batch_size]
+                probabilities = torch.softmax(self.model(batch), dim=1)
+                target = int(targets[index].item())
+                weights.append(probabilities[:, target].detach())
+            channel_weights = torch.cat(weights, dim=0).view(1, -1, 1, 1)
+
+            cam = (channel_weights * sample_activations).sum(dim=1, keepdim=True)
+            cam = F.relu(cam)
+            cam = F.interpolate(cam, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
+            maps.append(cam)
+            selected_weights.append(channel_weights.flatten())
+
+            LOGGER.info(
+                "scorecam.sample index=%d target=%d selected_channels=%d first_channel=%d",
+                index,
+                int(targets[index].item()),
+                int(sample_activations.size(1)),
+                int(channel_indices[0].item()) if channel_indices.numel() else -1,
+            )
+
+        scorecam_maps = normalize_maps(torch.cat(maps, dim=0))
+        weights_for_log = torch.nn.utils.rnn.pad_sequence(
+            [weights.detach().cpu() for weights in selected_weights],
+            batch_first=True,
+            padding_value=0.0,
+        )
+
+        log_tensor_stats("scorecam.activations", activations)
+        log_tensor_stats("scorecam.weights", weights_for_log)
+        log_tensor_stats("scorecam.map", scorecam_maps)
+        return scorecam_maps.detach()
 
 
 def normalize_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
@@ -152,6 +256,114 @@ def integrated_gradients(
     return maps
 
 
+def _prepare_expected_gradient_baselines(
+    inputs: torch.Tensor,
+    baselines: torch.Tensor | None,
+    blur_radius: float,
+) -> torch.Tensor:
+    if baselines is None:
+        if inputs.size(0) > 1:
+            rolled = torch.roll(inputs.detach(), shifts=1, dims=0)
+            blurred = blurred_baseline(inputs, blur_radius=blur_radius)
+            baselines = torch.cat([rolled, blurred], dim=0)
+        else:
+            baselines = blurred_baseline(inputs, blur_radius=blur_radius)
+    baselines = baselines.detach().to(device=inputs.device, dtype=inputs.dtype)
+    if baselines.dim() != 4 or baselines.size(1) != inputs.size(1):
+        raise ValueError("Expected baselines with shape [N, C, H, W].")
+    if baselines.shape[-2:] != inputs.shape[-2:]:
+        baselines = F.interpolate(baselines, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
+    return baselines
+
+
+def expected_gradients_maps(
+    model: nn.Module,
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    baselines: torch.Tensor | None = None,
+    n_samples: int = 24,
+    internal_batch_size: int | None = 8,
+    blur_radius: float = 18.0,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Compute Expected Gradients with a distributed baseline.
+
+    Expected Gradients estimates an expectation over baseline images and random
+    interpolation coefficients:
+
+        E_{x', alpha} [(x - x') * dS_c(x' + alpha(x - x')) / dx]
+
+    ``baselines`` should contain normalized images from a reference distribution,
+    usually training images. If omitted, the current batch plus blurred baselines
+    is used as a small fallback distribution.
+    """
+    if n_samples < 1:
+        raise ValueError("n_samples must be at least 1.")
+
+    model.eval()
+    baseline_pool = _prepare_expected_gradient_baselines(inputs, baselines, blur_radius)
+    batch_size = inputs.size(0)
+    total = batch_size * n_samples
+    internal_batch_size = internal_batch_size or total
+
+    generator = torch.Generator(device=inputs.device)
+    generator.manual_seed(1729)
+    baseline_indices = torch.randint(
+        low=0,
+        high=baseline_pool.size(0),
+        size=(batch_size, n_samples),
+        device=inputs.device,
+        generator=generator,
+    )
+    alphas = torch.rand(batch_size, n_samples, 1, 1, 1, device=inputs.device, generator=generator)
+
+    sampled_baselines = baseline_pool[baseline_indices].reshape(total, *inputs.shape[1:])
+    expanded_inputs = inputs.unsqueeze(1).expand(-1, n_samples, -1, -1, -1).reshape(total, *inputs.shape[1:])
+    expanded_targets = targets.unsqueeze(1).expand(-1, n_samples).reshape(total)
+    flat_alphas = alphas.reshape(total, 1, 1, 1)
+    path_inputs = sampled_baselines + flat_alphas * (expanded_inputs - sampled_baselines)
+
+    attribution_chunks: list[torch.Tensor] = []
+    for start in range(0, total, internal_batch_size):
+        end = min(start + internal_batch_size, total)
+        chunk = path_inputs[start:end].detach().clone().requires_grad_(True)
+        logits = model(chunk)
+        selected_scores = logits.gather(1, expanded_targets[start:end].view(-1, 1)).sum()
+        gradients = torch.autograd.grad(selected_scores, chunk)[0]
+        attribution_chunks.append((expanded_inputs[start:end] - sampled_baselines[start:end]) * gradients)
+
+    attributions = torch.cat(attribution_chunks, dim=0).view(batch_size, n_samples, *inputs.shape[1:]).mean(dim=1)
+    maps = normalize_maps(attributions.abs().sum(dim=1, keepdim=True))
+
+    log_tensor_stats("expected_gradients.baseline_pool", baseline_pool)
+    log_tensor_stats("expected_gradients.sampled_baselines", sampled_baselines)
+    log_tensor_stats("expected_gradients.alphas", alphas)
+    log_tensor_stats("expected_gradients.attributions", attributions)
+    log_tensor_stats("expected_gradients.map", maps)
+    return maps.detach(), attributions.detach(), baseline_pool.detach()
+
+
+def expected_gradients(
+    model: nn.Module,
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    baselines: torch.Tensor | None = None,
+    n_samples: int = 24,
+    internal_batch_size: int | None = 8,
+    blur_radius: float = 18.0,
+) -> torch.Tensor:
+    """Return only normalized Expected Gradients maps for metric pipelines."""
+    maps, _attributions, _baseline_pool = expected_gradients_maps(
+        model=model,
+        inputs=inputs,
+        targets=targets,
+        baselines=baselines,
+        n_samples=n_samples,
+        internal_batch_size=internal_batch_size,
+        blur_radius=blur_radius,
+    )
+    return maps
+
+
 def input_gradient_saliency(
     model: nn.Module,
     inputs: torch.Tensor,
@@ -182,42 +394,62 @@ def overlay_heatmap(image: np.ndarray, heatmap: np.ndarray, alpha: float = 0.45)
 
 def save_xai_grid(
     images: torch.Tensor,
-    input_gradient_maps: torch.Tensor,
     gradcam_maps: torch.Tensor,
     ig_maps: torch.Tensor,
     true_names: list[str],
-    pred_names: list[str],
-    confidences: list[float],
-    output_path: str | Path,
+    pred_names: list[str] | None = None,
+    confidences: list[float] | None = None,
+    output_path: str | Path | None = None,
+    input_gradient_maps: torch.Tensor | None = None,
+    predicted_names: list[str] | None = None,
+    scorecam_maps: torch.Tensor | None = None,
+    expected_gradients_maps: torch.Tensor | None = None,
 ) -> None:
-    """Save image, Input Gradients, Grad-CAM and Integrated Gradients overlays."""
+    """Save image and XAI overlays.
+
+    Supports both the older 3-column API and the richer notebook API that also
+    passes input-gradient saliency maps and ``predicted_names``.
+    """
+    if pred_names is None:
+        pred_names = predicted_names
+    if pred_names is None:
+        raise ValueError("pred_names or predicted_names must be provided.")
+    if confidences is None:
+        confidences = [float("nan")] * len(pred_names)
+    if output_path is None:
+        raise ValueError("output_path must be provided.")
+
     output_path = Path(output_path).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     denorm = denormalize_batch(images.detach().cpu()).clamp(0, 1)
     n_images = images.shape[0]
-    
-    fig, axes = plt.subplots(n_images, 4, figsize=(13, 3.2 * n_images))
+    method_columns: list[tuple[str, torch.Tensor]] = []
+    if input_gradient_maps is not None:
+        method_columns.append(("Input gradients", input_gradient_maps))
+    method_columns.append(("Grad-CAM", gradcam_maps))
+    if scorecam_maps is not None:
+        method_columns.append(("Score-CAM", scorecam_maps))
+    method_columns.append(("Integrated Gradients\nblurred baseline", ig_maps))
+    if expected_gradients_maps is not None:
+        method_columns.append(("Expected Gradients\nbaseline distribution", expected_gradients_maps))
+
+    n_columns = 1 + len(method_columns)
+    fig, axes = plt.subplots(n_images, n_columns, figsize=(3.4 * n_columns, 3.2 * n_images))
     if n_images == 1:
         axes = np.expand_dims(axes, axis=0)
 
     for idx in range(n_images):
         image_np = denorm[idx].permute(1, 2, 0).numpy()
-        input_grad_np = input_gradient_maps[idx, 0].detach().cpu().numpy()
-        gradcam_np = gradcam_maps[idx, 0].detach().cpu().numpy()
-        ig_np = ig_maps[idx, 0].detach().cpu().numpy()
-
         axes[idx, 0].imshow(image_np)
-        axes[idx, 0].set_title(f"image\ntrue={true_names[idx]}")
-        
-        axes[idx, 1].imshow(overlay_heatmap(image_np, input_grad_np))
-        axes[idx, 1].set_title("Input Gradients")
+        axes[idx, 0].set_title(
+            f"image\ntrue={true_names[idx]}\npred={pred_names[idx]} ({confidences[idx]:.2f})"
+        )
 
-        axes[idx, 2].imshow(overlay_heatmap(image_np, gradcam_np))
-        axes[idx, 2].set_title(f"Grad-CAM\npred={pred_names[idx]} ({confidences[idx]:.2f})")
-        
-        axes[idx, 3].imshow(overlay_heatmap(image_np, ig_np))
-        axes[idx, 3].set_title("Integrated Gradients\nblurred baseline")
-        
+        for offset, (title, maps) in enumerate(method_columns, start=1):
+            map_np = maps[idx, 0].detach().cpu().numpy()
+            axes[idx, offset].imshow(overlay_heatmap(image_np, map_np))
+            axes[idx, offset].set_title(title)
+
         for axis in axes[idx]:
             axis.axis("off")
 
@@ -225,6 +457,7 @@ def save_xai_grid(
     fig.savefig(output_path, dpi=160, bbox_inches="tight")
     plt.close(fig)
     LOGGER.info("Saved XAI grid: %s", output_path)
+
 
 def log_tensor_stats(name: str, tensor: torch.Tensor) -> None:
     """Log compact tensor statistics for normalization/debug checks."""

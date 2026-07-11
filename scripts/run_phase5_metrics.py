@@ -26,7 +26,14 @@ from src.metrics import (
 from src.model import build_resnet50_classifier, get_device
 from src.perturb import apply_perturbation_suite, predict_batch
 from src.utils import set_seed, setup_logging
-from src.xai import GradCAM, input_gradient_saliency, integrated_gradients, overlay_heatmap
+from src.xai import (
+    GradCAM,
+    ScoreCAM,
+    expected_gradients,
+    input_gradient_saliency,
+    integrated_gradients,
+    overlay_heatmap,
+)
 
 LOGGER = logging.getLogger("run_phase5_metrics")
 
@@ -78,13 +85,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--xai-methods",
         nargs="+",
-        choices=["input_gradient", "gradcam", "integrated_gradients"],
-        default=["gradcam", "integrated_gradients"],
+        choices=["input_gradient", "gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
+        default=["gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
     )
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--max-images", type=int, default=4)
     parser.add_argument("--ig-steps", type=int, default=16)
+    parser.add_argument("--expected-gradient-samples", type=int, default=12)
+    parser.add_argument("--scorecam-max-channels", type=int, default=48)
+    parser.add_argument("--scorecam-batch-size", type=int, default=16)
     parser.add_argument("--top-percent", type=float, default=20.0)
     parser.add_argument("--allow-incorrect", action="store_true")
     parser.add_argument(
@@ -106,6 +116,9 @@ def compute_saliency_maps(
     targets: torch.Tensor,
     method: str,
     ig_steps: int,
+    expected_gradient_samples: int = 12,
+    scorecam_max_channels: int | None = 48,
+    scorecam_batch_size: int = 16,
 ) -> torch.Tensor:
     """Compute one saliency method for a batch."""
     if method == "input_gradient":
@@ -116,8 +129,27 @@ def compute_saliency_maps(
             return gradcam(images, targets)
         finally:
             gradcam.close()
+    if method == "scorecam":
+        scorecam = ScoreCAM(
+            model,
+            model.layer4[-1],
+            max_channels=scorecam_max_channels,
+            batch_size=scorecam_batch_size,
+        )
+        try:
+            return scorecam(images, targets)
+        finally:
+            scorecam.close()
     if method == "integrated_gradients":
         return integrated_gradients(model, images, targets, steps=ig_steps)
+    if method == "expected_gradients":
+        return expected_gradients(
+            model,
+            images,
+            targets,
+            n_samples=expected_gradient_samples,
+            internal_batch_size=4,
+        )
     raise ValueError(f"Unsupported XAI method: {method}")
 
 
@@ -317,6 +349,9 @@ def main() -> None:
                 targets=target_labels,
                 method=xai_method,
                 ig_steps=args.ig_steps,
+                expected_gradient_samples=args.expected_gradient_samples,
+                scorecam_max_channels=args.scorecam_max_channels,
+                scorecam_batch_size=args.scorecam_batch_size,
             ).detach().cpu()
         }
         for perturbation_name, perturbed_images in perturbed_batches.items():
@@ -326,6 +361,9 @@ def main() -> None:
                 targets=target_labels,
                 method=xai_method,
                 ig_steps=args.ig_steps,
+                expected_gradient_samples=args.expected_gradient_samples,
+                scorecam_max_channels=args.scorecam_max_channels,
+                scorecam_batch_size=args.scorecam_batch_size,
             ).detach().cpu()
         saliency_maps[xai_method] = method_maps
 
