@@ -1,4 +1,4 @@
-"""Run Grad-CAM and Integrated Gradients on correctly predicted AwA2 images."""
+"""Run attribution methods on selected AwA2 images."""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ from src.model import build_resnet50_classifier, get_device
 from src.utils import set_seed, setup_logging
 from src.xai import (
     GradCAM,
+    ScoreCAM,
+    expected_gradients_maps,
     integrated_gradients_maps,
     log_tensor_stats,
     save_xai_grid,
@@ -27,7 +29,7 @@ LOGGER = logging.getLogger("run_xai")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate AwA2 Grad-CAM and IG examples.")
+    parser = argparse.ArgumentParser(description="Generate AwA2 attribution examples.")
     parser.add_argument(
         "--manifest",
         type=Path,
@@ -49,6 +51,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-per-class", type=int, default=1)
     parser.add_argument("--ig-steps", type=int, default=50)
     parser.add_argument("--ig-internal-batch-size", type=int, default=4)
+    parser.add_argument("--expected-gradient-samples", type=int, default=24)
+    parser.add_argument("--expected-gradient-baselines", type=int, default=16)
+    parser.add_argument("--scorecam-max-channels", type=int, default=64)
+    parser.add_argument("--scorecam-batch-size", type=int, default=16)
     parser.add_argument("--blur-radius", type=float, default=18.0)
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--seed", type=int, default=42)
@@ -245,6 +251,28 @@ def collect_incorrect_examples(
     )
 
 
+def collect_reference_images(
+    loader: torch.utils.data.DataLoader,
+    device: torch.device,
+    max_images: int = 16,
+) -> torch.Tensor:
+    """Collect normalized images from a loader for Expected Gradients baselines."""
+    images_out: list[torch.Tensor] = []
+    for batch in loader:
+        images = batch[0]
+        for image in images:
+            images_out.append(image.detach().cpu())
+            if len(images_out) >= max_images:
+                reference = torch.stack(images_out, dim=0).to(device)
+                log_tensor_stats("expected_gradients.reference_images", reference)
+                return reference
+    if not images_out:
+        raise RuntimeError("Could not collect reference images for Expected Gradients.")
+    reference = torch.stack(images_out, dim=0).to(device)
+    log_tensor_stats("expected_gradients.reference_images", reference)
+    return reference
+
+
 def main() -> None:
     args = parse_args()
     setup_logging(args.log_level)
@@ -290,6 +318,18 @@ def main() -> None:
     finally:
         gradcam.close()
 
+    scorecam = ScoreCAM(
+        model=model,
+        target_layer=model.layer4[-1],
+        max_channels=args.scorecam_max_channels,
+        batch_size=args.scorecam_batch_size,
+        blur_radius=args.blur_radius,
+    )
+    try:
+        scorecam_maps = scorecam(images, labels)
+    finally:
+        scorecam.close()
+
     ig_maps, _ig_attributions, _ig_baseline = integrated_gradients_maps(
         model=model,
         inputs=images,
@@ -298,11 +338,27 @@ def main() -> None:
         internal_batch_size=args.ig_internal_batch_size,
         blur_radius=args.blur_radius,
     )
+    expected_baselines = collect_reference_images(
+        loaders["train"],
+        device=device,
+        max_images=args.expected_gradient_baselines,
+    )
+    expected_maps, _expected_attributions, _expected_baseline_pool = expected_gradients_maps(
+        model=model,
+        inputs=images,
+        targets=labels,
+        baselines=expected_baselines,
+        n_samples=args.expected_gradient_samples,
+        internal_batch_size=args.ig_internal_batch_size,
+        blur_radius=args.blur_radius,
+    )
 
     save_xai_grid(
         images=images,
         gradcam_maps=gradcam_maps,
         ig_maps=ig_maps,
+        scorecam_maps=scorecam_maps,
+        expected_gradients_maps=expected_maps,
         true_names=true_names,
         pred_names=pred_names,
         confidences=confidences,

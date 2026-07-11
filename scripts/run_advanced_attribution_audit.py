@@ -57,8 +57,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--methods",
         nargs="+",
-        default=["gradcam", "integrated_gradients"],
-        choices=["gradcam", "integrated_gradients", "input_gradients"],
+        default=["gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
+        choices=["gradcam", "scorecam", "integrated_gradients", "expected_gradients", "input_gradients"],
         help="Attribution methods to audit.",
     )
     parser.add_argument("--num-examples", type=int, default=4)
@@ -66,6 +66,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--ig-steps", type=int, default=16)
     parser.add_argument("--ig-internal-batch-size", type=int, default=4)
+    parser.add_argument("--expected-gradient-samples", type=int, default=12)
+    parser.add_argument("--expected-gradient-baselines", type=int, default=16)
+    parser.add_argument("--scorecam-max-channels", type=int, default=48)
+    parser.add_argument("--scorecam-batch-size", type=int, default=16)
     parser.add_argument("--blur-radius", type=float, default=18.0)
     parser.add_argument("--mask-strategy", type=str, default="center_ellipse")
     parser.add_argument("--foreground-scale", type=float, default=0.68)
@@ -175,6 +179,15 @@ def main() -> None:
     labels = labels.to(device)
     _, top1_labels, _ = predict_with_logits(model, images)
     target_probabilities = torch.tensor(confidences, device=device)
+    expected_gradient_baselines = []
+    for batch in loaders["train"]:
+        for image in batch[0]:
+            expected_gradient_baselines.append(image.detach().cpu())
+            if len(expected_gradient_baselines) >= args.expected_gradient_baselines:
+                break
+        if len(expected_gradient_baselines) >= args.expected_gradient_baselines:
+            break
+    expected_gradient_baseline_tensor = torch.stack(expected_gradient_baselines, dim=0).to(device)
 
     fractions = [index / args.curve_steps for index in range(args.curve_steps + 1)]
     rows: list[dict[str, object]] = []
@@ -189,6 +202,10 @@ def main() -> None:
             ig_steps=args.ig_steps,
             ig_internal_batch_size=args.ig_internal_batch_size,
             blur_radius=args.blur_radius,
+            scorecam_max_channels=args.scorecam_max_channels,
+            scorecam_batch_size=args.scorecam_batch_size,
+            expected_gradients_samples=args.expected_gradient_samples,
+            expected_gradients_baselines=expected_gradient_baseline_tensor,
         )
         maps = bundle.maps
         animal_ratio, background_ratio, _background_mask = region_saliency_scores(
@@ -218,6 +235,10 @@ def main() -> None:
             ig_steps=max(4, args.ig_steps // 2),
             ig_internal_batch_size=args.ig_internal_batch_size,
             blur_radius=args.blur_radius,
+            scorecam_max_channels=args.scorecam_max_channels,
+            scorecam_batch_size=args.scorecam_batch_size,
+            expected_gradients_samples=max(4, args.expected_gradient_samples // 2),
+            expected_gradients_baselines=expected_gradient_baseline_tensor,
         )
         top1, top2, top1_maps, top2_maps, class_metrics = class_discriminativeness(
             model=model,
@@ -227,6 +248,10 @@ def main() -> None:
             ig_internal_batch_size=args.ig_internal_batch_size,
             blur_radius=args.blur_radius,
             top_fraction=args.top_fraction,
+            scorecam_max_channels=args.scorecam_max_channels,
+            scorecam_batch_size=args.scorecam_batch_size,
+            expected_gradients_samples=max(4, args.expected_gradient_samples // 2),
+            expected_gradients_baselines=expected_gradient_baseline_tensor,
         )
 
         ig_baseline_metrics = None

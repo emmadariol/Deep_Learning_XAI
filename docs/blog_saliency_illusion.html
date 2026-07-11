@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Illusion of Saliency Maps | Complete Explainability Audit</title>
+  <title>Explainability Audit for Image Classification | AwA2</title>
   <style>
     :root {
       --ink: #12151f;
@@ -378,6 +378,295 @@
       font-size: 0.93rem;
     }
 
+    .intro-lab {
+      min-height: 100vh;
+      display: grid;
+      align-items: center;
+      padding: clamp(56px, 8vw, 104px) 0;
+      color: #f7fbff;
+      background:
+        linear-gradient(135deg, rgba(13, 20, 32, 0.98) 0%, rgba(18, 35, 48, 0.97) 54%, rgba(18, 62, 57, 0.95) 100%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 92px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 92px);
+      border-bottom: 1px solid rgba(18, 21, 31, 0.12);
+      overflow: hidden;
+    }
+
+    .intro-shell {
+      width: min(1240px, calc(100% - 44px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(300px, 0.88fr) minmax(460px, 1.12fr);
+      gap: clamp(22px, 3vw, 42px);
+      align-items: center;
+    }
+
+    .intro-copy {
+      align-self: center;
+    }
+
+    .intro-copy .kicker {
+      color: #9ff0df;
+    }
+
+    .intro-copy h2 {
+      max-width: 760px;
+      margin-bottom: 20px;
+      color: #ffffff;
+      font-size: clamp(2.6rem, 5.6vw, 5.7rem);
+      letter-spacing: 0;
+    }
+
+    .intro-copy .lead {
+      max-width: 720px;
+      color: #e2edf5;
+      font-size: clamp(1.04rem, 1.7vw, 1.24rem);
+    }
+
+    .intro-copy p:not(.lead) {
+      max-width: 700px;
+      color: #c3d2dc;
+    }
+
+    .intro-map {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .intro-map button {
+      min-height: 82px;
+      padding: 14px 14px 13px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius);
+      color: #edf6ff;
+      background: rgba(255, 255, 255, 0.075);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      backdrop-filter: blur(14px);
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .intro-map button:hover,
+    .intro-map button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(145, 241, 223, 0.7);
+      background: rgba(255, 255, 255, 0.12);
+      outline: none;
+    }
+
+    .intro-map button.active {
+      color: #05211d;
+      background: #91f1df;
+      border-color: #91f1df;
+      box-shadow: 0 18px 42px rgba(14, 185, 158, 0.22);
+    }
+
+    .intro-map strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.98rem;
+      line-height: 1.2;
+    }
+
+    .intro-map span {
+      display: block;
+      color: inherit;
+      opacity: 0.74;
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .intro-stage {
+      position: relative;
+      min-height: 760px;
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 252, 0.94));
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+    }
+
+    .intro-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 7px;
+      background: linear-gradient(90deg, #91f1df, #d7b56d 48%, #8fa8f6);
+      z-index: 2;
+    }
+
+    .intro-panel {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 20px;
+      padding: clamp(22px, 3vw, 34px);
+      color: var(--ink);
+      opacity: 0;
+      transform: translateX(54px);
+      pointer-events: none;
+      transition: opacity 230ms ease, transform 230ms ease;
+      overflow-y: auto;
+      scrollbar-color: #b8c4d3 transparent;
+      scrollbar-width: thin;
+    }
+
+    .intro-panel.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .intro-panel .kicker {
+      color: var(--teal);
+    }
+
+    .intro-panel h3 {
+      margin-bottom: 10px;
+      color: var(--navy);
+      font-size: clamp(1.65rem, 2.6vw, 2.3rem);
+    }
+
+    .intro-panel p {
+      color: #344053;
+    }
+
+    .intro-panel-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-content: start;
+    }
+
+    .intro-note {
+      padding: 16px;
+      border: 1px solid #dce5ef;
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: 0 10px 22px rgba(18, 21, 31, 0.045);
+    }
+
+    .intro-note h4 {
+      margin-bottom: 7px;
+      color: var(--navy);
+    }
+
+    .intro-note p {
+      margin-bottom: 0;
+      font-size: 0.92rem;
+      line-height: 1.52;
+    }
+
+    .click-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .click-list button {
+      display: grid;
+      grid-template-columns: 156px 1fr;
+      gap: 13px;
+      align-items: start;
+      padding: 13px 14px;
+      border: 1px solid #d8e1ec;
+      border-radius: var(--radius);
+      background: #f7fafc;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .click-list button:hover,
+    .click-list button:focus-visible {
+      transform: translateX(2px);
+      border-color: #8db7d4;
+      outline: none;
+      background: #ffffff;
+    }
+
+    .click-list button.active {
+      border-color: #6ed4c3;
+      background: #e6f7f2;
+    }
+
+    .click-list strong {
+      color: var(--navy);
+      line-height: 1.2;
+    }
+
+    .click-list span {
+      color: var(--muted);
+      font-size: 0.91rem;
+      line-height: 1.38;
+    }
+
+    .detail-box {
+      margin-top: 16px;
+      padding: 18px;
+      border: 1px solid #bfd2f5;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, #eef4ff, #f8fbff);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+
+    .detail-box h4 {
+      margin-bottom: 8px;
+      color: var(--navy);
+      font-size: 1.08rem;
+    }
+
+    .mini-flow {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .mini-flow div {
+      padding: 12px 13px;
+      border: 1px solid #dce5ef;
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: 0 8px 18px rgba(18, 21, 31, 0.035);
+      font-size: 0.93rem;
+      line-height: 1.45;
+    }
+
+    .metric-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: 156px 1fr;
+      gap: 13px;
+      padding: 13px 14px;
+      border: 1px solid #dce5ef;
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: 0 8px 18px rgba(18, 21, 31, 0.035);
+    }
+
+    .metric-row strong {
+      color: var(--navy);
+    }
+
+    .metric-row span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.42;
+    }
+
     footer {
       padding: 44px 0 70px;
       color: var(--muted);
@@ -393,8 +682,49 @@
         grid-template-columns: 1fr;
       }
 
+      .intro-shell {
+        grid-template-columns: 1fr;
+        width: min(100% - 32px, 720px);
+      }
+
+      .intro-stage {
+        min-height: 820px;
+      }
+
+      .intro-map {
+        grid-template-columns: 1fr;
+      }
+
+      .intro-panel-grid,
+      .click-list button,
+      .metric-row {
+        grid-template-columns: 1fr;
+      }
+
       .hero {
         min-height: 86vh;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .intro-lab {
+        padding: 48px 0;
+      }
+
+      .intro-copy h2 {
+        font-size: clamp(2.25rem, 14vw, 3.5rem);
+      }
+
+      .intro-map button {
+        min-height: auto;
+      }
+
+      .intro-stage {
+        min-height: 920px;
+      }
+
+      .intro-panel {
+        padding: 20px;
       }
     }
   </style>
@@ -403,19 +733,346 @@
   <header class="hero">
     <div class="hero-inner">
       <span class="eyebrow">AwA2 explainability audit</span>
-      <h1>The Illusion of Saliency Maps</h1>
+      <h1>Explainability Audit for Image Classification</h1>
       <p class="subtitle">
-        A complete PyTorch explainability project showing that visually convincing heatmaps can be
-        unstable, background-sensitive and weak evidence for semantic reasoning.
+        A PyTorch computer vision project evaluating attribution methods, robustness metrics, sanity
+        checks and concept-level explanations for a ResNet50 classifier.
       </p>
       <div class="hero-actions">
-        <a class="button primary" href="#explainability">Start with XAI</a>
-        <a class="button" href="#results">Read the results</a>
-        <a class="button" href="#algorithms">Understand the algorithms</a>
-        <a class="button" href="#beyond">Beyond saliency</a>
+        <a class="button primary" href="#explainability">Project framework</a>
+        <a class="button" href="#results">Experimental outputs</a>
+        <a class="button" href="#algorithms">Methods</a>
+        <a class="button" href="#beyond">Concept-level analysis</a>
       </div>
     </div>
   </header>
+
+  <section class="intro-lab" id="intro-lab" aria-label="Interactive project introduction">
+    <div class="intro-shell">
+      <div class="intro-copy">
+        <div class="kicker">Project overview</div>
+        <h2>Formal overview of the explainability pipeline.</h2>
+        <p class="lead">
+          The project evaluates a deep neural network for animal image classification through local
+          attribution methods, perturbation-based robustness checks, quantitative faithfulness metrics,
+          sanity checks and concept-level analysis.
+        </p>
+        <p>
+          The controls below open one slide at a time. Each slide summarizes the corresponding component,
+          the mathematical quantity being measured and the interpretation limits.
+        </p>
+
+        <div class="intro-map" role="tablist" aria-label="Intro topics">
+          <button class="active" type="button" data-intro-panel="xai" role="tab" aria-selected="true">
+            <strong>Explainability</strong>
+            <span>Definition and scope in this computer vision setting.</span>
+          </button>
+          <button type="button" data-intro-panel="algorithms" role="tab" aria-selected="false">
+            <strong>Methods</strong>
+            <span>Attribution and concept-level algorithms.</span>
+          </button>
+          <button type="button" data-intro-panel="metrics" role="tab" aria-selected="false">
+            <strong>Metrics</strong>
+            <span>How stability, faithfulness and class specificity are quantified.</span>
+          </button>
+          <button type="button" data-intro-panel="network" role="tab" aria-selected="false">
+            <strong>Model</strong>
+            <span>ResNet50 architecture and data flow.</span>
+          </button>
+          <button type="button" data-intro-panel="training" role="tab" aria-selected="false">
+            <strong>Loss and training</strong>
+            <span>Objective function, optimization, checkpointing and evaluation.</span>
+          </button>
+          <button type="button" data-intro-panel="reading" role="tab" aria-selected="false">
+            <strong>Interpretation</strong>
+            <span>Protocol for reading the experimental results.</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="intro-stage">
+        <article class="intro-panel active" data-panel="xai" role="tabpanel">
+          <div>
+            <div class="kicker">Definition</div>
+            <h3>Explainability scope in this project</h3>
+            <p>
+              Explainability is treated as the analysis of the relationship between a trained model, its
+              class scores and the evidence used to support those scores. In this project, evidence is
+              examined at four levels: input pixels, convolutional activations, perturbation responses and
+              semantic concepts.
+            </p>
+          </div>
+          <table aria-label="Formal explainability scope">
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Object of analysis</th>
+                <th>Role in the project</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Local attribution</td>
+                <td>One image and one target class score</td>
+                <td>Input Gradients, Grad-CAM, Score-CAM, Integrated Gradients and Expected Gradients estimate score sensitivity or score-supported attribution.</td>
+              </tr>
+              <tr>
+                <td>Intervention</td>
+                <td>Prediction change after modifying the input</td>
+                <td>Background perturbations, occlusion, deletion and insertion test faithfulness.</td>
+              </tr>
+              <tr>
+                <td>Sanity validation</td>
+                <td>Dependence on model parameters and stable predictions</td>
+                <td>SmoothGrad, randomized-model saliency and sensitivity tests evaluate reliability.</td>
+              </tr>
+              <tr>
+                <td>Concept level</td>
+                <td>Human-readable semantic attributes</td>
+                <td>TCAV and the Concept Bottleneck Model connect representations to AwA2 concepts.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="intro-panel" data-panel="algorithms" role="tabpanel">
+          <div>
+            <div class="kicker">Methods</div>
+            <h3>Attribution and concept-level methods</h3>
+            <p>
+              Select a method to display its formal definition, computational procedure and main
+              interpretation limit.
+            </p>
+            <div class="click-list" data-detail-group="algorithms">
+              <button class="active" type="button" data-detail="input-gradients">
+                <strong>Input Gradients</strong>
+                <span>Derivative of the target score with respect to input pixels.</span>
+              </button>
+              <button type="button" data-detail="gradcam">
+                <strong>Grad-CAM</strong>
+                <span>Gradient-weighted localization on late convolutional feature maps.</span>
+              </button>
+              <button type="button" data-detail="scorecam">
+                <strong>Score-CAM</strong>
+                <span>Gradient-free channel weighting through masked-input class scores.</span>
+              </button>
+              <button type="button" data-detail="ig">
+                <strong>Integrated Gradients</strong>
+                <span>Path-integrated attribution from a blurred baseline to the image.</span>
+              </button>
+              <button type="button" data-detail="expected-gradients">
+                <strong>Expected Gradients</strong>
+                <span>Path attribution averaged over baseline samples and interpolation points.</span>
+              </button>
+              <button type="button" data-detail="smoothgrad">
+                <strong>SmoothGrad</strong>
+                <span>Averages noisy input-gradient maps to reduce local gradient noise.</span>
+              </button>
+              <button type="button" data-detail="occlusion">
+                <strong>Occlusion Sensitivity</strong>
+                <span>Intervenes on patches and measures target-probability drops.</span>
+              </button>
+              <button type="button" data-detail="tcav">
+                <strong>TCAV</strong>
+                <span>Tests whether semantic concept directions increase a class score.</span>
+              </button>
+              <button type="button" data-detail="cbm">
+                <strong>Concept Bottleneck</strong>
+                <span>Predicts human-readable concepts before predicting the animal class.</span>
+              </button>
+            </div>
+          </div>
+          <div class="detail-box" data-detail-box="algorithms">
+            <h4>Input Gradients</h4>
+            <p>
+              Computes dS_c(x)/dx for a target score S_c. It measures immediate local sensitivity around
+              the current image. High values do not prove causal or semantic importance; they indicate
+              that small pixel changes can affect the selected logit.
+            </p>
+            <div class="formula">M(x,c) = reduce_channels(|d S_c(x) / d x|)</div>
+          </div>
+        </article>
+
+        <article class="intro-panel" data-panel="metrics" role="tabpanel">
+          <div>
+            <div class="kicker">Metrics</div>
+            <h3>Quantitative evaluation criteria</h3>
+            <p>
+              The project evaluates explanations as ranked saliency fields, probability curves and concept
+              sensitivities. These criteria quantify stability, faithfulness, class specificity and
+              semantic alignment.
+            </p>
+          </div>
+          <table aria-label="Evaluation metrics">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Definition</th>
+                <th>Interpretation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Top-20% IoU</td>
+                <td>Overlap between the highest-saliency pixels in two maps.</td>
+                <td>Low IoU indicates that the spatial support of the explanation moved.</td>
+              </tr>
+              <tr>
+                <td>Spearman correlation</td>
+                <td>Rank correlation between flattened saliency tensors.</td>
+                <td>Measures whether the relative saliency ordering is preserved.</td>
+              </tr>
+              <tr>
+                <td>Deletion AUC</td>
+                <td>Target probability curve after removing pixels in descending saliency order.</td>
+                <td>Lower area supports a faithful ranking of necessary evidence.</td>
+              </tr>
+              <tr>
+                <td>Insertion AUC</td>
+                <td>Target probability curve after restoring pixels in descending saliency order.</td>
+                <td>Higher area indicates that salient pixels reconstruct evidence quickly.</td>
+              </tr>
+              <tr>
+                <td>Background ratio</td>
+                <td>Fraction of normalized saliency outside the approximate animal region.</td>
+                <td>High values indicate possible shortcut reliance on context.</td>
+              </tr>
+              <tr>
+                <td>Entropy</td>
+                <td>Entropy of the saliency map treated as a spatial distribution.</td>
+                <td>Distinguishes concentrated explanations from diffuse ones.</td>
+              </tr>
+              <tr>
+                <td>TCAV score</td>
+                <td>Fraction of examples whose class score increases along a concept direction.</td>
+                <td>Quantifies sensitivity to a human-readable semantic attribute.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="intro-panel" data-panel="network" role="tabpanel">
+          <div>
+            <div class="kicker">Model</div>
+            <h3>ResNet50 classifier used as the explained model</h3>
+            <p>
+              ResNet50 is a deep convolutional neural network with residual connections. The residual
+              design allows gradients to flow through skip connections, making it easier to train deep
+              architectures. In this project, the ImageNet classifier head is replaced with an AwA2 class
+              head and the model becomes the object of the XAI audit.
+            </p>
+          </div>
+          <table aria-label="ResNet50 architecture summary">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Function</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Input preprocessing</td><td>Resize to 256, center crop to 224 x 224, ImageNet normalization.</td></tr>
+              <tr><td>Stem</td><td>Initial convolution, batch normalization, ReLU and max pooling.</td></tr>
+              <tr><td>Residual blocks</td><td>Layer1 to layer4 extract hierarchical visual features through skip connections.</td></tr>
+              <tr><td>Global average pooling</td><td>Converts spatial feature maps into a fixed-length representation.</td></tr>
+              <tr><td>Linear classifier</td><td>Maps the representation to AwA2 class logits.</td></tr>
+              <tr><td>Softmax</td><td>Converts logits to probabilities for reporting and confidence analysis.</td></tr>
+            </tbody>
+          </table>
+          <div class="detail-box">
+            <h4>Layer selected for Grad-CAM</h4>
+            <p>
+              Grad-CAM is computed on the last residual block, `layer4[-1]`. This layer contains high-level
+              semantic activations, but its spatial grid is coarse, approximately 7 x 7 before upsampling.
+              The resulting heatmap is therefore a localization diagnostic, not a segmentation mask.
+            </p>
+          </div>
+        </article>
+
+        <article class="intro-panel" data-panel="training" role="tabpanel">
+          <div>
+            <div class="kicker">Training</div>
+            <h3>Supervised optimization objective</h3>
+            <p>
+              The training task is multiclass animal classification. For each image, the model outputs one
+              logit per class. Cross-entropy encourages the logit of the true class to be higher than the
+              others.
+            </p>
+          </div>
+          <table aria-label="Training configuration">
+            <thead>
+              <tr>
+                <th>Aspect</th>
+                <th>Implementation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Loss</td><td>Cross-entropy over AwA2 class labels.</td></tr>
+              <tr><td>Transfer learning</td><td>ImageNet pretrained ResNet50 features are adapted to AwA2.</td></tr>
+              <tr><td>Fine-tuning</td><td>Later residual layers and classifier head are trainable; early blocks can remain frozen.</td></tr>
+              <tr><td>Selection criterion</td><td>The best validation checkpoint is used for all explanation experiments.</td></tr>
+            </tbody>
+          </table>
+          <div class="formula">
+z = f_theta(x)<br />
+p(y=c | x) = exp(z_c) / sum_j exp(z_j)<br />
+L(x,y) = -log p(y | x)
+          </div>
+        </article>
+
+        <article class="intro-panel" data-panel="reading" role="tabpanel">
+          <div>
+            <div class="kicker">Interpretation</div>
+            <h3>Protocol for interpreting the outputs</h3>
+            <p>
+              The report should be read as a sequence of increasingly strict checks. Local attribution is
+              treated as an initial diagnostic, then evaluated through interventions, stability metrics,
+              concept-level analysis and sanity validation.
+            </p>
+          </div>
+          <table aria-label="Interpretation protocol">
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Local attribution</td>
+                <td>Inspect Grad-CAM, Integrated Gradients and input gradients for target-score sensitivity.</td>
+              </tr>
+              <tr>
+                <td>Background perturbation</td>
+                <td>Evaluate prediction and saliency changes after controlled context modifications.</td>
+              </tr>
+              <tr>
+                <td>Stability metrics</td>
+                <td>Use IoU and Spearman correlation to compare saliency support and ranking.</td>
+              </tr>
+              <tr>
+                <td>Faithfulness metrics</td>
+                <td>Use deletion, insertion and occlusion to test whether highlighted evidence affects the score.</td>
+              </tr>
+              <tr>
+                <td>Concept analysis</td>
+                <td>Use TCAV and bottleneck outputs to compare pixel-level evidence with semantic attributes.</td>
+              </tr>
+              <tr>
+                <td>Sanity validation</td>
+                <td>Use randomization and noise tests to evaluate model dependence and stability.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="callout" style="margin-top: 16px;">
+            <strong>Interpretation rule.</strong>
+            A visual explanation should be considered reliable only if it is target-specific, stable under
+            controlled changes, sensitive to meaningful interventions and compatible with concept-level
+            evidence.
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
 
   <main class="page">
     <nav class="toc" aria-label="Table of contents">
@@ -433,7 +1090,7 @@
 
     <section id="explainability">
       <div class="kicker">Foundations</div>
-      <h2>Explainability makes model behavior inspectable, testable and accountable.</h2>
+      <h2>Explainability framework</h2>
       <p class="lead">
         Explainable AI studies how to expose the reasons, sensitivities and internal structure behind a
         model prediction. In computer vision, this usually means connecting a class score to visual
@@ -485,7 +1142,7 @@
           <tr>
             <td>Local vs global</td>
             <td>Local explanations describe one prediction; global explanations describe broader model behavior.</td>
-            <td>Grad-CAM and Integrated Gradients are local. TCAV and concept summaries are closer to global diagnostics.</td>
+            <td>Grad-CAM, Score-CAM, Integrated Gradients and Expected Gradients are local. TCAV and concept summaries are closer to global diagnostics.</td>
           </tr>
           <tr>
             <td>Post-hoc vs intrinsic</td>
@@ -507,7 +1164,7 @@
 
       <div class="grid two" style="margin-top: 24px;">
         <div class="panel rose">
-          <h3>The central risk</h3>
+          <h3>Central risk</h3>
           <p>
             A model can classify an animal correctly for the wrong reason: snow for polar bear, water for
             seal, grassland for antelope, texture or color statistics instead of morphology. A saliency map
@@ -515,7 +1172,7 @@
           </p>
         </div>
         <div class="panel green">
-          <h3>The audit principle</h3>
+          <h3>Audit principle</h3>
           <p>
             Explanations should be treated as hypotheses. A heatmap is credible only after testing
             stability, class-specificity, faithfulness under deletion/insertion, and agreement with
@@ -527,7 +1184,7 @@
 
     <section id="problem">
       <div class="kicker">Research question</div>
-      <h2>Attribution is not the same as understanding.</h2>
+      <h2>Problem statement</h2>
       <p class="lead">
         The project starts from a practical concern in explainable computer vision: saliency maps often
         look persuasive because they highlight regions near the object, but this visual plausibility does
@@ -559,7 +1216,7 @@
 
     <section id="pipeline">
       <div class="kicker">Experimental design</div>
-      <h2>An end-to-end audit, not a single heatmap.</h2>
+      <h2>Experimental protocol</h2>
       <p class="lead">
         The project is organized as a progressively stricter audit. It starts with a trained classifier,
         produces local attribution maps, quantifies their stability under controlled perturbations, and
@@ -594,7 +1251,7 @@
           <div>
             <h3>Local attribution maps</h3>
             <p>
-              Input gradients, Grad-CAM and Integrated Gradients are computed for selected target classes
+              Input gradients, Grad-CAM, Score-CAM, Integrated Gradients and Expected Gradients are computed for selected target classes
               on correctly and incorrectly classified examples. These maps are local score-sensitivity
               diagnostics: they indicate where the chosen logit is sensitive, not where the model
               necessarily performs human-like semantic recognition. Intermediate tensors are logged to
@@ -629,7 +1286,7 @@
 
     <section id="algorithms">
       <div class="kicker">Mathematical background</div>
-      <h2>What each explanation method measures.</h2>
+      <h2>Explanation methods</h2>
       <p class="lead">
         The methods used here answer different mathematical questions. A heatmap should therefore be read
         as a diagnostic signal, not as a direct proof of causal visual reasoning.
@@ -691,6 +1348,23 @@ M_cam^c = ReLU(sum_k alpha_k^c A^k)
           </p>
         </div>
 
+        <div class="panel green">
+          <h3>Score-CAM</h3>
+          <p>
+            Score-CAM removes the gradient-weighting step from Grad-CAM. Each activation channel is
+            upsampled into a mask, the masked image is passed through the classifier, and the resulting
+            target-class score becomes the channel weight.
+          </p>
+          <div class="formula">
+w_k^c = S_c(x masked by upsample(A^k))<br />
+M_scorecam^c = ReLU(sum_k w_k^c A^k)
+          </div>
+          <p class="small">
+            Interpretation limit: Score-CAM is closer to a perturbation test than Grad-CAM, but it is
+            slower because it requires many additional forward passes.
+          </p>
+        </div>
+
         <div class="panel amber">
           <h3>Integrated Gradients</h3>
           <p>
@@ -705,6 +1379,22 @@ IG_i(x) = (x_i - x'_i) * integral_{a=0}^{1} d S_c(x' + a(x - x')) / d x_i da
           <p class="small">
             Interpretation limit: the explanation depends on the baseline and on the path through input
             space. Baseline choice is part of the model interpretation.
+          </p>
+        </div>
+
+        <div class="panel blue">
+          <h3>Expected Gradients</h3>
+          <p>
+            Expected Gradients generalizes Integrated Gradients by averaging over a distribution of
+            baselines and random interpolation coefficients. Instead of explaining the score difference
+            relative to one reference image, it estimates an expectation over reference samples.
+          </p>
+          <div class="formula">
+EG_i(x) = E_{x', a} [(x_i - x'_i) * d S_c(x' + a(x - x')) / d x_i]
+          </div>
+          <p class="small">
+            Interpretation limit: the explanation depends on the chosen reference distribution, so the
+            baseline set must be documented.
           </p>
         </div>
 
@@ -751,7 +1441,7 @@ TCAV(k,c) = P_x[D_{k,c}(x) &gt; 0]
           </p>
           <div class="formula">Faithfulness: remove high-attribution evidence -> class score should decrease</div>
           <p class="small">
-            A heatmap that remains visually attractive but fails perturbation, rank-correlation or sanity
+            A heatmap that remains visually coherent but fails perturbation, rank-correlation or sanity
             checks should be treated as weak explanatory evidence.
           </p>
         </div>
@@ -760,10 +1450,10 @@ TCAV(k,c) = P_x[D_{k,c}(x) &gt; 0]
 
     <section id="results">
       <div class="kicker">Local attribution</div>
-      <h2>Correct and incorrect predictions reveal different attribution behavior.</h2>
+      <h2>Local attribution results</h2>
       <p class="lead">
         The first visual inspection compares the original image with input gradients, Grad-CAM and
-        Integrated Gradients. These maps should be interpreted as target-score diagnostics, not as direct
+        Integrated Gradients and Expected Gradients. These maps should be interpreted as target-score diagnostics, not as direct
         statements about what the model understands. A correct prediction can have a misleading heatmap,
         and an incorrect prediction can still produce a visually structured attribution map.
       </p>
@@ -771,9 +1461,10 @@ TCAV(k,c) = P_x[D_{k,c}(x) &gt; 0]
       <div class="callout" style="margin-top: 24px;">
         <strong>How to read local attribution maps.</strong>
         Input Gradients show immediate input sensitivity; Grad-CAM shows coarse sensitivity of the target
-        score to late convolutional activations; Integrated Gradients distributes score difference along a
-        path from the baseline to the image. None of these maps alone proves that the highlighted region is
-        causal, semantic or sufficient for the prediction.
+        score to late convolutional activations; Score-CAM weights activation channels by masked-input
+        target scores; Integrated Gradients distributes score difference along a path from one baseline;
+        Expected Gradients averages this path attribution over multiple baselines. None of these maps alone
+        proves that the highlighted region is causal, semantic or sufficient for the prediction.
       </div>
 
       <h3 style="margin-top: 32px;">Why some attribution interpretations are wrong</h3>
@@ -874,7 +1565,7 @@ TCAV(k,c) = P_x[D_{k,c}(x) &gt; 0]
 
     <section id="stress">
       <div class="kicker">Perturbation robustness</div>
-      <h2>Stress testing separates visual appeal from explanation stability.</h2>
+      <h2>Perturbation-based stress test</h2>
       <p class="lead">
         The stress test perturbs the background while preserving the animal region as much as possible.
         A robust morphology-based explanation should remain concentrated on the animal. In practice, the
@@ -989,7 +1680,7 @@ Spearman = rank_correlation(flatten(M_original), flatten(M_perturbed))
 
     <section id="concepts">
       <div class="kicker">Concept-level explainability</div>
-      <h2>Concept analysis moves the audit from pixels to semantics.</h2>
+      <h2>Concept-level analysis</h2>
       <p class="lead">
         AwA2 contains attribute annotations such as furry, horns, hooves, stripes and flippers. These
         attributes let the project compare pixel-level explanations with concept-level structure in the
@@ -1062,7 +1753,7 @@ Spearman = rank_correlation(flatten(M_original), flatten(M_perturbed))
 
     <section id="beyond">
       <div class="kicker">Architectural and sanity validation</div>
-      <h2>Concept bottlenecks and sanity checks make the audit stricter.</h2>
+      <h2>Concept bottleneck and sanity validation</h2>
       <p class="lead">
         Saliency maps explain a prediction after it has been made. A Concept Bottleneck Model introduces an
         intermediate concept layer and exposes whether the classifier can operate through human-readable
@@ -1151,7 +1842,7 @@ Spearman = rank_correlation(flatten(M_original), flatten(M_perturbed))
 
     <section id="advanced">
       <div class="kicker">Attribution quality tests</div>
-      <h2>A complete attribution audit needs faithfulness, stability and specificity.</h2>
+      <h2>Advanced attribution diagnostics</h2>
       <p class="lead">
         The extended implementation evaluates saliency maps as ranked evidence. Instead of asking whether
         a heatmap looks plausible, the audit asks whether the highlighted pixels are necessary, sufficient,
@@ -1230,9 +1921,9 @@ BaselineEffect = similarity(IG_blurred(x), IG_black(x))
 
     <section id="conclusion">
       <div class="kicker">Final interpretation</div>
-      <h2>The project does not reject explainability. It rejects untested explainability.</h2>
+      <h2>Conclusion</h2>
       <p class="lead">
-        Grad-CAM and Integrated Gradients are useful diagnostic tools, but they are not sufficient evidence
+            Grad-CAM, Score-CAM, Integrated Gradients and Expected Gradients are useful diagnostic tools, but they are not sufficient evidence
         that a model understands animal morphology. In this project, saliency maps are treated as hypotheses:
         they must be stress-tested, compared with perturbation metrics, connected to semantic concepts and
         validated through sanity checks.
@@ -1240,14 +1931,14 @@ BaselineEffect = similarity(IG_blurred(x), IG_black(x))
 
       <div class="grid two">
         <div class="panel rose">
-          <h3>What the heatmaps show</h3>
+          <h3>Attribution outputs</h3>
           <p>
             They identify regions where logits are sensitive to activations or pixels. They can reveal
             object-centered sensitivity, background dependence and failure modes in misclassified examples.
           </p>
         </div>
         <div class="panel green">
-          <h3>What the complete audit adds</h3>
+          <h3>Audit contributions</h3>
           <p>
             The stress test quantifies saliency instability, TCAV links representations to concepts, the
             bottleneck exposes an interpretable prediction path, and sanity checks test model dependence.
@@ -1256,9 +1947,9 @@ BaselineEffect = similarity(IG_blurred(x), IG_black(x))
       </div>
 
       <div class="callout" style="margin-top: 24px;">
-        <strong>Final claim.</strong>
+        <strong>Conclusion.</strong>
         A credible XAI analysis should combine local attribution, perturbation robustness, concept-level
-        evidence and sanity validation. A single attractive heatmap is a visualization, not an explanation.
+        evidence and sanity validation. A single heatmap visualization is not sufficient as an explanation.
       </div>
     </section>
 
@@ -1270,5 +1961,94 @@ BaselineEffect = similarity(IG_blurred(x), IG_black(x))
       </p>
     </footer>
   </main>
+  <script>
+    const introButtons = document.querySelectorAll("[data-intro-panel]");
+    const introPanels = document.querySelectorAll("[data-panel]");
+
+    introButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = button.dataset.introPanel;
+        introButtons.forEach((item) => {
+          item.classList.toggle("active", item === button);
+          item.setAttribute("aria-selected", item === button ? "true" : "false");
+        });
+        introPanels.forEach((panel) => {
+          panel.classList.toggle("active", panel.dataset.panel === target);
+        });
+      });
+    });
+
+    const algorithmDetails = {
+      "input-gradients": {
+        title: "Input Gradients",
+        body:
+          "Input Gradients compute the derivative of a selected class score with respect to the normalized input tensor. They are cheap and direct, but very local: they describe sensitivity around the current image, not global importance and not causal necessity.",
+        formula: "M(x,c) = reduce_channels(|d S_c(x) / d x|)",
+      },
+      gradcam: {
+        title: "Grad-CAM",
+        body:
+          "Grad-CAM uses gradients of the target score with respect to a convolutional layer. Channel weights are obtained by spatially averaging those gradients. The weighted activation map is rectified and upsampled to image size. It is class-conditional but spatially coarse.",
+        formula: "alpha_k^c = mean_{i,j}(dS_c / dA^k_{i,j}); M = ReLU(sum_k alpha_k^c A^k)",
+      },
+      scorecam: {
+        title: "Score-CAM",
+        body:
+          "Score-CAM is gradient-free. It upsamples activation channels into masks, applies those masks to the input image, and uses the resulting target-class probabilities as channel weights. This makes it useful as a comparison against gradient-weighted Grad-CAM.",
+        formula: "w_k^c = S_c(x masked by A^k); M = ReLU(sum_k w_k^c A^k)",
+      },
+      ig: {
+        title: "Integrated Gradients",
+        body:
+          "Integrated Gradients accumulates gradients along a path from a baseline image to the real image. In this project the baseline is a heavily blurred version of the image, preserving illumination while removing fine object structure. The method explains score difference relative to that baseline.",
+        formula: "IG_i(x) = (x_i - x'_i) integral_0^1 dS_c(x' + a(x-x')) / dx_i da",
+      },
+      "expected-gradients": {
+        title: "Expected Gradients",
+        body:
+          "Expected Gradients averages path attributions over a distribution of baseline images and random interpolation coefficients. It is useful for testing whether an Integrated Gradients result is tied to one specific reference image.",
+        formula: "EG_i(x) = E_{x',a}[(x_i - x'_i) dS_c(x' + a(x-x')) / dx_i]",
+      },
+      smoothgrad: {
+        title: "SmoothGrad",
+        body:
+          "SmoothGrad samples noisy copies of the same image, computes input-gradient saliency for each copy, and averages the maps. It reduces high-frequency gradient noise, but it still inherits the limitations of gradient-based local sensitivity.",
+        formula: "M_smooth(x) = (1/N) sum_n M_grad(x + epsilon_n)",
+      },
+      occlusion: {
+        title: "Occlusion Sensitivity",
+        body:
+          "Occlusion is intervention-based. It replaces image patches with a baseline and measures how much the target probability drops. Because it changes the input and observes the output, it is closer to faithfulness testing than pure gradient inspection.",
+        formula: "Importance(patch) = S_c(x) - S_c(x with patch occluded)",
+      },
+      tcav: {
+        title: "TCAV",
+        body:
+          "TCAV learns a Concept Activation Vector from examples with and without a semantic concept. It then measures whether moving in that concept direction increases the target class score in representation space.",
+        formula: "TCAV(k,c) = fraction_x [grad_h S_k(h(x)) dot v_c > 0]",
+      },
+      cbm: {
+        title: "Concept Bottleneck Model",
+        body:
+          "A Concept Bottleneck Model changes the prediction path. Instead of directly mapping image features to class, it predicts semantic concepts first and then predicts the class from those concepts. This makes the intermediate representation inspectable and intervenable.",
+        formula: "image -> predicted concepts -> class logits",
+      },
+    };
+
+    document.querySelectorAll("[data-detail-group='algorithms'] button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const detail = algorithmDetails[button.dataset.detail];
+        const box = document.querySelector("[data-detail-box='algorithms']");
+        button.parentElement.querySelectorAll("button").forEach((item) => {
+          item.classList.toggle("active", item === button);
+        });
+        box.innerHTML = `
+          <h4>${detail.title}</h4>
+          <p>${detail.body}</p>
+          <div class="formula">${detail.formula}</div>
+        `;
+      });
+    });
+  </script>
 </body>
 </html>
