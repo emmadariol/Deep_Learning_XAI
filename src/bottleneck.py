@@ -418,11 +418,14 @@ def collect_prediction_rows(
     idx_to_class: dict[int, str],
     concept_names: list[str],
     device: torch.device,
+    baseline_model: nn.Module | None = None,
     max_batches: int | None = None,
     top_k_concepts: int = 6,
 ) -> list[dict[str, object]]:
-    """Collect test predictions with top predicted and target concepts."""
+    """Collect test predictions with CBM concepts and optional baseline predictions."""
     model.eval()
+    if baseline_model is not None:
+        baseline_model.eval()
     rows: list[dict[str, object]] = []
 
     with torch.no_grad():
@@ -438,6 +441,12 @@ def collect_prediction_rows(
             outputs = model(images)
             probs = torch.softmax(outputs.class_logits, dim=1)
             confidences, predictions = probs.max(dim=1)
+            if baseline_model is not None:
+                baseline_probs = torch.softmax(baseline_model(images), dim=1)
+                baseline_confidences, baseline_predictions = baseline_probs.max(dim=1)
+            else:
+                baseline_confidences = torch.full_like(confidences, float("nan"))
+                baseline_predictions = torch.full_like(predictions, -1)
 
             for index in range(images.size(0)):
                 predicted_concepts = top_concept_string(
@@ -457,6 +466,29 @@ def collect_prediction_rows(
                         "predicted_class": idx_to_class[int(predictions[index].item())],
                         "correct": bool(predictions[index].item() == labels[index].item()),
                         "confidence": float(confidences[index].item()),
+                        "cbm_predicted_class": idx_to_class[int(predictions[index].item())],
+                        "cbm_correct": bool(predictions[index].item() == labels[index].item()),
+                        "cbm_confidence": float(confidences[index].item()),
+                        "baseline_predicted_class": (
+                            idx_to_class[int(baseline_predictions[index].item())]
+                            if int(baseline_predictions[index].item()) >= 0
+                            else ""
+                        ),
+                        "baseline_correct": (
+                            bool(baseline_predictions[index].item() == labels[index].item())
+                            if int(baseline_predictions[index].item()) >= 0
+                            else ""
+                        ),
+                        "baseline_confidence": (
+                            float(baseline_confidences[index].item())
+                            if int(baseline_predictions[index].item()) >= 0
+                            else ""
+                        ),
+                        "cbm_agrees_with_baseline": (
+                            bool(predictions[index].item() == baseline_predictions[index].item())
+                            if int(baseline_predictions[index].item()) >= 0
+                            else ""
+                        ),
                         "top_predicted_concepts": predicted_concepts,
                         "top_target_concepts": target_concepts,
                     }

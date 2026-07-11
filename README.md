@@ -26,6 +26,26 @@ manually into `data/AWA2/JPEGImages/`, or use the preparation script with
 Do not commit the full dataset. Keep raw images in `data/`, on an external
 drive, or on shared storage; those paths are intentionally ignored by Git.
 
+## Notebook Workflow
+
+The notebooks are consolidated into three clean entry points:
+
+```text
+notebooks/01_data_baseline_xai.ipynb
+notebooks/02_stress_concepts_tcav.ipynb
+notebooks/03_bottleneck_sanity_report.ipynb
+```
+
+The older phase-by-phase notebooks are preserved for traceability in:
+
+```text
+notebooks/archive_phase_notebooks/
+```
+
+Use the consolidated notebooks for normal analysis. Heavy execution is behind
+explicit flags, so opening a notebook does not accidentally retrain the model
+or recompute expensive XAI maps.
+
 ## Phase 1
 
 Prepare the full manifest:
