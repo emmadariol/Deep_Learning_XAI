@@ -459,3 +459,53 @@ high concept accuracy -> the image encoder can recover the selected semantic att
 high class accuracy   -> the predicted concepts are sufficient for classification
 large intervention    -> manually changing a concept strongly affects a class probability
 ```
+
+## Advanced Attribution Audit
+
+This audit evaluates whether attribution maps are faithful, stable,
+class-specific and semantically allocated. It is stricter than visual inspection
+because it treats each saliency map as a measurable hypothesis.
+
+Run the audit:
+
+```bash
+python scripts/run_advanced_attribution_audit.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --methods gradcam integrated_gradients \
+  --num-examples 4 \
+  --ig-steps 12 \
+  --report-output outputs/reports/advanced_attribution_audit.csv \
+  --summary-output outputs/reports/advanced_attribution_audit_summary.csv \
+  --figure-dir outputs/figures/advanced_attribution_audit
+```
+
+Implemented diagnostics:
+
+```text
+deletion/insertion curves -> faithfulness of the saliency ranking
+animal/background ratio   -> amount of attribution assigned to approximate foreground vs background
+class-discriminativeness  -> difference between top-1 and top-2 target explanations
+sensitivity to noise      -> explanation stability under small input perturbations
+saliency entropy          -> concentration or diffuseness of the saliency distribution
+IG baseline comparison    -> dependence on blurred vs black Integrated Gradients baselines
+```
+
+Outputs:
+
+```text
+outputs/reports/advanced_attribution_audit.csv
+outputs/reports/advanced_attribution_audit_summary.csv
+outputs/figures/advanced_attribution_audit/*_deletion_insertion.png
+outputs/figures/advanced_attribution_audit/*_class_discriminativeness.png
+```
+
+Interpretation:
+
+```text
+low deletion AUC + high insertion AUC -> attribution identifies evidence the classifier uses
+high background saliency ratio        -> possible reliance on contextual shortcuts
+high top-1/top-2 map similarity       -> attribution is weakly class-discriminative
+low noise-stability metrics           -> explanation is fragile even when prediction is stable
+low blurred-vs-black IG similarity    -> Integrated Gradients is strongly baseline-dependent
+```

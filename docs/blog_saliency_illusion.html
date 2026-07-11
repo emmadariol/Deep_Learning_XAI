@@ -3,27 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Illusion of Saliency Maps | AwA2 XAI Audit</title>
+  <title>The Illusion of Saliency Maps | Complete Explainability Audit</title>
   <style>
     :root {
-      --ink: #12131a;
-      --muted: #626b7a;
-      --paper: #f4f6f9;
+      --ink: #12151f;
+      --muted: #5f6876;
+      --paper: #f5f7fb;
       --panel: #ffffff;
-      --line: #dce2ea;
+      --line: #d9e0ea;
+      --navy: #14213d;
       --teal: #0f766e;
-      --blue: #2457c5;
-      --red: #b42318;
-      --amber: #b7791f;
+      --blue: #2856c8;
+      --rose: #b42318;
+      --amber: #a96612;
+      --green: #28734d;
       --violet: #6d43b5;
-      --slate: #263241;
-      --code: #111827;
-      --soft-teal: #e7f5f1;
+      --soft-teal: #e6f4f0;
       --soft-blue: #e9effd;
-      --soft-red: #fff0ed;
-      --soft-amber: #fff7e8;
+      --soft-rose: #fff0ed;
+      --soft-amber: #fff5e5;
+      --soft-green: #eaf6ef;
+      --soft-violet: #f1ecfb;
       --radius: 8px;
-      --shadow: 0 18px 55px rgba(18, 19, 26, 0.11);
+      --shadow: 0 18px 50px rgba(18, 21, 31, 0.1);
     }
 
     * {
@@ -39,7 +41,7 @@
       color: var(--ink);
       background: var(--paper);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.62;
+      line-height: 1.64;
     }
 
     a {
@@ -59,8 +61,8 @@
       overflow: hidden;
       color: white;
       background:
-        linear-gradient(90deg, rgba(10, 15, 24, 0.94), rgba(10, 15, 24, 0.76) 46%, rgba(10, 15, 24, 0.38)),
-        url("../outputs/figures/xai_correct_examples_notebook.png") center / cover no-repeat;
+        linear-gradient(90deg, rgba(9, 14, 25, 0.96), rgba(9, 14, 25, 0.78) 48%, rgba(9, 14, 25, 0.34)),
+        url("assets/xai-report/saliency-stress-comparison.png") center / cover no-repeat;
     }
 
     .hero::after {
@@ -68,14 +70,14 @@
       position: absolute;
       inset: auto 0 0;
       height: 30vh;
-      background: linear-gradient(180deg, rgba(244, 246, 249, 0), var(--paper));
+      background: linear-gradient(180deg, rgba(245, 247, 251, 0), var(--paper));
       pointer-events: none;
     }
 
     .hero-inner {
       width: min(1180px, calc(100% - 44px));
       margin: 0 auto;
-      padding: 96px 0 120px;
+      padding: 92px 0 122px;
       position: relative;
       z-index: 1;
     }
@@ -86,8 +88,8 @@
       gap: 8px;
       padding: 7px 11px;
       border: 1px solid rgba(255, 255, 255, 0.28);
-      color: #d7fff7;
-      background: rgba(15, 118, 110, 0.24);
+      color: #cffff3;
+      background: rgba(15, 118, 110, 0.28);
       border-radius: 999px;
       font-size: 0.78rem;
       font-weight: 800;
@@ -96,18 +98,18 @@
     }
 
     h1 {
-      max-width: 980px;
+      max-width: 1030px;
       margin: 22px 0 20px;
-      font-size: clamp(3rem, 8vw, 7.2rem);
-      line-height: 0.93;
+      font-size: clamp(3rem, 7.5vw, 7rem);
+      line-height: 0.94;
       letter-spacing: 0;
     }
 
     .subtitle {
-      max-width: 820px;
+      max-width: 850px;
       margin: 0;
       color: #edf4ff;
-      font-size: clamp(1.08rem, 2vw, 1.35rem);
+      font-size: clamp(1.08rem, 1.9vw, 1.35rem);
     }
 
     .hero-actions {
@@ -127,13 +129,13 @@
       border-radius: var(--radius);
       color: white;
       background: rgba(255, 255, 255, 0.12);
-      font-weight: 750;
+      font-weight: 760;
     }
 
     .button.primary {
-      color: #06201d;
-      background: #8ef3df;
-      border-color: #8ef3df;
+      color: #05211d;
+      background: #91f1df;
+      border-color: #91f1df;
     }
 
     .page {
@@ -150,8 +152,8 @@
       flex-wrap: wrap;
       gap: 10px;
       padding: 14px 0;
-      background: rgba(244, 246, 249, 0.92);
-      border-bottom: 1px solid rgba(18, 19, 26, 0.08);
+      background: rgba(245, 247, 251, 0.92);
+      border-bottom: 1px solid rgba(18, 21, 31, 0.08);
       backdrop-filter: blur(12px);
     }
 
@@ -159,29 +161,35 @@
       padding: 7px 10px;
       border: 1px solid var(--line);
       border-radius: 999px;
-      color: var(--slate);
+      color: var(--navy);
       background: white;
       font-size: 0.88rem;
-      font-weight: 700;
+      font-weight: 720;
     }
 
     section {
-      padding: 70px 0;
-      border-bottom: 1px solid rgba(18, 19, 26, 0.09);
+      padding: 72px 0;
+      border-bottom: 1px solid rgba(18, 21, 31, 0.09);
     }
 
     h2 {
       margin: 0 0 16px;
       max-width: 980px;
-      font-size: clamp(2rem, 4.7vw, 4.2rem);
+      font-size: clamp(2rem, 4.5vw, 4.1rem);
       line-height: 1;
       letter-spacing: 0;
     }
 
     h3 {
       margin: 0 0 10px;
-      font-size: 1.25rem;
+      font-size: 1.24rem;
       line-height: 1.25;
+    }
+
+    h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: var(--navy);
     }
 
     p {
@@ -189,8 +197,8 @@
     }
 
     .lead {
-      max-width: 880px;
-      color: #2c3442;
+      max-width: 900px;
+      color: #293241;
       font-size: 1.13rem;
     }
 
@@ -207,19 +215,23 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .metric {
-      padding: 20px;
+    .metric,
+    .panel {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      box-shadow: 0 10px 32px rgba(18, 19, 26, 0.06);
+      box-shadow: 0 10px 30px rgba(18, 21, 31, 0.055);
+    }
+
+    .metric {
+      padding: 20px;
     }
 
     .metric .value {
       display: block;
       margin-bottom: 8px;
-      color: var(--slate);
-      font-size: clamp(1.8rem, 4vw, 3rem);
+      color: var(--navy);
+      font-size: clamp(1.75rem, 3.5vw, 2.8rem);
       line-height: 1;
       font-weight: 850;
     }
@@ -231,77 +243,40 @@
 
     .panel {
       padding: 22px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: 0 10px 32px rgba(18, 19, 26, 0.05);
     }
 
-    .panel.teal {
-      background: var(--soft-teal);
-      border-color: #bfe9dd;
-    }
-
-    .panel.blue {
-      background: var(--soft-blue);
-      border-color: #c8d7fb;
-    }
-
-    .panel.amber {
-      background: var(--soft-amber);
-      border-color: #f2d39b;
-    }
-
-    .panel.red {
-      background: var(--soft-red);
-      border-color: #ffc8bd;
-    }
-
-    .status {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      padding: 5px 9px;
-      margin-bottom: 12px;
-      border-radius: 999px;
-      font-size: 0.76rem;
-      font-weight: 850;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .status.done {
-      color: #064e3b;
-      background: #bff3df;
-    }
-
-    .status.pending {
-      color: #6b3e00;
-      background: #ffe3a7;
-    }
-
-    .status.risk {
-      color: #7a1a12;
-      background: #ffd1c9;
-    }
+    .panel.teal { background: var(--soft-teal); border-color: #bfe9dd; }
+    .panel.blue { background: var(--soft-blue); border-color: #c9d7fb; }
+    .panel.rose { background: var(--soft-rose); border-color: #ffc8bd; }
+    .panel.amber { background: var(--soft-amber); border-color: #efd09a; }
+    .panel.green { background: var(--soft-green); border-color: #c8e6d4; }
+    .panel.violet { background: var(--soft-violet); border-color: #dacdf4; }
 
     .formula {
-      display: block;
-      width: 100%;
-      margin: 16px 0;
-      padding: 18px;
-      overflow-x: auto;
-      color: #f8fafc;
-      background: var(--code);
+      margin: 18px 0;
+      padding: 16px 18px;
+      color: #f7fbff;
+      background: #111827;
+      border: 1px solid #2d3748;
       border-radius: var(--radius);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.92rem;
+      overflow-x: auto;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.94rem;
       line-height: 1.55;
     }
 
+    .kicker {
+      margin-bottom: 12px;
+      color: var(--teal);
+      font-size: 0.78rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     .figure {
-      margin: 26px 0;
-      overflow: hidden;
+      margin: 28px 0 8px;
+      padding: 12px;
       background: white;
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -311,47 +286,61 @@
     .figure img {
       display: block;
       width: 100%;
-      min-height: 220px;
-      object-fit: contain;
-      background: #eef2f7;
+      height: auto;
+      border-radius: 6px;
     }
 
     .caption {
-      padding: 14px 16px 16px;
+      margin: 10px 4px 2px;
       color: var(--muted);
       font-size: 0.94rem;
-      border-top: 1px solid var(--line);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 22px 0;
+      margin-top: 14px;
       overflow: hidden;
       background: white;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      box-shadow: 0 8px 28px rgba(18, 19, 26, 0.04);
+      box-shadow: 0 10px 28px rgba(18, 21, 31, 0.045);
     }
 
     th,
     td {
       padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
-      border-bottom: 1px solid var(--line);
       font-size: 0.94rem;
     }
 
     th {
-      color: var(--slate);
-      background: #eef2f7;
-      font-weight: 850;
+      color: var(--navy);
+      background: #eef3f8;
+      font-weight: 800;
     }
 
     tr:last-child td {
       border-bottom: 0;
     }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 760;
+    }
+
+    .tag.red { color: var(--rose); background: var(--soft-rose); }
+    .tag.blue { color: var(--blue); background: var(--soft-blue); }
+    .tag.green { color: var(--green); background: var(--soft-green); }
+    .tag.amber { color: var(--amber); background: var(--soft-amber); }
+    .tag.violet { color: var(--violet); background: var(--soft-violet); }
 
     .timeline {
       display: grid;
@@ -361,54 +350,40 @@
 
     .step {
       display: grid;
-      grid-template-columns: 86px minmax(0, 1fr);
-      gap: 16px;
-      align-items: start;
+      grid-template-columns: 112px 1fr;
+      gap: 18px;
       padding: 18px;
       background: white;
       border: 1px solid var(--line);
       border-radius: var(--radius);
     }
 
-    .step b {
+    .step strong {
       color: var(--blue);
-      font-size: 1.05rem;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .step p {
-      color: var(--muted);
-      margin-bottom: 0;
+    .callout {
+      padding: 18px 20px;
+      border-left: 5px solid var(--teal);
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px rgba(18, 21, 31, 0.05);
     }
 
     .small {
       color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .command {
-      margin-top: 12px;
-      padding: 12px;
-      color: #e5e7eb;
-      background: #0f172a;
-      border-radius: var(--radius);
-      overflow-x: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.86rem;
+      font-size: 0.93rem;
     }
 
     footer {
-      padding: 46px 0 76px;
+      padding: 44px 0 70px;
       color: var(--muted);
     }
 
     @media (max-width: 860px) {
-      .hero {
-        min-height: 86vh;
-        background:
-          linear-gradient(180deg, rgba(10, 15, 24, 0.94), rgba(10, 15, 24, 0.78)),
-          url("../outputs/figures/xai_correct_examples_notebook.png") center / cover no-repeat;
-      }
-
       .grid.two,
       .grid.three {
         grid-template-columns: 1fr;
@@ -418,9 +393,8 @@
         grid-template-columns: 1fr;
       }
 
-      table {
-        display: block;
-        overflow-x: auto;
+      .hero {
+        min-height: 86vh;
       }
     }
   </style>
@@ -428,653 +402,685 @@
 <body>
   <header class="hero">
     <div class="hero-inner">
-      <span class="eyebrow">AwA2 XAI audit | PyTorch | ResNet50</span>
+      <span class="eyebrow">AwA2 explainability audit</span>
       <h1>The Illusion of Saliency Maps</h1>
       <p class="subtitle">
-        A stress test of Grad-CAM, Integrated Gradients and concept-based explainability on animal recognition.
-        The central question is not whether heatmaps look convincing, but whether they remain faithful when the
-        background, the concepts and the model itself are challenged.
+        A complete PyTorch XAI project showing that visually convincing heatmaps can be unstable,
+        background-sensitive and weak evidence for semantic reasoning.
       </p>
       <div class="hero-actions">
         <a class="button primary" href="#results">Read the results</a>
-        <a class="button" href="#missing">Project audit</a>
-        <a class="button" href="#concepts">Concept methods</a>
-        <a class="button" href="#bottleneck">Bottleneck</a>
-        <a class="button" href="#sanity">Sanity checks</a>
+        <a class="button" href="#algorithms">Understand the algorithms</a>
+        <a class="button" href="#beyond">Beyond saliency</a>
       </div>
     </div>
   </header>
 
   <main class="page">
-    <nav class="toc" aria-label="Article navigation">
-      <a href="#overview">Overview</a>
-      <a href="#methods">Methods</a>
+    <nav class="toc" aria-label="Table of contents">
+      <a href="#problem">Problem</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#algorithms">Algorithms</a>
       <a href="#results">Results</a>
       <a href="#stress">Stress test</a>
       <a href="#concepts">Concepts</a>
-      <a href="#bottleneck">Bottleneck</a>
-      <a href="#sanity">Sanity</a>
-      <a href="#missing">Audit</a>
+      <a href="#beyond">CBM and sanity</a>
+      <a href="#advanced">Advanced audit</a>
+      <a href="#conclusion">Conclusion</a>
     </nav>
 
-    <section id="overview">
-      <h2>What the project currently proves</h2>
+    <section id="problem">
+      <div class="kicker">Research question</div>
+      <h2>Attribution is not the same as understanding.</h2>
       <p class="lead">
-        The project is now more than a saliency demo. It contains a full AwA2 image-classification pipeline,
-        a fine-tuned ResNet50 baseline, post-hoc heatmaps, controlled background perturbations, quantitative
-        saliency metrics, semantic concept analysis, TCAV, a Concept Bottleneck Model and saliency robustness
-        sanity checks. The project now has a complete end-to-end explanation audit, with the main remaining task
-        being scale rather than missing methodology.
+        The project starts from a practical concern in explainable computer vision: saliency maps often
+        look persuasive because they highlight regions near the object, but this visual plausibility does
+        not guarantee that the model uses the animal morphology rather than contextual shortcuts.
       </p>
 
       <div class="grid three">
         <div class="metric">
-          <span class="value">88.4%</span>
-          <span class="label">Best validation accuracy observed for the ResNet50 baseline, at epoch 2.</span>
-        </div>
-        <div class="metric">
           <span class="value">75%</span>
-          <span class="label">Prediction-change rate under background swap in the Phase 5 sample.</span>
+          <span class="label">Prediction change rate under background swap in the evaluated stress-test subset.</span>
         </div>
         <div class="metric">
-          <span class="value">80.5%</span>
-          <span class="label">Concept Bottleneck test accuracy after forcing prediction through 20 semantic attributes.</span>
+          <span class="value">0.252</span>
+          <span class="label">Lowest mean top-20% IoU for Integrated Gradients under color shift.</span>
         </div>
         <div class="metric">
-          <span class="value">0.119</span>
-          <span class="label">Mean top-20% IoU between vanilla saliency and randomized-model saliency in Phase 9.</span>
+          <span class="value">0.111</span>
+          <span class="label">Mean Spearman similarity between vanilla gradients and randomized-model saliency.</span>
         </div>
       </div>
 
+      <div class="callout" style="margin-top: 24px;">
+        <strong>Core interpretation.</strong>
+        If a classifier keeps or changes its prediction after a controlled perturbation, the explanation
+        should behave consistently with that decision. Large saliency drift under changes applied to the
+        background indicates that the explanation is sensitive to non-semantic image statistics.
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <div class="kicker">Experimental design</div>
+      <h2>An end-to-end audit, not a single heatmap.</h2>
+      <p class="lead">
+        The project is organized as a progressively stricter audit. It starts with a trained classifier,
+        produces local attribution maps, quantifies their stability under controlled perturbations, and
+        then compares pixel-level evidence with concept-level and architecture-level explanations.
+      </p>
+
       <div class="timeline">
         <div class="step">
-          <b>Phase 1</b>
-          <p>AwA2 preparation, manifest-based dataset, DataLoader, ImageNet transforms and class mapping.</p>
+          <strong>Data</strong>
+          <div>
+            <h3>AwA2 data preparation</h3>
+            <p>
+              The AwA2 images are organized through a manifest that stores image path, class name,
+              numeric label and split. ResNet-compatible transforms resize the image to 256 pixels,
+              center-crop to 224 x 224, and normalize with ImageNet statistics.
+            </p>
+          </div>
         </div>
         <div class="step">
-          <b>Phase 2</b>
-          <p>ResNet50 baseline fine-tuned on AwA2. Best validation accuracy reached 0.8842.</p>
+          <strong>Model</strong>
+          <div>
+            <h3>ResNet50 baseline</h3>
+            <p>
+              A pretrained ResNet50 is fine-tuned by replacing the final classifier with an AwA2-specific
+              output layer. The checkpoint becomes the object under audit: explanations are analyzed for
+              this trained model, not for an abstract architecture.
+            </p>
+          </div>
         </div>
         <div class="step">
-          <b>Phase 3</b>
-          <p>Correct and incorrect predictions visualized with Input Gradients, Grad-CAM and Integrated Gradients.</p>
+          <strong>Attribution</strong>
+          <div>
+            <h3>Local attribution maps</h3>
+            <p>
+              Input gradients, Grad-CAM and Integrated Gradients are computed for correctly and incorrectly
+              classified examples. Intermediate tensors are logged to inspect gradient magnitude,
+              activation scale and saliency normalization.
+            </p>
+          </div>
         </div>
         <div class="step">
-          <b>Phase 4-5</b>
-          <p>Background-only perturbations plus IoU, Spearman correlation and prediction-transition metrics.</p>
+          <strong>Stress audit</strong>
+          <div>
+            <h3>Background stress test and metrics</h3>
+            <p>
+              Background regions are perturbed through Gaussian noise, RGB channel shift and background
+              replacement. Explanations are compared with top-20% saliency IoU, Spearman rank correlation
+              and mean saliency drift.
+            </p>
+          </div>
         </div>
         <div class="step">
-          <b>Phase 6-7</b>
-          <p>AwA2 semantic concepts, concept transitions and TCAV directional sensitivity at ResNet layer3.</p>
-        </div>
-        <div class="step">
-          <b>Phase 8</b>
-          <p>Concept Bottleneck Model executed: image to semantic concepts to class prediction.</p>
-        </div>
-        <div class="step">
-          <b>Phase 9</b>
-          <p>Executed robustness audit: SmoothGrad, Occlusion Sensitivity and model-randomization checks.</p>
+          <strong>Concept audit</strong>
+          <div>
+            <h3>Concepts, TCAV, bottleneck and sanity checks</h3>
+            <p>
+              The audit then moves from pixels to concepts: AwA2 attributes, TCAV directional derivatives,
+              a Concept Bottleneck Model and saliency sanity checks evaluate whether explanations are
+              semantically aligned and model-dependent.
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="methods">
-      <h2>Why saliency can be misleading</h2>
+    <section id="algorithms">
+      <div class="kicker">Mathematical background</div>
+      <h2>What each explanation method measures.</h2>
       <p class="lead">
-        A saliency map is usually read as evidence that the model used the highlighted region. That reading is too
-        strong. Gradients and class activation maps expose local sensitivity, not necessarily causal dependence.
-        The project therefore compares visual explanations against perturbation and concept-level evidence.
+        The methods used here answer different mathematical questions. A heatmap should therefore be read
+        as a diagnostic signal, not as a direct proof of causal visual reasoning.
       </p>
 
-      <div class="grid two">
+      <div class="grid three">
         <div class="panel">
-          <h3>Grad-CAM</h3>
+          <h3>Sensitivity</h3>
           <p>
-            Grad-CAM weights convolutional feature maps by the gradient of the target class score. It is spatially
-            smooth and easy to read, but its resolution is limited by the last convolutional feature grid.
+            Gradient-based saliency estimates how much the selected class score changes under infinitesimal
+            variations of the input. This is a local derivative property of the model around one image.
           </p>
-          <code class="formula">alpha_k^c = (1 / Z) * sum_i sum_j d y^c / d A_ij^k
-L_GradCAM^c = ReLU(sum_k alpha_k^c A^k)</code>
         </div>
         <div class="panel">
-          <h3>Integrated Gradients</h3>
+          <h3>Attribution</h3>
           <p>
-            Integrated Gradients accumulates input gradients along a path from a baseline to the image. In this
-            project the baseline is a heavily blurred version of the image, not a black image, so average color and
-            brightness are preserved.
+            Attribution assigns a scalar relevance value to pixels, regions, channels or concepts. The
+            assignment is method-dependent and must be interpreted relative to the target score and baseline.
           </p>
-          <code class="formula">IG_i(x) = (x_i - x'_i) * integral_0^1 dF(x' + a(x - x')) / dx_i da</code>
+        </div>
+        <div class="panel">
+          <h3>Causality</h3>
+          <p>
+            Causal evidence requires intervention. If an explanation claims that a region is important,
+            perturbing that region should produce a consistent effect on the prediction.
+          </p>
         </div>
       </div>
 
       <div class="grid two">
         <div class="panel blue">
-          <h3>Stress-test metrics</h3>
+          <h3>Input gradients</h3>
           <p>
-            The experiment compares original and perturbed saliency maps with top-pixel IoU and Spearman rank
-            correlation. Low overlap means the explanation changed even when the animal pixels were intended to
-            remain semantically stable.
+            For class score <em>S<sub>c</sub>(x)</em>, vanilla saliency measures local sensitivity of the
+            score to infinitesimal pixel changes. High values indicate pixels where a small perturbation
+            would most affect the selected class logit.
           </p>
-          <code class="formula">IoU = |S_original intersect S_perturbed| / |S_original union S_perturbed|</code>
+          <div class="formula">M_grad(x, c) = reduce_channels(|d S_c(x) / d x|)</div>
+          <p class="small">
+            Interpretation limit: a large gradient can indicate sensitivity to texture, edge contrast or
+            preprocessing scale, not necessarily semantic evidence.
+          </p>
         </div>
-        <div class="panel amber">
-          <h3>Concept-level methods</h3>
+
+        <div class="panel teal">
+          <h3>Grad-CAM</h3>
           <p>
-            TCAV moves from pixels to semantic directions. A Concept Activation Vector is trained to separate
-            examples that express a concept from examples that do not, then the class score is differentiated along
-            that concept direction.
+            Grad-CAM explains a class score using the final convolutional feature maps. The gradient of the
+            class score with respect to each channel is globally averaged to obtain channel importance
+            weights. A weighted sum of activations is then rectified and upsampled.
           </p>
-          <code class="formula">TCAV(c, k) = fraction_x [ directional_derivative f_k(x) along v_c > 0 ]</code>
+          <div class="formula">
+alpha_k^c = mean_{i,j}(d S_c / d A^k_{i,j})<br />
+M_cam^c = ReLU(sum_k alpha_k^c A^k)
+          </div>
+          <p class="small">
+            Interpretation limit: spatial resolution is coarse because ResNet50 layer4 activations are
+            7 x 7 before upsampling to image size.
+          </p>
+        </div>
+
+        <div class="panel amber">
+          <h3>Integrated Gradients</h3>
+          <p>
+            Integrated Gradients accumulates gradients along a path from a baseline image to the original
+            image. This project uses a heavily blurred version of the same image as baseline, preserving
+            global brightness and color statistics better than a black image.
+          </p>
+          <div class="formula">
+IG_i(x) = (x_i - x'_i) * integral_{a=0}^{1} d S_c(x' + a(x - x')) / d x_i da
+          </div>
+          <p class="small">
+            Interpretation limit: the explanation depends on the baseline and on the path through input
+            space. Baseline choice is part of the model interpretation.
+          </p>
+        </div>
+
+        <div class="panel violet">
+          <h3>TCAV</h3>
+          <p>
+            TCAV tests whether a human-defined concept direction in representation space increases the
+            target class score. Concept Activation Vectors are learned from positive and negative examples
+            of a concept.
+          </p>
+          <div class="formula">
+D_{k,c}(x) = grad_h S_k(h_l(x)) dot v_c<br />
+TCAV(k,c) = P_x[D_{k,c}(x) &gt; 0]
+          </div>
+          <p class="small">
+            Interpretation limit: a high TCAV score means the concept direction is influential, but it does
+            not prove that the model uses that concept in every image.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid two" style="margin-top: 18px;">
+        <div class="panel green">
+          <h3>Completeness and baseline dependence</h3>
+          <p>
+            Integrated Gradients is designed to satisfy a completeness relation: the sum of attributions
+            approximates the difference between the class score at the input and the class score at the
+            baseline. This makes the baseline a scientific assumption, not a cosmetic implementation
+            detail.
+          </p>
+          <div class="formula">sum_i IG_i(x) approx S_c(x) - S_c(x')</div>
+          <p class="small">
+            A black baseline can introduce an artificial out-of-distribution reference image. A blurred
+            baseline keeps low-frequency color and illumination while removing fine object structure.
+          </p>
+        </div>
+
+        <div class="panel rose">
+          <h3>Faithfulness and stability</h3>
+          <p>
+            An explanation is faithful only if it tracks the evidence used by the model. It is stable only
+            if small or semantically irrelevant changes do not produce arbitrary explanation changes.
+            This project evaluates both properties by comparing original and perturbed saliency fields.
+          </p>
+          <div class="formula">Faithfulness: remove high-attribution evidence -> class score should decrease</div>
+          <p class="small">
+            A heatmap that remains visually attractive but fails perturbation, rank-correlation or sanity
+            checks should be treated as weak explanatory evidence.
+          </p>
         </div>
       </div>
     </section>
 
     <section id="results">
-      <h2>Baseline and first explanations</h2>
+      <div class="kicker">Local attribution</div>
+      <h2>Correct and incorrect predictions reveal different attribution behavior.</h2>
       <p class="lead">
-        The baseline is strong enough to make the XAI analysis meaningful, but not perfect. That is useful: the
-        notebook inspects both correct and incorrect examples, so the project can ask whether explanations reveal
-        what the model got right and what it confused.
+        The first visual inspection compares the original image with input gradients, Grad-CAM and
+        Integrated Gradients. Correct predictions often produce plausible object-centered maps, while
+        incorrect predictions expose ambiguity: the attribution can still look structured even when the
+        predicted class is wrong.
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Epoch</th>
-            <th>Train accuracy</th>
-            <th>Validation accuracy</th>
-            <th>Interpretation</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td>0.6538</td>
-            <td>0.8557</td>
-            <td>The ImageNet features transfer quickly to AwA2.</td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td>0.8760</td>
-            <td>0.8842</td>
-            <td>Best validation result. This is the most credible checkpoint.</td>
-          </tr>
-          <tr>
-            <td>5</td>
-            <td>0.9795</td>
-            <td>0.8641</td>
-            <td>Training keeps improving while validation drops, suggesting overfitting pressure.</td>
-          </tr>
-        </tbody>
-      </table>
-
       <div class="figure">
-        <img src="../outputs/figures/xai_correct_examples_notebook.png" alt="Correct examples explained with Input Gradients, Grad-CAM and Integrated Gradients" />
-        <div class="caption">
-          Correct predictions. The visual maps are useful as a first inspection layer, but they do not prove
-          causal reliance on the animal morphology.
-        </div>
+        <img src="assets/xai-report/correct-attributions.png" alt="Correctly classified examples with saliency maps" />
+        <p class="caption">
+          Correctly classified examples. Grad-CAM tends to emphasize broad discriminative regions; Integrated
+          Gradients and input gradients expose higher-frequency sensitivity.
+        </p>
       </div>
 
       <div class="figure">
-        <img src="../outputs/figures/xai_incorrect_examples_notebook.png" alt="Incorrect examples explained with saliency methods" />
-        <div class="caption">
-          Incorrect predictions. These examples are important because explanation quality must also be evaluated
-          when the classifier confuses one animal with another.
-        </div>
+        <img src="assets/xai-report/incorrect-attributions.png" alt="Incorrectly classified examples with saliency maps" />
+        <p class="caption">
+          Misclassified examples. The key diagnostic point is that a visually coherent heatmap can accompany
+          an incorrect label, so plausibility is insufficient as an explanation criterion.
+        </p>
       </div>
     </section>
 
     <section id="stress">
-      <h2>The background stress test</h2>
+      <div class="kicker">Perturbation robustness</div>
+      <h2>Stress testing separates visual appeal from explanation stability.</h2>
       <p class="lead">
-        The key experimental move is to perturb the background while keeping the animal region as stable as possible.
-        If the prediction or the explanation changes strongly, the model is not only reading morphology. It is also
-        sensitive to context, texture and dataset correlations.
+        The stress test perturbs the background while preserving the animal region as much as possible.
+        A robust morphology-based explanation should remain concentrated on the animal. In practice, the
+        saliency maps drift under background changes, and the model sometimes changes the predicted class.
       </p>
 
-      <div class="figure">
-        <img src="../outputs/figures/phase4_stress_test_notebook.png" alt="Background perturbations: gaussian noise, color shift and background swap" />
-        <div class="caption">
-          Phase 4 visual stress test. Perturbations include Gaussian noise, RGB color shift and background swap.
+      <div class="grid three">
+        <div class="panel green">
+          <h3>Gaussian noise</h3>
+          <p>
+            Random noise is injected into background pixels. This tests sensitivity to high-frequency
+            non-semantic variation.
+          </p>
+        </div>
+        <div class="panel blue">
+          <h3>Color shift</h3>
+          <p>
+            RGB channels are inverted or shifted in the background. This tests whether color statistics
+            contribute to the class decision or attribution map.
+          </p>
+        </div>
+        <div class="panel rose">
+          <h3>Background swap</h3>
+          <p>
+            Background pixels are replaced by uniform random texture. This is the strongest perturbation
+            and produced the largest prediction change rate in the evaluated subset.
+          </p>
         </div>
       </div>
 
-      <table>
+      <div class="figure">
+        <img src="assets/xai-report/background-perturbations.png" alt="Background perturbation examples" />
+        <p class="caption">
+          Perturbation examples. The animal remains visually identifiable, while the background statistics
+          are changed to test shortcut reliance.
+        </p>
+      </div>
+
+      <div class="figure">
+        <img src="assets/xai-report/saliency-stress-comparison.png" alt="Saliency comparison under perturbations" />
+        <p class="caption">
+          Saliency comparison under perturbation. The important signal is not only whether the prediction
+          changes, but whether the explanation moves when the semantic object is mostly preserved.
+        </p>
+      </div>
+
+      <table aria-label="Saliency stability metrics">
         <thead>
           <tr>
             <th>Method</th>
             <th>Perturbation</th>
             <th>Prediction change</th>
-            <th>Mean IoU</th>
-            <th>Mean Spearman</th>
-            <th>Reading</th>
+            <th>Mean top-20% IoU</th>
+            <th>Interpretation</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Integrated Gradients</td>
             <td>Background swap</td>
-            <td>0.75</td>
+            <td><span class="tag red">0.75</span></td>
             <td>0.278</td>
-            <td>0.306</td>
-            <td>Very unstable explanation and frequent class changes.</td>
+            <td>Large class instability and low saliency overlap indicate strong dependence on background statistics.</td>
           </tr>
           <tr>
             <td>Integrated Gradients</td>
             <td>Color shift</td>
-            <td>0.50</td>
+            <td><span class="tag amber">0.50</span></td>
             <td>0.252</td>
-            <td>0.406</td>
-            <td>The attribution pattern changes substantially under color-only background changes.</td>
+            <td>The lowest IoU appears under color changes, consistent with IG sensitivity to input-space paths.</td>
           </tr>
           <tr>
             <td>Grad-CAM</td>
             <td>Background swap</td>
-            <td>0.75</td>
+            <td><span class="tag red">0.75</span></td>
             <td>0.517</td>
-            <td>0.401</td>
-            <td>More spatially stable than IG, but still paired with strong prediction instability.</td>
+            <td>The coarser map is more spatially stable than IG, but the prediction itself remains fragile.</td>
           </tr>
           <tr>
             <td>Grad-CAM</td>
-            <td>Gaussian noise</td>
-            <td>0.25</td>
-            <td>0.548</td>
-            <td>0.519</td>
-            <td>Least damaging perturbation in this small sample.</td>
+            <td>Color shift</td>
+            <td><span class="tag amber">0.50</span></td>
+            <td>0.570</td>
+            <td>Higher overlap does not imply causal correctness; it can reflect the low spatial resolution of layer4 maps.</td>
           </tr>
         </tbody>
       </table>
 
-      <div class="figure">
-        <img src="../outputs/figures/phase5_saliency_comparison_notebook.png" alt="Original and perturbed saliency comparison" />
-        <div class="caption">
-          Phase 5 comparison. The clearest failure mode is the antelope-to-walrus transition after background
-          perturbation. This is exactly the kind of context shortcut the project is designed to expose.
-        </div>
+      <div class="formula">
+Top-k IoU = |Top_k(M_original) intersection Top_k(M_perturbed)| / |Top_k(M_original) union Top_k(M_perturbed)|<br />
+Spearman = rank_correlation(flatten(M_original), flatten(M_perturbed))
       </div>
 
-      <div class="panel red">
-        <h3>Interpretation</h3>
-        <p>
-          In the available sample, background swap changes the predicted class in 75% of evaluated cases and causes
-          the strongest confidence drop. That is not enough to claim a universal property of AwA2, but it is strong
-          evidence that the current classifier and its explanations are context-sensitive.
-        </p>
+      <div class="grid two">
+        <div class="panel amber">
+          <h3>Top-k IoU as support overlap</h3>
+          <p>
+            Top-k IoU ignores the exact heatmap values and asks whether the most salient pixels remain in
+            the same spatial support. It is therefore useful for detecting explanation relocation under
+            perturbation.
+          </p>
+        </div>
+        <div class="panel blue">
+          <h3>Spearman as ranking stability</h3>
+          <p>
+            Spearman correlation compares the rank ordering of saliency values. It detects whether the
+            relative importance structure is preserved even when absolute heatmap intensities change.
+          </p>
+        </div>
       </div>
     </section>
 
     <section id="concepts">
-      <h2>From pixels to concepts</h2>
+      <div class="kicker">Concept-level explainability</div>
+      <h2>Concept analysis moves the audit from pixels to semantics.</h2>
       <p class="lead">
-        Pixel saliency answers "where is the model sensitive?" Concept analysis asks a higher-level question:
-        "which semantic attributes move the decision?" This is the right direction for the project because AwA2
-        includes class-level attributes such as horns, hooves, stripes, flippers and habitat-related concepts.
+        AwA2 contains attribute annotations such as furry, horns, hooves, stripes and flippers. These
+        attributes let the project compare pixel-level explanations with concept-level structure in the
+        representation space.
       </p>
 
       <div class="figure">
-        <img src="../outputs/figures/phase6_class_concept_heatmap_notebook.png" alt="AwA2 class concept heatmap" />
-        <div class="caption">
-          Phase 6 class-concept heatmap. This exposes the semantic prior encoded in AwA2 attributes before asking
-          whether the neural model follows the same concepts.
-        </div>
+        <img src="assets/xai-report/class-concept-heatmap.png" alt="AwA2 class concept heatmap" />
+        <p class="caption">
+          Class-concept heatmap. The matrix summarizes which semantic attributes are expected for each
+          class, providing a bridge between dataset metadata and representation-level explainability.
+        </p>
       </div>
 
       <div class="figure">
-        <img src="../outputs/figures/phase6_concept_transition_examples_notebook.png" alt="Concept transition examples between original and perturbed classes" />
-        <div class="caption">
-          Concept transition analysis. The antelope-to-walrus error is not a small semantic move: the concept cosine
-          is 0.348, with large gains in water-related concepts and losses in horns, hooves and plains concepts.
-        </div>
+        <img src="assets/xai-report/tcav-heatmap.png" alt="TCAV heatmap" />
+        <p class="caption">
+          TCAV heatmap. TCAV quantifies whether moving in a concept direction increases the target class
+          score in the model's internal representation.
+        </p>
       </div>
 
-      <h3>TCAV results</h3>
-      <p>
-        Five concepts were tested at ResNet <code>layer3</code>: stripes, furry, hooves, horns and flippers.
-        Every CAV reached training accuracy 1.0 on its selected positive/negative examples. That confirms linear
-        separability in the sampled activation space, but also warns that the CAVs may capture broad correlated
-        directions, not pure human concepts.
-      </p>
+      <div class="figure">
+        <img src="assets/xai-report/tcav-top-scores.png" alt="Top TCAV scores" />
+        <p class="caption">
+          Top TCAV scores. High values indicate target classes whose logits are positively sensitive to a
+          concept direction. For example, several classes show high sensitivity to the flippers direction,
+          including classes where this is semantically plausible and others where it may indicate an
+          entangled representation.
+        </p>
+      </div>
 
-      <table>
+      <table aria-label="Top TCAV examples">
         <thead>
           <tr>
+            <th>Target class</th>
             <th>Concept</th>
-            <th>Mean TCAV</th>
-            <th>Min</th>
-            <th>Max</th>
+            <th>TCAV score</th>
             <th>Interpretation</th>
           </tr>
         </thead>
         <tbody>
           <tr>
+            <td>seal</td>
             <td>flippers</td>
-            <td>0.837</td>
-            <td>0.500</td>
             <td>1.000</td>
-            <td>Strongest overall direction, but suspiciously high for tiger and polar bear too.</td>
+            <td>Concept direction is consistently aligned with increasing the seal score.</td>
           </tr>
           <tr>
-            <td>furry</td>
-            <td>0.590</td>
-            <td>0.300</td>
-            <td>0.933</td>
-            <td>High for tiger and zebra; plausible in part, but still broad.</td>
+            <td>dolphin</td>
+            <td>flippers</td>
+            <td>1.000</td>
+            <td>Semantically plausible concept sensitivity.</td>
           </tr>
           <tr>
+            <td>tiger</td>
             <td>stripes</td>
-            <td>0.557</td>
-            <td>0.000</td>
             <td>0.933</td>
-            <td>Expected high sensitivity for tiger and zebra.</td>
+            <td>Expected sensitivity to a discriminative visual attribute.</td>
           </tr>
           <tr>
-            <td>horns</td>
-            <td>0.397</td>
-            <td>0.033</td>
-            <td>0.967</td>
-            <td>Correctly high for antelope, unexpectedly high for dolphin.</td>
-          </tr>
-          <tr>
-            <td>hooves</td>
-            <td>0.340</td>
-            <td>0.033</td>
-            <td>0.767</td>
-            <td>High for antelope and zebra, low for marine animals.</td>
+            <td>polar bear</td>
+            <td>flippers</td>
+            <td>0.900</td>
+            <td>Potential concept entanglement or dataset bias requiring inspection.</td>
           </tr>
         </tbody>
       </table>
-
-      <div class="figure">
-        <img src="../outputs/figures/phase7_tcav_heatmap_notebook.png" alt="TCAV heatmap across concepts and target classes" />
-        <div class="caption">
-          TCAV heatmap. Some associations are semantically clean, such as stripes for tiger and zebra. Others are
-          suspicious, such as flippers for tiger or horns for dolphin, which supports the broader thesis: concept
-          explanations also need validation.
-        </div>
-      </div>
-
-      <div class="figure">
-        <img src="../outputs/figures/phase7_tcav_top_scores_notebook.png" alt="Highest TCAV class concept sensitivities" />
-        <div class="caption">
-          Highest TCAV sensitivities. The top list mixes meaningful and questionable concept-class relations,
-          which makes it a useful bridge from saliency maps to concept bottleneck models.
-        </div>
-      </div>
     </section>
 
-    <section id="bottleneck">
-      <h2>Phase 8: forcing the decision through concepts</h2>
+    <section id="beyond">
+      <div class="kicker">Architectural and sanity validation</div>
+      <h2>Concept bottlenecks and sanity checks make the audit stricter.</h2>
       <p class="lead">
-        TCAV is still post-hoc: it probes a model after it has learned its own representation. The Concept
-        Bottleneck Model changes the architecture itself. The image is first mapped to 20 AwA2 semantic attributes,
-        and the final classifier receives only those predicted concepts.
+        Saliency maps explain a prediction after it has been made. A Concept Bottleneck Model introduces an
+        intermediate concept layer and exposes whether the classifier can operate through human-readable
+        attributes. Sanity checks then test whether saliency methods are actually model-dependent.
       </p>
 
       <div class="grid three">
         <div class="metric">
-          <span class="value">85.7%</span>
-          <span class="label">Direct ResNet baseline accuracy on the Phase 8 evaluation subset.</span>
+          <span class="value">80.5%</span>
+          <span class="label">Concept Bottleneck test class accuracy.</span>
         </div>
         <div class="metric">
-          <span class="value">80.5%</span>
-          <span class="label">Concept Bottleneck accuracy using predicted semantic concepts.</span>
+          <span class="value">75.4%</span>
+          <span class="label">Concept binary accuracy in the bottleneck predictions.</span>
         </div>
         <div class="metric">
           <span class="value">73.5%</span>
-          <span class="label">Agreement between the direct baseline and the bottleneck predictions.</span>
+          <span class="label">Agreement between CBM and the ResNet baseline on evaluated samples.</span>
         </div>
       </div>
 
       <div class="figure">
-        <img src="../outputs/figures/phase8_cbm_summary_notebook.png" alt="Concept Bottleneck summary comparison" />
-        <div class="caption">
-          Phase 8 summary. The bottleneck is less accurate than the direct classifier, but the drop is moderate:
-          80.5% versus 85.7%. This suggests that the selected concepts preserve much of the classification signal,
-          while still changing the decision pathway.
-        </div>
-      </div>
-
-      <div class="figure">
-        <img src="../outputs/figures/phase8_cbm_training_notebook.png" alt="Concept Bottleneck training curves" />
-        <div class="caption">
-          CBM training curves. Validation accuracy reaches 80.7% by epoch 5, while concept MAE remains around
-          0.205. The model learns to classify through concepts, but the concept predictor is not perfect.
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Metric</th>
-            <th>Value</th>
-            <th>Interpretation</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>CBM test accuracy</td>
-            <td>0.805</td>
-            <td>The concept bottleneck remains competitive with the direct ResNet.</td>
-          </tr>
-          <tr>
-            <td>Baseline accuracy</td>
-            <td>0.857</td>
-            <td>The direct model still performs better, so some useful signal is lost in the bottleneck.</td>
-          </tr>
-          <tr>
-            <td>CBM/baseline agreement</td>
-            <td>0.735</td>
-            <td>The two models often agree, but the bottleneck also changes a meaningful fraction of decisions.</td>
-          </tr>
-          <tr>
-            <td>Concept MAE</td>
-            <td>0.205</td>
-            <td>Predicted concept strengths are informative but noisy.</td>
-          </tr>
-          <tr>
-            <td>Concept binary accuracy</td>
-            <td>0.754</td>
-            <td>About three quarters of thresholded concept decisions match the AwA2 class-level targets.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="grid two">
-        <div class="figure">
-          <img src="../outputs/figures/phase8_concept_prediction_metrics_notebook.png" alt="Per-concept prediction metrics for the bottleneck" />
-          <div class="caption">
-            Per-concept prediction quality. Flippers is reconstructed well (MAE 0.106, binary accuracy 0.896),
-            while furry, swims and hunter are more difficult.
-          </div>
-        </div>
-        <div class="figure">
-          <img src="../outputs/figures/phase8_concept_interventions_notebook.png" alt="Concept intervention effects in the bottleneck" />
-          <div class="caption">
-            Concept interventions. Setting a concept from 0 to 1 changes class probabilities, but the deltas are
-            small in this run. This means the CBM is inspectable, yet not strongly causal at the individual-concept
-            level.
-          </div>
-        </div>
-      </div>
-
-      <div class="panel amber">
-        <h3>Interpretation</h3>
-        <p>
-          Phase 8 is an important positive result, but not a magic fix. The bottleneck makes the decision pathway
-          more readable and only loses about 5.2 accuracy points relative to the direct baseline. At the same time,
-          the predicted concepts can be noisy and some intervention effects are counterintuitive. This supports a
-          careful conclusion: concept-based models improve auditability, but they also require concept-quality
-          validation.
+        <img src="assets/xai-report/cbm-training.png" alt="Concept Bottleneck Model training curves" />
+        <p class="caption">
+          CBM training dynamics. The model is optimized jointly for concept prediction and class prediction,
+          making the explanatory interface part of the architecture.
         </p>
       </div>
-    </section>
 
-    <section id="sanity">
-      <h2>Phase 9: robustness and sanity checks</h2>
-      <p class="lead">
-        The final audit asks whether saliency maps are stable, perturbation-consistent and model-dependent.
-        This phase compares vanilla input-gradient saliency against SmoothGrad, Occlusion Sensitivity and saliency
-        from a randomized copy of the model.
-      </p>
-
-      <div class="grid three">
-        <div class="metric">
-          <span class="value">0.253</span>
-          <span class="label">Mean top-20% IoU between vanilla gradients and SmoothGrad.</span>
-        </div>
-        <div class="metric">
-          <span class="value">0.201</span>
-          <span class="label">Mean top-20% IoU between vanilla gradients and Occlusion Sensitivity.</span>
-        </div>
-        <div class="metric">
-          <span class="value">0.119</span>
-          <span class="label">Mean top-20% IoU between vanilla gradients and randomized-model gradients.</span>
-        </div>
+      <div class="figure">
+        <img src="assets/xai-report/cbm-summary.png" alt="Concept Bottleneck Model summary" />
+        <p class="caption">
+          CBM summary. The bottleneck reaches lower accuracy than the baseline, but it produces a more
+          inspectable prediction path through explicit concepts.
+        </p>
       </div>
 
       <div class="figure">
-        <img src="../outputs/figures/phase9_explainability_audit_notebook.png" alt="Phase 9 saliency robustness audit with SmoothGrad, Occlusion and randomized model maps" />
-        <div class="caption">
-          Phase 9 robustness audit. Each row compares the original image, vanilla input gradients, SmoothGrad,
-          Occlusion Sensitivity and gradients from a randomized model. The randomized maps are intentionally a
-          sanity check: if they looked too similar to the trained-model maps, the explanation would be suspicious.
-        </div>
+        <img src="assets/xai-report/concept-interventions.png" alt="Concept intervention examples" />
+        <p class="caption">
+          Concept interventions. Changing concept values tests whether the downstream class prediction is
+          causally sensitive to interpretable attributes rather than only correlated with them.
+        </p>
       </div>
 
-      <table>
+      <div class="figure">
+        <img src="assets/xai-report/saliency-sanity-audit.png" alt="Saliency sanity audit" />
+        <p class="caption">
+          Sanity audit. Vanilla gradients are compared with SmoothGrad, occlusion maps and randomized-model
+          saliency. The low similarity to randomized saliency is necessary, while the modest similarity to
+          occlusion highlights that gradient maps and perturbation maps capture different signals.
+        </p>
+      </div>
+
+      <table aria-label="Sanity-check metrics">
         <thead>
           <tr>
             <th>Comparison</th>
             <th>Mean top-20% IoU</th>
             <th>Mean Spearman</th>
-            <th>Interpretation</th>
+            <th>Technical reading</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Vanilla vs SmoothGrad</td>
+            <td>Vanilla gradients vs SmoothGrad</td>
             <td>0.253</td>
             <td>0.366</td>
-            <td>Only moderate stability under small input noise. SmoothGrad denoises but does not preserve the same map exactly.</td>
+            <td>Smoothing stabilizes part of the gradient signal, but the overlap is far from complete.</td>
           </tr>
           <tr>
-            <td>Vanilla vs Occlusion</td>
+            <td>Vanilla gradients vs Occlusion</td>
             <td>0.201</td>
             <td>0.158</td>
-            <td>Gradient sensitivity and causal patch removal identify related but clearly different evidence.</td>
+            <td>Gradient sensitivity and finite occlusion importance identify different evidence patterns.</td>
           </tr>
           <tr>
-            <td>Vanilla vs randomized model</td>
+            <td>Vanilla gradients vs randomized model</td>
             <td>0.119</td>
             <td>0.111</td>
-            <td>Low similarity is a good sign: the saliency map changes when learned model structure is destroyed.</td>
+            <td>Low similarity is desirable: the explanation changes when the learned model is destroyed.</td>
           </tr>
         </tbody>
       </table>
+    </section>
 
-      <div class="panel teal">
-        <h3>Interpretation</h3>
-        <p>
-          Phase 9 strengthens the conclusion without overselling it. The randomized-model comparison passes the
-          basic sanity check because similarity is low. However, the modest SmoothGrad and Occlusion agreement
-          shows that the exact saliency pattern is fragile and method-dependent. This is the final message of the
-          project: saliency maps can be useful diagnostic objects, but visual plausibility is not enough evidence
-          of faithful explanation.
-        </p>
+    <section id="advanced">
+      <div class="kicker">Attribution quality tests</div>
+      <h2>A complete attribution audit needs faithfulness, stability and specificity.</h2>
+      <p class="lead">
+        The extended implementation evaluates saliency maps as ranked evidence. Instead of asking whether
+        a heatmap looks plausible, the audit asks whether the highlighted pixels are necessary, sufficient,
+        stable under small perturbations, allocated to the animal rather than the background, and specific
+        to the selected class.
+      </p>
+
+      <div class="grid two">
+        <div class="panel green">
+          <h3>Deletion and insertion</h3>
+          <p>
+            Deletion replaces the most salient pixels with a blurred baseline and measures how quickly the
+            target probability decreases. Insertion starts from the baseline and restores the most salient
+            pixels, measuring how quickly the target probability is recovered.
+          </p>
+          <div class="formula">
+Deletion(k) = S_c(x with Top_k(M) replaced by baseline)<br />
+Insertion(k) = S_c(baseline with Top_k(M) restored from x)
+          </div>
+          <p class="small">
+            A faithful map should produce low deletion AUC and high insertion AUC. The gap between the two
+            curves summarizes how useful the saliency ranking is as evidence ordering.
+          </p>
+        </div>
+
+        <div class="panel amber">
+          <h3>Foreground versus background attribution</h3>
+          <p>
+            Because AwA2 does not provide exact object masks, the implementation uses the same explicit
+            central foreground proxy used by the stress test. The diagnostic measures how much normalized
+            saliency falls inside the approximate animal region and how much falls outside it.
+          </p>
+          <div class="formula">
+AnimalRatio = sum(M * AnimalMask) / sum(M)<br />
+BackgroundRatio = sum(M * BackgroundMask) / sum(M)
+          </div>
+          <p class="small">
+            A high background ratio is direct evidence that the explanation assigns relevance to
+            contextual image statistics, which is the central failure mode investigated in this project.
+          </p>
+        </div>
+
+        <div class="panel blue">
+          <h3>Class-discriminativeness</h3>
+          <p>
+            A class-specific explanation should change when the target class changes. The implementation
+            therefore compares attribution maps for the top-1 and top-2 predicted classes on the same
+            image using top-20% IoU and Spearman rank correlation.
+          </p>
+          <div class="formula">
+Specificity = similarity(M(x, top1), M(x, top2))
+          </div>
+          <p class="small">
+            Very high similarity suggests that the method highlights generic image structures rather than
+            discriminative evidence for a particular class score.
+          </p>
+        </div>
+
+        <div class="panel violet">
+          <h3>Sensitivity, entropy and IG baselines</h3>
+          <p>
+            The audit also compares maps before and after small input noise, measures normalized saliency
+            entropy, and compares Integrated Gradients from blurred and black baselines.
+          </p>
+          <div class="formula">
+H(M) = - sum_i p_i log(p_i), where p_i = M_i / sum_j M_j<br />
+BaselineEffect = similarity(IG_blurred(x), IG_black(x))
+          </div>
+          <p class="small">
+            These diagnostics expose fragile explanations, overly diffuse maps and attribution changes
+            caused by the choice of reference image rather than by the classifier alone.
+          </p>
+        </div>
       </div>
     </section>
 
-    <section id="missing">
-      <h2>Project audit: what is complete and what is missing</h2>
+    <section id="conclusion">
+      <div class="kicker">Final interpretation</div>
+      <h2>The project does not reject explainability. It rejects untested explainability.</h2>
       <p class="lead">
-        The core argument is now supported by real outputs through Phase 9. The remaining work is not about
-        writing more explanation code blindly; it is about broadening the sample size, repeating the experiments
-        at larger scale and making the claims statistically safer.
+        Grad-CAM and Integrated Gradients are useful diagnostic tools, but they are not sufficient evidence
+        that a model understands animal morphology. In this project, saliency maps are treated as hypotheses:
+        they must be stress-tested, compared with perturbation metrics, connected to semantic concepts and
+        validated through sanity checks.
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Area</th>
-            <th>Status</th>
-            <th>What it means</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Data and baseline</td>
-            <td><span class="status done">Complete</span></td>
-            <td>AwA2 manifest, loaders, ResNet50 training and checkpoint flow are implemented.</td>
-          </tr>
-          <tr>
-            <td>Post-hoc XAI</td>
-            <td><span class="status done">Complete</span></td>
-            <td>Input Gradients, Grad-CAM and Integrated Gradients are visualized on correct and incorrect cases.</td>
-          </tr>
-          <tr>
-            <td>Stress test metrics</td>
-            <td><span class="status done">Complete</span></td>
-            <td>Phase 5 produces IoU, Spearman, confidence drop, saliency drift and prediction transitions.</td>
-          </tr>
-          <tr>
-            <td>Concept analysis and TCAV</td>
-            <td><span class="status done">Complete</span></td>
-            <td>Phase 6 and Phase 7 outputs exist and are included in this article.</td>
-          </tr>
-          <tr>
-            <td>Concept Bottleneck Model</td>
-            <td><span class="status done">Complete</span></td>
-            <td>Phase 8 outputs exist: CBM accuracy 0.805, baseline accuracy 0.857, agreement 0.735.</td>
-          </tr>
-          <tr>
-            <td>Robustness sanity checks</td>
-            <td><span class="status done">Complete</span></td>
-            <td>Phase 9 outputs exist: SmoothGrad, Occlusion and randomized-model sanity checks are included.</td>
-          </tr>
-          <tr>
-            <td>Statistical strength</td>
-            <td><span class="status risk">Needs expansion</span></td>
-            <td>Several current figures use small notebook samples. The final report should run on a larger subset.</td>
-          </tr>
-        </tbody>
-      </table>
-
       <div class="grid two">
-        <div class="panel blue">
-          <h3>Scale Phase 9</h3>
+        <div class="panel rose">
+          <h3>What the heatmaps show</h3>
           <p>
-            The current Phase 9 audit is coherent, but it uses a small notebook sample. Run it on more examples
-            before presenting the numbers as dataset-level evidence.
+            They identify regions where logits are sensitive to activations or pixels. They can reveal
+            object-centered sensitivity, background dependence and failure modes in misclassified examples.
           </p>
-          <div class="command">python3 scripts/run_phase9_explainability_audit.py --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv --num-examples 32</div>
         </div>
-        <div class="panel amber">
-          <h3>Scale the experiments</h3>
+        <div class="panel green">
+          <h3>What the complete audit adds</h3>
           <p>
-            Repeat Phase 5, Phase 7 and Phase 9 on more examples. The current results are coherent, but the blog
-            should avoid claiming dataset-wide behavior from very small notebook samples.
+            The stress test quantifies saliency instability, TCAV links representations to concepts, the
+            bottleneck exposes an interpretable prediction path, and sanity checks test model dependence.
           </p>
-          <div class="command">increase --num-examples / --max-eval-per-class before final reporting</div>
         </div>
       </div>
 
-      <div class="panel teal">
-        <h3>Bottom line</h3>
-        <p>
-          The project is coherent: it starts from visually persuasive saliency maps, breaks them with background
-          perturbations, moves upward to semantic concepts, and then prepares model-intrinsic and sanity-check
-          evaluations. The main missing piece is now scale: repeat Phase 5, Phase 7 and Phase 9 on more examples
-          before making the final blog claims.
-        </p>
+      <div class="callout" style="margin-top: 24px;">
+        <strong>Final claim.</strong>
+        A credible XAI analysis should combine local attribution, perturbation robustness, concept-level
+        evidence and sanity validation. A single attractive heatmap is a visualization, not an explanation.
       </div>
     </section>
 
     <footer>
       <p>
-        Generated from the local project outputs in <code>outputs/figures</code> and <code>outputs/reports</code>.
-        The page intentionally distinguishes completed results from implemented-but-not-yet-executed phases.
+        Generated from the AwA2 XAI pipeline outputs in <code>outputs/figures</code> and
+        <code>outputs/reports</code>. The report is designed to be read together with the consolidated
+        notebooks: data and saliency maps, stress tests and concepts, bottleneck and sanity audit.
       </p>
     </footer>
   </main>
