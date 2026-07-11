@@ -24,6 +24,7 @@ from src.bottleneck import (
     intervention_rows,
     load_backbone_checkpoint,
     per_concept_metrics,
+    run_cbm_epoch,
     select_concept_indices,
     train_cbm,
     trainable_parameters,
@@ -36,7 +37,7 @@ from src.concepts import (
     read_manifest_classes,
 )
 from src.data import build_dataloaders
-from src.model import get_device
+from src.model import build_resnet50_classifier, get_device
 from src.utils import set_seed, setup_logging
 
 LOGGER = logging.getLogger("run_phase8_cbm")
@@ -77,6 +78,11 @@ def parse_args() -> argparse.Namespace:
         default=PROJECT_ROOT / "outputs" / "reports" / "phase8_cbm_history.csv",
     )
     parser.add_argument(
+        "--summary-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_cbm_summary.csv",
+    )
+    parser.add_argument(
         "--concept-metrics-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "reports" / "phase8_concept_metrics.csv",
@@ -95,6 +101,11 @@ def parse_args() -> argparse.Namespace:
         "--training-figure-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase8_cbm_training.png",
+    )
+    parser.add_argument(
+        "--summary-figure-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase8_cbm_summary.png",
     )
     parser.add_argument(
         "--concept-figure-output",
@@ -215,6 +226,68 @@ def load_best_checkpoint(model: ConceptBottleneckModel, checkpoint_path: Path, d
     LOGGER.info("loaded best CBM checkpoint: %s", checkpoint_path)
 
 
+def load_baseline_classifier(
+    num_classes: int,
+    checkpoint_path: Path,
+    device: torch.device,
+) -> torch.nn.Module | None:
+    """Load the Phase 2 ResNet baseline for direct-vs-bottleneck comparison."""
+    checkpoint_path = checkpoint_path.expanduser().resolve()
+    if not checkpoint_path.exists():
+        LOGGER.warning("baseline checkpoint not found; skipping baseline comparison: %s", checkpoint_path)
+        return None
+
+    baseline = build_resnet50_classifier(num_classes=num_classes, pretrained=False)
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    state_dict = checkpoint.get("model_state_dict", checkpoint)
+    baseline.load_state_dict(state_dict)
+    baseline.to(device)
+    baseline.eval()
+    LOGGER.info("loaded baseline classifier: %s", checkpoint_path)
+    return baseline
+
+
+def evaluate_baseline_comparison(
+    cbm_model: ConceptBottleneckModel,
+    baseline_model: torch.nn.Module | None,
+    dataloader: DataLoader,
+    device: torch.device,
+    max_batches: int | None = None,
+) -> dict[str, float | str]:
+    """Compare direct ResNet predictions with bottleneck predictions."""
+    if baseline_model is None:
+        return {
+            "baseline_accuracy": "",
+            "cbm_baseline_agreement": "",
+            "baseline_evaluated_samples": "",
+        }
+
+    cbm_model.eval()
+    baseline_model.eval()
+    total = 0
+    baseline_correct = 0
+    agreement = 0
+    with torch.no_grad():
+        for batch_index, batch in enumerate(dataloader):
+            if max_batches is not None and batch_index >= max_batches:
+                break
+            images = batch[0].to(device, non_blocking=True)
+            labels = batch[2].to(device, non_blocking=True)
+            cbm_predictions = cbm_model(images).class_logits.argmax(dim=1)
+            baseline_predictions = baseline_model(images).argmax(dim=1)
+            total += labels.numel()
+            baseline_correct += int((baseline_predictions == labels).sum().item())
+            agreement += int((baseline_predictions == cbm_predictions).sum().item())
+
+    if total == 0:
+        raise RuntimeError("No samples processed for baseline comparison.")
+    return {
+        "baseline_accuracy": baseline_correct / total,
+        "cbm_baseline_agreement": agreement / total,
+        "baseline_evaluated_samples": total,
+    }
+
+
 def save_training_curves(history_path: Path, output_path: Path) -> None:
     rows = read_csv_rows(history_path)
     epochs = sorted({int(row["epoch"]) for row in rows})
@@ -260,6 +333,41 @@ def save_training_curves(history_path: Path, output_path: Path) -> None:
     for axis in axes:
         axis.grid(alpha=0.25)
         axis.legend()
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info("saved %s", output_path)
+
+
+def save_summary_plot(summary_row: dict[str, object], output_path: Path) -> None:
+    """Save the high-level Phase 8 comparison: direct model, CBM and agreement."""
+    labels = ["Baseline ResNet", "Concept bottleneck", "Agreement"]
+    values = [
+        summary_row.get("baseline_accuracy", ""),
+        summary_row.get("test_class_acc", ""),
+        summary_row.get("cbm_baseline_agreement", ""),
+    ]
+    numeric_values = [float(value) if value != "" else np.nan for value in values]
+
+    output_path = output_path.expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(7.8, 4.6))
+    colors = ["#2563eb", "#16a34a", "#f59e0b"]
+    bars = ax.bar(labels, numeric_values, color=colors)
+    ax.set_ylim(0.0, 1.0)
+    ax.set_ylabel("fraction")
+    ax.set_title("Phase 8: direct classifier vs concept bottleneck")
+    ax.grid(axis="y", alpha=0.25)
+    for bar, value in zip(bars, numeric_values):
+        if np.isfinite(value):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                min(value + 0.025, 0.98),
+                f"{value:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+            )
     plt.tight_layout()
     fig.savefig(output_path, dpi=170, bbox_inches="tight")
     plt.close(fig)
@@ -390,6 +498,44 @@ def main() -> None:
     save_training_curves(args.history_output, args.training_figure_output)
 
     load_best_checkpoint(model, args.checkpoint_output, device)
+    test_epoch_metrics = run_cbm_epoch(
+        model=model,
+        dataloader=loaders["test"],
+        device=device,
+        optimizer=None,
+        concept_loss_weight=args.concept_loss_weight,
+        class_loss_weight=args.class_loss_weight,
+        max_batches=args.max_test_batches,
+    )
+    baseline_model = load_baseline_classifier(
+        num_classes=num_classes,
+        checkpoint_path=args.backbone_checkpoint,
+        device=device,
+    )
+    baseline_comparison = evaluate_baseline_comparison(
+        cbm_model=model,
+        baseline_model=baseline_model,
+        dataloader=loaders["test"],
+        device=device,
+        max_batches=args.max_test_batches,
+    )
+    summary_row = {
+        "num_classes": num_classes,
+        "num_concepts": len(concept_names),
+        "epochs": args.epochs,
+        "concept_loss_weight": args.concept_loss_weight,
+        "class_loss_weight": args.class_loss_weight,
+        "test_loss": test_epoch_metrics.loss,
+        "test_class_loss": test_epoch_metrics.class_loss,
+        "test_concept_loss": test_epoch_metrics.concept_loss,
+        "test_class_acc": test_epoch_metrics.class_acc,
+        "test_concept_mae": test_epoch_metrics.concept_mae,
+        "test_concept_binary_acc": test_epoch_metrics.concept_binary_acc,
+        **baseline_comparison,
+    }
+    write_csv([summary_row], args.summary_output)
+    save_summary_plot(summary_row, args.summary_figure_output)
+
     test_metrics = per_concept_metrics(
         model=model,
         dataloader=loaders["test"],
@@ -406,6 +552,7 @@ def main() -> None:
         idx_to_class=idx_to_class,
         concept_names=concept_names,
         device=device,
+        baseline_model=baseline_model,
         max_batches=args.max_prediction_batches,
     )
     write_csv(prediction_rows, args.predictions_output)
@@ -427,9 +574,10 @@ def main() -> None:
     save_intervention_plot(interventions, args.intervention_figure_output)
 
     LOGGER.info(
-        "Phase 8 complete: checkpoint=%s history=%s concept_metrics=%s predictions=%s interventions=%s",
+        "Phase 8 complete: checkpoint=%s history=%s summary=%s concept_metrics=%s predictions=%s interventions=%s",
         args.checkpoint_output,
         args.history_output,
+        args.summary_output,
         args.concept_metrics_output,
         args.predictions_output,
         args.intervention_output,
