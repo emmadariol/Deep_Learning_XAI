@@ -391,6 +391,22 @@ def main() -> None:
         output_path=args.figure_output,
         preferred_method="gradcam",
     )
+    figure_output = Path(args.figure_output).expanduser().resolve()
+    for xai_method in saliency_maps:
+        method_figure = figure_output.with_name(
+            f"{figure_output.stem}_{xai_method}{figure_output.suffix}"
+        )
+        save_saliency_comparison_grid(
+            images=images,
+            perturbed_batches=perturbed_batches,
+            perturbed_predictions=perturbed_predictions,
+            saliency_maps=saliency_maps,
+            true_names=true_names,
+            original_prediction_names=original_prediction_names,
+            idx_to_class=idx_to_class,
+            output_path=method_figure,
+            preferred_method=xai_method,
+        )
 
     LOGGER.info("Phase 5 complete: figure=%s csv=%s", args.figure_output, args.csv_output)
 
