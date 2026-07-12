@@ -19,13 +19,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.bottleneck import (
     ConceptBottleneckModel,
     ConceptTargetDataset,
+    collect_cbm_error_rows,
     collect_prediction_rows,
     concept_names_from_indices,
+    concept_confusion_rows,
     intervention_rows,
     load_backbone_checkpoint,
     per_concept_metrics,
     run_cbm_epoch,
     select_concept_indices,
+    summarize_cbm_error_rows,
     train_cbm,
     trainable_parameters,
     write_history_csv,
@@ -88,9 +91,24 @@ def parse_args() -> argparse.Namespace:
         default=PROJECT_ROOT / "outputs" / "reports" / "phase8_concept_metrics.csv",
     )
     parser.add_argument(
+        "--concept-confusion-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_concept_confusion_matrix.csv",
+    )
+    parser.add_argument(
         "--predictions-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "reports" / "phase8_cbm_predictions.csv",
+    )
+    parser.add_argument(
+        "--error-analysis-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_cbm_error_analysis.csv",
+    )
+    parser.add_argument(
+        "--error-summary-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_cbm_error_summary.csv",
     )
     parser.add_argument(
         "--intervention-output",
@@ -113,9 +131,19 @@ def parse_args() -> argparse.Namespace:
         default=PROJECT_ROOT / "outputs" / "figures" / "phase8_concept_prediction_metrics.png",
     )
     parser.add_argument(
+        "--concept-confusion-figure-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase8_concept_confusion_matrix.png",
+    )
+    parser.add_argument(
         "--intervention-figure-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase8_concept_interventions.png",
+    )
+    parser.add_argument(
+        "--error-figure-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase8_cbm_error_analysis.png",
     )
     parser.add_argument(
         "--concepts",
@@ -401,6 +429,51 @@ def save_concept_metrics_plot(metrics_rows: list[dict[str, object]], output_path
     LOGGER.info("saved %s", output_path)
 
 
+def save_concept_confusion_plot(rows: list[dict[str, object]], output_path: Path, top_n: int = 24) -> None:
+    selected = sorted(rows, key=lambda row: float(row["f1"]))[:top_n]
+    labels = [str(row["concept"]) for row in selected]
+    matrix = np.array(
+        [
+            [
+                float(row["true_positive"]),
+                float(row["false_positive"]),
+                float(row["false_negative"]),
+                float(row["true_negative"]),
+            ]
+            for row in selected
+        ],
+        dtype=float,
+    )
+    row_sums = matrix.sum(axis=1, keepdims=True)
+    normalized = matrix / np.maximum(row_sums, 1.0)
+
+    output_path = output_path.expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(8.2, max(5.2, 0.36 * len(selected))))
+    im = ax.imshow(normalized, aspect="auto", cmap="magma", vmin=0.0, vmax=1.0)
+    ax.set_title("Concept confusion matrix by bottleneck concept")
+    ax.set_xticks(range(4))
+    ax.set_xticklabels(["TP", "FP", "FN", "TN"])
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels)
+    for row_index in range(normalized.shape[0]):
+        for col_index in range(normalized.shape[1]):
+            ax.text(
+                col_index,
+                row_index,
+                f"{int(matrix[row_index, col_index])}",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white" if normalized[row_index, col_index] > 0.45 else "black",
+            )
+    fig.colorbar(im, ax=ax, fraction=0.028, pad=0.02, label="row-normalized count")
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info("saved %s", output_path)
+
+
 def save_intervention_plot(rows: list[dict[str, object]], output_path: Path, top_n: int = 18) -> None:
     selected = sorted(rows, key=lambda row: abs(float(row["intervention_delta"])), reverse=True)[:top_n]
     labels = [f"{row['target_class']} | {row['concept']}" for row in selected]
@@ -415,6 +488,36 @@ def save_intervention_plot(rows: list[dict[str, object]], output_path: Path, top
     ax.set_title("Largest concept intervention effects")
     ax.set_xlabel("class probability change when concept is set 0 -> 1")
     ax.grid(axis="x", alpha=0.25)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info("saved %s", output_path)
+
+
+def save_error_analysis_plot(rows: list[dict[str, object]], output_path: Path, top_n: int = 18) -> None:
+    if not rows:
+        LOGGER.warning("No CBM class errors to plot.")
+        return
+    selected = rows[:top_n]
+    labels = [f"{row['true_class']} -> {row['cbm_predicted_class']}" for row in selected]
+    values = [float(row["mean_abs_concept_error"]) for row in selected]
+    counts = [int(row["count"]) for row in selected]
+
+    output_path = output_path.expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(10.5, max(5.2, 0.42 * len(selected))))
+    bars = ax.barh(labels[::-1], values[::-1], color=plt.cm.inferno(np.linspace(0.25, 0.85, len(selected)))[::-1])
+    ax.set_title("CBM class errors and concept prediction error")
+    ax.set_xlabel("mean absolute concept error")
+    ax.grid(axis="x", alpha=0.25)
+    for bar, count in zip(bars, counts[::-1]):
+        ax.text(
+            bar.get_width() + 0.004,
+            bar.get_y() + bar.get_height() / 2,
+            f"n={count}",
+            va="center",
+            fontsize=8.5,
+        )
     plt.tight_layout()
     fig.savefig(output_path, dpi=170, bbox_inches="tight")
     plt.close(fig)
@@ -546,6 +649,16 @@ def main() -> None:
     write_csv(test_metrics, args.concept_metrics_output)
     save_concept_metrics_plot(test_metrics, args.concept_figure_output)
 
+    confusion_rows = concept_confusion_rows(
+        model=model,
+        dataloader=loaders["test"],
+        concept_names=concept_names,
+        device=device,
+        max_batches=args.max_test_batches,
+    )
+    write_csv(confusion_rows, args.concept_confusion_output)
+    save_concept_confusion_plot(confusion_rows, args.concept_confusion_figure_output)
+
     prediction_rows = collect_prediction_rows(
         model=model,
         dataloader=loaders["test"],
@@ -556,6 +669,23 @@ def main() -> None:
         max_batches=args.max_prediction_batches,
     )
     write_csv(prediction_rows, args.predictions_output)
+
+    error_rows = collect_cbm_error_rows(
+        model=model,
+        dataloader=loaders["test"],
+        idx_to_class=idx_to_class,
+        concept_names=concept_names,
+        device=device,
+        baseline_model=baseline_model,
+        max_batches=args.max_test_batches,
+    )
+    write_csv(error_rows, args.error_analysis_output)
+    error_summary_rows = summarize_cbm_error_rows(error_rows)
+    if error_summary_rows:
+        write_csv(error_summary_rows, args.error_summary_output)
+        save_error_analysis_plot(error_summary_rows, args.error_figure_output)
+    else:
+        LOGGER.warning("No CBM class errors found; error summary not written.")
 
     intervention_classes = choose_intervention_classes(
         concept_bank=concept_bank,
@@ -574,12 +704,14 @@ def main() -> None:
     save_intervention_plot(interventions, args.intervention_figure_output)
 
     LOGGER.info(
-        "Phase 8 complete: checkpoint=%s history=%s summary=%s concept_metrics=%s predictions=%s interventions=%s",
+        "Phase 8 complete: checkpoint=%s history=%s summary=%s concept_metrics=%s concept_confusion=%s predictions=%s error_analysis=%s interventions=%s",
         args.checkpoint_output,
         args.history_output,
         args.summary_output,
         args.concept_metrics_output,
+        args.concept_confusion_output,
         args.predictions_output,
+        args.error_analysis_output,
         args.intervention_output,
     )
 

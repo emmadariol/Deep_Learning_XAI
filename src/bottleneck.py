@@ -412,6 +412,67 @@ def per_concept_metrics(
     return rows
 
 
+def concept_confusion_rows(
+    model: ConceptBottleneckModel,
+    dataloader: DataLoader,
+    concept_names: list[str],
+    device: torch.device,
+    threshold: float = 0.5,
+    max_batches: int | None = None,
+) -> list[dict[str, object]]:
+    """Compute binary TP/FP/FN/TN counts for each bottleneck concept."""
+    model.eval()
+    true_positive = torch.zeros(len(concept_names), dtype=torch.long)
+    false_positive = torch.zeros(len(concept_names), dtype=torch.long)
+    false_negative = torch.zeros(len(concept_names), dtype=torch.long)
+    true_negative = torch.zeros(len(concept_names), dtype=torch.long)
+
+    with torch.no_grad():
+        for batch_index, batch in enumerate(dataloader):
+            if max_batches is not None and batch_index >= max_batches:
+                break
+            images = batch[0].to(device, non_blocking=True)
+            concept_targets = batch[1].to(device, non_blocking=True)
+            concept_probs = model(images).concept_probs
+            predicted = (concept_probs >= threshold).detach().cpu()
+            target = (concept_targets >= threshold).detach().cpu()
+
+            true_positive += (predicted & target).sum(dim=0)
+            false_positive += (predicted & ~target).sum(dim=0)
+            false_negative += (~predicted & target).sum(dim=0)
+            true_negative += (~predicted & ~target).sum(dim=0)
+
+    rows: list[dict[str, object]] = []
+    for index, concept_name in enumerate(concept_names):
+        tp = int(true_positive[index].item())
+        fp = int(false_positive[index].item())
+        fn = int(false_negative[index].item())
+        tn = int(true_negative[index].item())
+        total = tp + fp + fn + tn
+        precision = tp / max(tp + fp, 1)
+        recall = tp / max(tp + fn, 1)
+        specificity = tn / max(tn + fp, 1)
+        f1 = 0.0 if precision + recall == 0.0 else 2.0 * precision * recall / (precision + recall)
+        rows.append(
+            {
+                "concept": concept_name,
+                "threshold": threshold,
+                "true_positive": tp,
+                "false_positive": fp,
+                "false_negative": fn,
+                "true_negative": tn,
+                "support_positive": tp + fn,
+                "support_negative": tn + fp,
+                "precision": precision,
+                "recall": recall,
+                "specificity": specificity,
+                "f1": f1,
+                "accuracy": (tp + tn) / max(total, 1),
+            }
+        )
+    return rows
+
+
 def collect_prediction_rows(
     model: ConceptBottleneckModel,
     dataloader: DataLoader,
@@ -494,6 +555,160 @@ def collect_prediction_rows(
                     }
                 )
     return rows
+
+
+def collect_cbm_error_rows(
+    model: ConceptBottleneckModel,
+    dataloader: DataLoader,
+    idx_to_class: dict[int, str],
+    concept_names: list[str],
+    device: torch.device,
+    baseline_model: nn.Module | None = None,
+    max_batches: int | None = None,
+    top_k_concepts: int = 6,
+) -> list[dict[str, object]]:
+    """Collect class and concept errors for CBM predictions."""
+    model.eval()
+    if baseline_model is not None:
+        baseline_model.eval()
+    rows: list[dict[str, object]] = []
+
+    with torch.no_grad():
+        for batch_index, batch in enumerate(dataloader):
+            if max_batches is not None and batch_index >= max_batches:
+                break
+            images = batch[0].to(device, non_blocking=True)
+            concept_targets = batch[1].to(device, non_blocking=True)
+            labels = batch[2].to(device, non_blocking=True)
+            class_names = list(batch[3])
+            filepaths = list(batch[4])
+
+            outputs = model(images)
+            probs = torch.softmax(outputs.class_logits, dim=1)
+            confidences, predictions = probs.max(dim=1)
+            if baseline_model is not None:
+                baseline_probs = torch.softmax(baseline_model(images), dim=1)
+                baseline_confidences, baseline_predictions = baseline_probs.max(dim=1)
+            else:
+                baseline_confidences = torch.full_like(confidences, float("nan"))
+                baseline_predictions = torch.full_like(predictions, -1)
+
+            concept_errors = outputs.concept_probs - concept_targets
+            abs_errors = concept_errors.abs()
+
+            for index in range(images.size(0)):
+                top_error_indices = torch.argsort(abs_errors[index], descending=True)[:top_k_concepts].tolist()
+                over_indices = torch.argsort(concept_errors[index], descending=True)[:top_k_concepts].tolist()
+                under_indices = torch.argsort(concept_errors[index], descending=False)[:top_k_concepts].tolist()
+                cbm_prediction = int(predictions[index].item())
+                true_label = int(labels[index].item())
+                baseline_prediction = int(baseline_predictions[index].item())
+                rows.append(
+                    {
+                        "filepath": filepaths[index],
+                        "true_class": class_names[index],
+                        "cbm_predicted_class": idx_to_class[cbm_prediction],
+                        "cbm_correct": bool(cbm_prediction == true_label),
+                        "cbm_confidence": float(confidences[index].item()),
+                        "baseline_predicted_class": (
+                            idx_to_class[baseline_prediction] if baseline_prediction >= 0 else ""
+                        ),
+                        "baseline_correct": (
+                            bool(baseline_prediction == true_label) if baseline_prediction >= 0 else ""
+                        ),
+                        "baseline_confidence": (
+                            float(baseline_confidences[index].item()) if baseline_prediction >= 0 else ""
+                        ),
+                        "cbm_agrees_with_baseline": (
+                            bool(cbm_prediction == baseline_prediction) if baseline_prediction >= 0 else ""
+                        ),
+                        "mean_abs_concept_error": float(abs_errors[index].mean().item()),
+                        "max_abs_concept_error": float(abs_errors[index].max().item()),
+                        "top_concept_errors": _concept_delta_string(
+                            concept_errors[index].detach().cpu(),
+                            concept_targets[index].detach().cpu(),
+                            outputs.concept_probs[index].detach().cpu(),
+                            concept_names,
+                            top_error_indices,
+                        ),
+                        "overpredicted_concepts": _concept_delta_string(
+                            concept_errors[index].detach().cpu(),
+                            concept_targets[index].detach().cpu(),
+                            outputs.concept_probs[index].detach().cpu(),
+                            concept_names,
+                            over_indices,
+                        ),
+                        "underpredicted_concepts": _concept_delta_string(
+                            concept_errors[index].detach().cpu(),
+                            concept_targets[index].detach().cpu(),
+                            outputs.concept_probs[index].detach().cpu(),
+                            concept_names,
+                            under_indices,
+                        ),
+                    }
+                )
+    return rows
+
+
+def summarize_cbm_error_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Summarize CBM errors by true/predicted class transition."""
+    grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
+    for row in rows:
+        if bool(row["cbm_correct"]):
+            continue
+        key = (str(row["true_class"]), str(row["cbm_predicted_class"]))
+        grouped.setdefault(key, []).append(row)
+
+    summary: list[dict[str, object]] = []
+    for (true_class, predicted_class), group_rows in sorted(
+        grouped.items(),
+        key=lambda item: len(item[1]),
+        reverse=True,
+    ):
+        baseline_correct_values = [
+            row["baseline_correct"]
+            for row in group_rows
+            if row["baseline_correct"] != ""
+        ]
+        baseline_correct_rate = (
+            sum(bool(value) for value in baseline_correct_values) / len(baseline_correct_values)
+            if baseline_correct_values
+            else ""
+        )
+        summary.append(
+            {
+                "true_class": true_class,
+                "cbm_predicted_class": predicted_class,
+                "count": len(group_rows),
+                "mean_cbm_confidence": float(np.mean([float(row["cbm_confidence"]) for row in group_rows])),
+                "mean_abs_concept_error": float(
+                    np.mean([float(row["mean_abs_concept_error"]) for row in group_rows])
+                ),
+                "mean_max_abs_concept_error": float(
+                    np.mean([float(row["max_abs_concept_error"]) for row in group_rows])
+                ),
+                "baseline_correct_rate": baseline_correct_rate,
+            }
+        )
+    return summary
+
+
+def _concept_delta_string(
+    errors: torch.Tensor,
+    targets: torch.Tensor,
+    predictions: torch.Tensor,
+    concept_names: list[str],
+    indices: list[int],
+) -> str:
+    return "; ".join(
+        (
+            f"{concept_names[index]}:"
+            f"pred={float(predictions[index]):.3f},"
+            f"target={float(targets[index]):.3f},"
+            f"delta={float(errors[index]):+.3f}"
+        )
+        for index in indices
+    )
 
 
 def top_concept_string(values: torch.Tensor, concept_names: list[str], top_k: int = 6) -> str:

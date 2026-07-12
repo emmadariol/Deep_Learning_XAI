@@ -63,6 +63,11 @@ def parse_args() -> argparse.Namespace:
         default=PROJECT_ROOT / "outputs" / "reports" / "phase6_concept_transitions.csv",
     )
     parser.add_argument(
+        "--saliency-alignment-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase6_concept_saliency_alignment.csv",
+    )
+    parser.add_argument(
         "--heatmap-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase6_class_concept_heatmap.png",
@@ -71,6 +76,11 @@ def parse_args() -> argparse.Namespace:
         "--transition-figure-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase6_concept_transition_examples.png",
+    )
+    parser.add_argument(
+        "--saliency-alignment-figure-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase6_concept_saliency_alignment.png",
     )
     parser.add_argument(
         "--matrix-kind",
@@ -149,6 +159,69 @@ def build_transition_rows(concept_bank, transitions: list[tuple[str, str, str]])
     return rows
 
 
+def build_saliency_alignment_rows(concept_bank, csv_path: Path) -> list[dict[str, object]]:
+    """Join Phase 5 saliency drift metrics with AwA2 class-concept distances.
+
+    AwA2 provides class-level attributes, not spatial concept masks. This report
+    therefore measures semantic alignment indirectly: when saliency shifts under
+    a perturbation, does the predicted class also move toward a conceptually
+    different animal?
+    """
+    if not csv_path.exists():
+        LOGGER.warning("stress CSV not found; skipping concept-saliency alignment: %s", csv_path)
+        return []
+
+    rows: list[dict[str, object]] = []
+    with csv_path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        required = {
+            "xai_method",
+            "perturbation",
+            "original_prediction",
+            "perturbed_prediction",
+            "prediction_changed",
+            "spearman",
+            "confidence_delta",
+        }
+        missing = required.difference(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"{csv_path} is missing columns: {sorted(missing)}")
+        iou_columns = [name for name in (reader.fieldnames or []) if name.startswith("iou_top_")]
+        if not iou_columns:
+            raise ValueError(f"{csv_path} is missing an iou_top_* column.")
+        iou_column = iou_columns[0]
+
+        for row in reader:
+            source = row["original_prediction"]
+            target = row["perturbed_prediction"]
+            summary = concept_transition_summary(concept_bank, source, target)
+            mean_abs_delta = float(summary["mean_abs_concept_delta"])
+            concept_cosine = float(summary["concept_cosine"])
+            saliency_iou = float(row[iou_column])
+            spearman = float(row["spearman"])
+            saliency_drift = 1.0 - saliency_iou
+            confidence_drop = -float(row["confidence_delta"])
+            rows.append(
+                {
+                    "xai_method": row["xai_method"],
+                    "perturbation": row["perturbation"],
+                    "source_class": source,
+                    "target_class": target,
+                    "prediction_changed": row["prediction_changed"],
+                    "confidence_drop": confidence_drop,
+                    "saliency_iou_top_pct": saliency_iou,
+                    "saliency_spearman": spearman,
+                    "saliency_drift": saliency_drift,
+                    "concept_cosine": concept_cosine,
+                    "mean_abs_concept_delta": mean_abs_delta,
+                    "semantic_shift_score": mean_abs_delta * saliency_drift,
+                    "gained_concepts": summary["gained_concepts"],
+                    "lost_concepts": summary["lost_concepts"],
+                }
+            )
+    return rows
+
+
 def save_concept_heatmap(concept_bank, output_path: Path, max_classes: int, top_concepts: int) -> None:
     """Save a compact class-by-concept heatmap for the most variable concepts."""
     output_path = output_path.expanduser().resolve()
@@ -215,6 +288,39 @@ def save_transition_plot(rows: list[dict[str, object]], output_path: Path, max_r
     LOGGER.info("saved %s", output_path)
 
 
+def save_saliency_alignment_plot(rows: list[dict[str, object]], output_path: Path) -> None:
+    """Save a scatter plot of saliency drift versus semantic class shift."""
+    if not rows:
+        LOGGER.warning("No concept-saliency alignment rows to plot.")
+        return
+
+    output_path = output_path.expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    methods = sorted({str(row["xai_method"]) for row in rows})
+    markers = ["o", "s", "^", "D", "P"]
+
+    fig, ax = plt.subplots(figsize=(8.8, 5.6))
+    for marker, method in zip(markers, methods):
+        method_rows = [row for row in rows if row["xai_method"] == method]
+        ax.scatter(
+            [float(row["mean_abs_concept_delta"]) for row in method_rows],
+            [float(row["saliency_drift"]) for row in method_rows],
+            s=58,
+            alpha=0.78,
+            marker=marker,
+            label=method,
+        )
+    ax.set_title("Concept-saliency alignment under perturbation")
+    ax.set_xlabel("Mean absolute concept delta between predictions")
+    ax.set_ylabel("Saliency drift (1 - top-k IoU)")
+    ax.grid(alpha=0.25)
+    ax.legend()
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info("saved %s", output_path)
+
+
 def main() -> None:
     args = parse_args()
     setup_logging(args.log_level)
@@ -255,10 +361,18 @@ def main() -> None:
     else:
         LOGGER.warning("No changed prediction transitions found; wrote only class profiles.")
 
+    alignment_rows = build_saliency_alignment_rows(concept_bank, args.stress_csv.expanduser().resolve())
+    if alignment_rows:
+        write_csv(alignment_rows, args.saliency_alignment_output)
+        save_saliency_alignment_plot(alignment_rows, args.saliency_alignment_figure_output)
+    else:
+        LOGGER.warning("Concept-saliency alignment not written.")
+
     LOGGER.info(
-        "Phase 6 complete: class_profiles=%s transitions=%s",
+        "Phase 6 complete: class_profiles=%s transitions=%s alignment=%s",
         args.class_profile_output,
         args.transition_output if transition_rows else "not written",
+        args.saliency_alignment_output if alignment_rows else "not written",
     )
 
 
