@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Explainability Audit for Image Classification | AwA2</title>
+  <title>Beyond Accuracy: Understanding What a Deep Learning Model Really Sees</title>
   <style>
     :root {
       --ink: #12151f;
@@ -144,27 +144,95 @@
       padding-bottom: 80px;
     }
 
-    nav.toc {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 14px 0;
-      background: rgba(245, 247, 251, 0.92);
-      border-bottom: 1px solid rgba(18, 21, 31, 0.08);
+    .toc-menu {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 40;
+    }
+
+    .toc-toggle {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 1px solid rgba(18, 21, 31, 0.12);
+      border-radius: 999px;
+      color: var(--navy);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 14px 34px rgba(18, 21, 31, 0.16);
+      cursor: pointer;
       backdrop-filter: blur(12px);
+      transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+
+    .toc-toggle:hover,
+    .toc-toggle:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(15, 118, 110, 0.42);
+      background: #ffffff;
+      outline: none;
+    }
+
+    .toc-toggle[aria-expanded="true"] {
+      color: #05211d;
+      border-color: #91f1df;
+      background: #91f1df;
+    }
+
+    .toc-icon {
+      display: grid;
+      width: 18px;
+      gap: 4px;
+    }
+
+    .toc-icon span {
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    nav.toc {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      display: grid;
+      width: min(310px, calc(100vw - 36px));
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid rgba(18, 21, 31, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 22px 58px rgba(18, 21, 31, 0.18);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      backdrop-filter: blur(14px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .toc-menu.open nav.toc {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
     }
 
     nav.toc a {
-      padding: 7px 10px;
+      display: block;
+      padding: 10px 12px;
       border: 1px solid var(--line);
-      border-radius: 999px;
+      border-radius: var(--radius);
       color: var(--navy);
       background: white;
       font-size: 0.88rem;
       font-weight: 720;
+    }
+
+    nav.toc a:hover,
+    nav.toc a:focus-visible {
+      border-color: #8db7d4;
+      background: #f7fafc;
+      outline: none;
     }
 
     section {
@@ -379,10 +447,6 @@
     }
 
     .intro-lab {
-      min-height: 100vh;
-      display: grid;
-      align-items: center;
-      padding: clamp(56px, 8vw, 104px) 0;
       color: #f7fbff;
       background:
         linear-gradient(135deg, rgba(13, 20, 32, 0.98) 0%, rgba(18, 35, 48, 0.97) 54%, rgba(18, 62, 57, 0.95) 100%),
@@ -393,12 +457,14 @@
     }
 
     .intro-shell {
-      width: min(1240px, calc(100% - 44px));
+      min-height: 100vh;
+      width: min(1180px, calc(100% - 44px));
       margin: 0 auto;
       display: grid;
-      grid-template-columns: minmax(300px, 0.88fr) minmax(460px, 1.12fr);
+      grid-template-columns: minmax(320px, 1.18fr) minmax(260px, 0.82fr);
       gap: clamp(22px, 3vw, 42px);
       align-items: center;
+      padding: clamp(56px, 8vw, 104px) 0;
     }
 
     .intro-copy {
@@ -413,7 +479,7 @@
       max-width: 760px;
       margin-bottom: 20px;
       color: #ffffff;
-      font-size: clamp(2.6rem, 5.6vw, 5.7rem);
+      font-size: clamp(2.35rem, 3.3vw, 3rem);
       letter-spacing: 0;
     }
 
@@ -428,11 +494,29 @@
       color: #c3d2dc;
     }
 
+    .intro-index {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .intro-index .kicker {
+      margin-bottom: 14px;
+      color: #9ff0df;
+    }
+
+    .intro-stage-wrap {
+      width: min(1180px, calc(100% - 44px));
+      margin: 0 auto;
+      padding: 0 0 clamp(64px, 8vw, 112px);
+    }
+
     .intro-map {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 10px;
-      margin-top: 30px;
+      margin-top: 0;
     }
 
     .intro-map button {
@@ -672,6 +756,21 @@
       color: var(--muted);
     }
 
+    @media (max-width: 1120px) {
+      .intro-shell {
+        grid-template-columns: 1fr;
+        width: min(100% - 32px, 760px);
+      }
+
+      .intro-index {
+        align-self: auto;
+      }
+
+      .intro-map {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 860px) {
       .grid.two,
       .grid.three {
@@ -683,7 +782,6 @@
       }
 
       .intro-shell {
-        grid-template-columns: 1fr;
         width: min(100% - 32px, 720px);
       }
 
@@ -707,7 +805,7 @@
     }
 
     @media (max-width: 560px) {
-      .intro-lab {
+      .intro-shell {
         padding: 48px 0;
       }
 
@@ -733,10 +831,10 @@
   <header class="hero">
     <div class="hero-inner">
       <span class="eyebrow">AwA2 explainability audit</span>
-      <h1>Explainability Audit for Image Classification</h1>
+      <h1>Beyond Accuracy: Understanding <strong>What a Deep Learning Model Really Sees</strong></h1>
       <p class="subtitle">
-        A PyTorch computer vision project evaluating attribution methods, robustness metrics, sanity
-        checks and concept-level explanations for a ResNet50 classifier.
+        An XAI walkthrough of saliency maps, stress tests, concept evidence and sanity checks to see
+        whether model predictions are grounded in meaningful visual cues or hidden shortcuts.
       </p>
       <div class="hero-actions">
         <a class="button primary" href="#explainability">Project framework</a>
@@ -751,17 +849,16 @@
     <div class="intro-shell">
       <div class="intro-copy">
         <div class="kicker">Project overview</div>
-        <h2>Formal overview of the explainability pipeline.</h2>
+        <h2>Overview of the explainability pipeline.</h2>
         <p class="lead">
           The project evaluates a deep neural network for animal image classification through local
           attribution methods, perturbation-based robustness checks, quantitative faithfulness metrics,
           sanity checks and concept-level analysis.
         </p>
-        <p>
-          The controls below open one slide at a time. Each slide summarizes the corresponding component,
-          the mathematical quantity being measured and the interpretation limits.
-        </p>
+      </div>
 
+      <aside class="intro-index" aria-label="Content index">
+        <div class="kicker">Choose what to explore</div>
         <div class="intro-map" role="tablist" aria-label="Intro topics">
           <button class="active" type="button" data-intro-panel="xai" role="tab" aria-selected="true">
             <strong>Explainability</strong>
@@ -788,8 +885,10 @@
             <span>Protocol for reading the experimental results.</span>
           </button>
         </div>
-      </div>
+      </aside>
+    </div>
 
+    <div class="intro-stage-wrap">
       <div class="intro-stage">
         <article class="intro-panel active" data-panel="xai" role="tabpanel">
           <div>
@@ -1075,18 +1174,34 @@ L(x,y) = -log p(y | x)
   </section>
 
   <main class="page">
-    <nav class="toc" aria-label="Table of contents">
-      <a href="#explainability">Explainability</a>
-      <a href="#problem">Problem</a>
-      <a href="#pipeline">Pipeline</a>
-      <a href="#algorithms">Algorithms</a>
-      <a href="#results">Results</a>
-      <a href="#stress">Stress test</a>
-      <a href="#concepts">Concepts</a>
-      <a href="#beyond">CBM and sanity</a>
-      <a href="#advanced">Advanced audit</a>
-      <a href="#conclusion">Conclusion</a>
-    </nav>
+    <div class="toc-menu" data-toc-menu>
+      <button
+        class="toc-toggle"
+        type="button"
+        aria-label="Open table of contents"
+        aria-expanded="false"
+        aria-controls="toc-panel"
+        data-toc-toggle
+      >
+        <span class="toc-icon" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <nav class="toc" id="toc-panel" aria-label="Table of contents">
+        <a href="#explainability">Explainability</a>
+        <a href="#problem">Problem</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#algorithms">Algorithms</a>
+        <a href="#results">Results</a>
+        <a href="#stress">Stress test</a>
+        <a href="#concepts">Concepts</a>
+        <a href="#beyond">CBM and sanity</a>
+        <a href="#advanced">Advanced audit</a>
+        <a href="#conclusion">Conclusion</a>
+      </nav>
+    </div>
 
     <section id="explainability">
       <div class="kicker">Foundations</div>
@@ -2124,6 +2239,10 @@ BaselineEffect = similarity(IG_blurred(x), IG_black(x))
   <script>
     const introButtons = document.querySelectorAll("[data-intro-panel]");
     const introPanels = document.querySelectorAll("[data-panel]");
+    const introStageWrap = document.querySelector(".intro-stage-wrap");
+    const tocMenu = document.querySelector("[data-toc-menu]");
+    const tocToggle = document.querySelector("[data-toc-toggle]");
+    const tocLinks = document.querySelectorAll("#toc-panel a");
 
     introButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -2135,8 +2254,40 @@ BaselineEffect = similarity(IG_blurred(x), IG_black(x))
         introPanels.forEach((panel) => {
           panel.classList.toggle("active", panel.dataset.panel === target);
         });
+        introStageWrap?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
+
+    if (tocMenu && tocToggle) {
+      const setTocOpen = (isOpen) => {
+        tocMenu.classList.toggle("open", isOpen);
+        tocToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        tocToggle.setAttribute(
+          "aria-label",
+          isOpen ? "Close table of contents" : "Open table of contents"
+        );
+      };
+
+      tocToggle.addEventListener("click", () => {
+        setTocOpen(!tocMenu.classList.contains("open"));
+      });
+
+      tocLinks.forEach((link) => {
+        link.addEventListener("click", () => setTocOpen(false));
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!tocMenu.contains(event.target)) {
+          setTocOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setTocOpen(false);
+        }
+      });
+    }
 
     const algorithmDetails = {
       "input-gradients": {
