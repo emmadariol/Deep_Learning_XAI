@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Explainability Audit for Animal Image Classification</title>
+  <title>An Explainability Audit of Visual Attribution Methods</title>
   <style>
     :root {
       --ink: #172033;
@@ -89,9 +89,10 @@
     }
 
     h1 {
-      max-width: 940px;
-      font-size: clamp(2.5rem, 7vw, 5.6rem);
+      max-width: 1120px;
+      font-size: clamp(2.4rem, 5.2vw, 4.7rem);
       font-weight: 850;
+      text-wrap: balance;
     }
 
     .subtitle {
@@ -103,7 +104,7 @@
 
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
+      grid-template-columns: 1fr;
       gap: 28px;
       align-items: end;
     }
@@ -184,6 +185,16 @@
       margin-bottom: 26px;
     }
 
+    .overview-head {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .overview-head p {
+      max-width: none;
+      margin: 0;
+    }
+
     h2 {
       color: var(--navy);
       font-size: clamp(2rem, 4.2vw, 3.7rem);
@@ -220,55 +231,98 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .flow {
+    .project-flow {
+      position: relative;
       display: grid;
-      gap: 12px;
-    }
-
-    .flow-step {
-      display: grid;
-      grid-template-columns: 70px minmax(0, 1fr) 180px;
-      gap: 14px;
-      align-items: center;
-      padding: 16px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      align-items: start;
+      margin-top: 8px;
+      padding: 34px 22px 22px;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: #ffffff;
-      box-shadow: 0 12px 30px rgba(20, 29, 45, 0.05);
+      box-shadow: var(--shadow);
     }
 
-    .flow-step .num {
+    .project-flow::before {
+      content: "";
+      position: absolute;
+      top: 58px;
+      left: 70px;
+      right: 70px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+    }
+
+    .project-flow::after {
+      content: "";
+      position: absolute;
+      top: 51px;
+      right: 60px;
+      width: 0;
+      height: 0;
+      border-top: 9px solid transparent;
+      border-bottom: 9px solid transparent;
+      border-left: 15px solid var(--blue);
+    }
+
+    .flow-node {
+      position: relative;
       display: grid;
-      width: 48px;
-      height: 48px;
+      justify-items: center;
+      gap: 10px;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .flow-node .num {
+      display: grid;
+      width: 52px;
+      height: 52px;
       place-items: center;
       border-radius: 999px;
       background: var(--navy);
       color: #ffffff;
       font-weight: 850;
+      box-shadow: 0 0 0 8px #ffffff;
     }
 
-    .flow-step h3 {
+    .flow-node h3 {
       margin-bottom: 4px;
       color: var(--navy);
-      font-size: 1.05rem;
+      font-size: 0.98rem;
     }
 
-    .flow-step p {
+    .flow-node p {
       margin: 0;
       color: var(--muted);
-      font-size: 0.95rem;
+      font-size: 0.86rem;
+      line-height: 1.35;
     }
 
-    .flow-step .tag {
-      justify-self: end;
+    .flow-node .tag {
+      display: inline-block;
+      margin-bottom: 6px;
       padding: 7px 10px;
       border-radius: 999px;
       background: var(--teal-soft);
       color: var(--teal);
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       font-weight: 800;
       text-align: center;
+    }
+
+    .flow-node:nth-child(2) .tag,
+    .flow-node:nth-child(4) .tag {
+      background: #eef4ff;
+      color: var(--blue);
+    }
+
+    .flow-node:nth-child(3) .tag {
+      background: #fff4dc;
+      color: #8a5c00;
     }
 
     .accordion {
@@ -655,6 +709,24 @@
       margin: 12px 0 0;
       color: var(--muted);
       font-size: 0.98rem;
+    }
+
+    .principle-slide .value {
+      font-size: clamp(1.65rem, 3.2vw, 2.55rem);
+      line-height: 1.05;
+    }
+
+    .principle-slide ul {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      padding-left: 20px;
+      color: var(--ink);
+      font-size: 0.94rem;
+    }
+
+    .principle-slide li strong {
+      color: var(--navy);
     }
 
     .metric-slide .formula {
@@ -1055,6 +1127,71 @@
       color: var(--navy);
     }
 
+    .method-mechanics-slide {
+      grid-template-columns: 1fr;
+      padding: 16px 18px;
+    }
+
+    .method-mechanics {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 14px;
+      align-items: start;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+    }
+
+    .method-mechanics h3 {
+      color: var(--navy);
+      font-size: 1.16rem;
+      margin-bottom: 8px;
+    }
+
+    .method-mechanics h4 {
+      color: var(--navy);
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .method-mechanics p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .method-mechanics ul {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 16px;
+      margin-top: 10px;
+      padding-left: 18px;
+      color: var(--ink);
+      font-size: 0.9rem;
+    }
+
+    .method-mechanics li strong {
+      color: var(--navy);
+    }
+
+    .method-mechanics .formula,
+    .method-mechanics .result-note {
+      margin-top: 10px;
+    }
+
+    .method-mechanics-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      grid-column: 1 / -1;
+    }
+
+    .method-mechanics-strip .formula,
+    .method-mechanics-strip .result-note {
+      margin: 0;
+      min-height: 100%;
+    }
+
     .figure-dots {
       display: flex;
       flex-wrap: wrap;
@@ -1081,6 +1218,134 @@
       border-color: #58c8b8;
       background: var(--teal-soft);
       color: var(--navy);
+    }
+
+    .concept-visuals {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .concept-visual {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .concept-visual img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #f6f8fb;
+    }
+
+    .concept-visual figcaption {
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .concept-visual figcaption strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--navy);
+    }
+
+    .concept-process {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .concept-step {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .concept-step span {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+      font-weight: 900;
+    }
+
+    .concept-step h3 {
+      margin-bottom: 8px;
+      color: var(--navy);
+      font-size: 1rem;
+    }
+
+    .concept-step p,
+    .concept-detail p {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .concept-detail {
+      margin-top: 18px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .concept-detail h3 {
+      color: var(--navy);
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+    }
+
+    .concept-detail ul {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+      padding-left: 20px;
+      color: var(--ink);
+      font-size: 0.94rem;
+    }
+
+    .concept-detail li strong {
+      color: var(--navy);
+    }
+
+    .concept-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .concept-mini {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--soft);
+    }
+
+    .concept-mini h4 {
+      color: var(--navy);
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .concept-mini p {
+      color: var(--muted);
+      font-size: 0.93rem;
     }
 
     .test-card {
@@ -1127,8 +1392,12 @@
       .result-grid,
       .figure-flashcard-top,
       .figure-slide,
-      .reading-card,
-      .flow-step {
+      .method-mechanics,
+      .method-mechanics-strip,
+      .concept-visuals,
+      .concept-process,
+      .concept-columns,
+      .reading-card {
         grid-template-columns: 1fr;
       }
 
@@ -1144,8 +1413,41 @@
         margin-bottom: 4px;
       }
 
-      .flow-step .tag {
-        justify-self: start;
+      .project-flow {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 22px;
+      }
+
+      .project-flow::before {
+        top: 48px;
+        bottom: 48px;
+        left: 48px;
+        right: auto;
+        width: 4px;
+        height: auto;
+        background: linear-gradient(180deg, var(--teal), var(--blue));
+      }
+
+      .project-flow::after {
+        top: auto;
+        right: auto;
+        left: 39px;
+        bottom: 36px;
+        border-left: 9px solid transparent;
+        border-right: 9px solid transparent;
+        border-top: 15px solid var(--blue);
+        border-bottom: 0;
+      }
+
+      .flow-node {
+        grid-template-columns: 72px minmax(0, 1fr);
+        justify-items: start;
+        text-align: left;
+      }
+
+      .flow-node .num {
+        justify-self: center;
       }
 
       .accordion {
@@ -1182,16 +1484,10 @@
   <header class="hero">
     <div class="wrap hero-grid">
       <div>
-        <h1> Saliency Maps Look Need Verification</h1>
+        <h1>An Explainability Audit of Visual Attribution Methods</h1>
 
       </div>
-      <aside class="hero-card">
-        <strong>Core claim</strong>
-        <p>
-          A heatmap is not an explanation by itself. It becomes useful only when it is compared across
-          methods, tested under interventions, connected to concepts and checked against model behavior.
-        </p>
-      </aside>
+
     </div>
   </header>
 
@@ -1211,59 +1507,226 @@
   <main>
     <section id="overview">
       <div class="wrap">
-        <div class="section-head">
+        <div class="section-head overview-head">
           <p>
             The project explains a trained ResNet50 classifier on AwA2. The analysis starts from local
             saliency maps, then tests whether those maps remain meaningful when the input, target class and
             semantic interpretation are changed.
-          </p><br>
+          </p>
           <div>
             <span class="eyebrow">Project logic</span>
           </div>
 
         </div>
 
-        <div class="flow" aria-label="Explainability audit flow">
-          <article class="flow-step">
+        <div class="project-flow" aria-label="Explainability audit flow">
+          <article class="flow-node">
             <div class="num">1</div>
             <div>
+              <span class="tag">baseline</span>
               <h3>Train or load the classifier</h3>
               <p>Define the exact function being explained: image tensor to animal-class logits.</p>
             </div>
-            <span class="tag">baseline</span>
           </article>
-          <article class="flow-step">
+          <article class="flow-node">
             <div class="num">2</div>
             <div>
+              <span class="tag">local evidence</span>
               <h3>Generate attribution maps</h3>
               <p>Compare gradient, activation and baseline-path methods on correct and incorrect predictions.</p>
             </div>
-            <span class="tag">local evidence</span>
           </article>
-          <article class="flow-step">
+          <article class="flow-node">
             <div class="num">3</div>
             <div>
+              <span class="tag">intervention</span>
               <h3>Perturb the background</h3>
               <p>Modify mostly contextual pixels and observe whether predictions and saliency maps drift.</p>
             </div>
-            <span class="tag">intervention</span>
           </article>
-          <article class="flow-step">
+          <article class="flow-node">
             <div class="num">4</div>
             <div>
+              <span class="tag">metrics</span>
               <h3>Quantify reliability</h3>
               <p>Use overlap, rank correlation, deletion, insertion, occlusion and sensitivity diagnostics.</p>
             </div>
-            <span class="tag">metrics</span>
           </article>
-          <article class="flow-step">
+          <article class="flow-node">
             <div class="num">5</div>
             <div>
+              <span class="tag">concepts</span>
               <h3>Move to semantic concepts</h3>
               <p>Check whether model behavior aligns with attributes such as stripes, horns or hooves.</p>
             </div>
-            <span class="tag">concepts</span>
           </article>
+        </div>
+
+        <div class="metric-flashcards" aria-label="Explainability principles flashcards">
+          <div class="metric-flashcard-top">
+            <div>
+              <h3 id="principle-card-heading">Explainability</h3>
+              <p id="principle-card-counter">Principle 1 of 7</p>
+            </div>
+            <div class="metric-controls" aria-label="Principle flashcard controls">
+              <button type="button" id="principle-prev">Previous</button>
+              <button type="button" id="principle-next">Next</button>
+            </div>
+          </div>
+          <div class="metric-card-viewport">
+            <div class="metric-card-track" id="principle-card-track">
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Core definition</span>
+                  <span class="value">Explainability</span>
+                  <p>
+                    Explainability is the study of how to make a model's behavior inspectable. In this
+                    project it means asking which visual evidence supports an animal-class prediction and
+                    whether that evidence is stable under controlled tests.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">image x -> model f(x) -> logits S -> explanation E(x, class)</div>
+                  <ul>
+                    <li><strong>Prediction:</strong> the class assigned by the model.</li>
+                    <li><strong>Explanation:</strong> an auxiliary object that tries to describe why that score
+                      was produced.</li>
+                    <li><strong>Audit:</strong> the set of tests used to check whether the explanation is reliable.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Local attribution</span>
+                  <span class="value">Saliency map</span>
+                  <p>
+                    A local saliency map assigns an importance value to pixels or image regions for one
+                    image and one target class. It is local because it explains a single prediction, not
+                    the global behavior of the classifier. When this numeric map is displayed with colors,
+                    it becomes the heatmap shown on top of the original image.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">M_c(x)[i, j] = importance of pixel or region (i, j) for class c</div>
+                  <ul>
+                    <li><strong>High value:</strong> the method considers that region important for the target score.
+                    </li>
+                    <li><strong>Low value:</strong> the method assigns little contribution to that region.</li>
+                    <li><strong>Heatmap:</strong> the colored visualization of the saliency map, usually overlaid on
+                      the original image.</li>
+                    <li><strong>Caveat:</strong> a highlighted region is a hypothesis about evidence, not proof of
+                      causal use.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Classifier output</span>
+                  <span class="value">Logits and softmax</span>
+                  <p>
+                    ResNet50 first produces logits: unnormalized class scores. Softmax converts logits
+                    into probabilities by comparing each score with all other class scores.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">p_c = exp(S_c) / sum_j exp(S_j)</div>
+                  <ul>
+                    <li><strong>Logit S_c:</strong> the raw target score usually explained by attribution methods.</li>
+                    <li><strong>Softmax p_c:</strong> the normalized confidence shown to the user.</li>
+                    <li><strong>Important distinction:</strong> explanations often target logits because softmax
+                      couples all classes together.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Differential sensitivity</span>
+                  <span class="value">Gradient attribution</span>
+                  <p>
+                    Gradient-based explanations ask how the target score would change for an infinitesimal
+                    change in the input pixels. They are sensitive to local behavior around the current
+                    image.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">G_c(x) = dS_c(x) / dx</div>
+                  <ul>
+                    <li><strong>Large gradient:</strong> a small pixel change can strongly affect the target logit.</li>
+                    <li><strong>Useful for:</strong> detecting fine local sensitivity and edge/texture dependence.</li>
+                    <li><strong>Limitation:</strong> high sensitivity is not always the same as semantic importance.
+                    </li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Activation localization</span>
+                  <span class="value">CAM principle</span>
+                  <p>
+                    CAM-style methods use convolutional feature maps to localize class-discriminative
+                    regions. In this project Grad-CAM and Score-CAM operate near the last semantic layer
+                    of ResNet50.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">M_c = ReLU(sum_k alpha_k^c A_k)</div>
+                  <ul>
+                    <li><strong>A_k:</strong> feature map from a convolutional layer.</li>
+                    <li><strong>alpha_k:</strong> importance weight for that feature map.</li>
+                    <li><strong>Consequence:</strong> maps are class-discriminative but spatially coarse before
+                      upsampling.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Reference dependence</span>
+                  <span class="value">Baseline-path attribution</span>
+                  <p>
+                    Integrated Gradients and Expected Gradients compare the image with one or more
+                    reference baselines. Importance is accumulated along the path from baseline to image.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">IG_i(x) = (x_i - x'_i) integral_0^1 dS_c(x' + a(x - x')) / dx_i da</div>
+                  <ul>
+                    <li><strong>Baseline:</strong> the reference image used to define absence of evidence.</li>
+                    <li><strong>Blurred baseline:</strong> used here to preserve average illumination better than a
+                      black image.</li>
+                    <li><strong>Expected Gradients:</strong> averages this idea across multiple baselines.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="metric-slide principle-slide">
+                <div>
+                  <span class="label">Reliability criteria</span>
+                  <span class="value">Faithfulness and stability</span>
+                  <p>
+                    A saliency map should not only look plausible. It should identify evidence that
+                    affects the model score and should remain reasonably stable under interventions that
+                    do not change the relevant object evidence.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">reliable explanation = visual plausibility + behavioral tests + stability checks
+                  </div>
+                  <ul>
+                    <li><strong>Faithfulness:</strong> removing important pixels should reduce the target score.</li>
+                    <li><strong>Stability:</strong> saliency should not drift arbitrarily after controlled changes.</li>
+                    <li><strong>Concept alignment:</strong> semantic evidence should agree with human-readable animal
+                      attributes when possible.</li>
+                  </ul>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="metric-dots" id="principle-dots" aria-label="Principle flashcard position"></div>
         </div>
       </div>
     </section>
@@ -2071,28 +2534,270 @@
           </p>
         </div>
 
-        <div class="grid two">
-          <article class="panel">
-            <h3>TCAV</h3>
-            <p>
-              TCAV learns a direction in activation space for a concept and checks whether moving along
-              that direction increases the class score. It provides a class-level concept sensitivity
-              rather than a pixel map.
-            </p>
-            <div class="formula">
-              TCAV(c, concept) = fraction of examples where dS_c / dv_concept &gt; 0
+        <div class="concept-detail">
+          <h3>How concept information is built in this project</h3>
+          <p>
+            AwA2 provides class-level semantic attributes such as <strong>stripes</strong>,
+            <strong>horns</strong>, <strong>hooves</strong>, <strong>flippers</strong>,
+            <strong>furry</strong> and <strong>ocean</strong>. These attributes are not pixel masks. They are
+            human-readable concept annotations attached to animal classes. The project uses them to move
+            from local pixel attribution to semantic explanation: instead of asking only where the model
+            looked, we ask whether the internal representation is sensitive to concepts that a human would
+            use to describe the animal.
+          </p>
+
+          <div class="concept-process" aria-label="Concept-level explanation workflow">
+            <article class="concept-step">
+              <span>1</span>
+              <h3>Choose a concept</h3>
+              <p>
+                Select an AwA2 attribute, for example stripes, horns or flippers, and identify classes
+                where that concept is present or absent.
+              </p>
+            </article>
+            <article class="concept-step">
+              <span>2</span>
+              <h3>Extract activations</h3>
+              <p>
+                Pass images through ResNet50 and collect intermediate activations, typically after a
+                semantic convolutional block such as layer3.
+              </p>
+            </article>
+            <article class="concept-step">
+              <span>3</span>
+              <h3>Learn concept evidence</h3>
+              <p>
+                Train or evaluate a simple concept model in activation space. The concept becomes a
+                direction or an intermediate variable.
+              </p>
+            </article>
+            <article class="concept-step">
+              <span>4</span>
+              <h3>Test class influence</h3>
+              <p>
+                Measure whether changing concept evidence changes the target class score, probability or
+                predicted class.
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <div class="figure-flashcards" aria-label="TCAV flashcard">
+          <div class="figure-flashcard-top">
+            <div>
+              <h3 id="tcav-card-heading">TCAV intuition</h3>
+              <p id="tcav-card-counter">TCAV card 1 of 2</p>
             </div>
-          </article>
-          <article class="panel">
-            <h3>Concept Bottleneck Model</h3>
-            <p>
-              A bottleneck model predicts concepts before predicting the class. This makes the semantic
-              interface explicit: errors can be inspected at the concept level and then at the class level.
-            </p>
-            <div class="formula">
-              x -> predicted concepts -> predicted class
+            <div class="metric-controls" aria-label="TCAV flashcard controls">
+              <button type="button" id="tcav-prev">Previous</button>
+              <button type="button" id="tcav-next">Next</button>
             </div>
-          </article>
+          </div>
+
+          <div class="figure-card-viewport">
+            <div class="figure-card-track" id="tcav-card-track">
+              <article class="figure-slide">
+                <figure>
+                  <img src="tcav_intuition.svg"
+                    alt="Diagram of TCAV from concept examples to activation vectors, directional derivative and TCAV score." />
+                  <figcaption>TCAV learns a concept direction and measures class sensitivity along it.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>TCAV as a full concept-level flashcard</h4>
+                  <p>
+                    TCAV starts from a human concept such as stripes or flippers. It collects examples
+                    where that concept is present and absent, extracts internal activations from ResNet50,
+                    and learns a direction in activation space that separates the two groups.
+                  </p>
+                  <ul>
+                    <li><strong>What the diagram shows:</strong> concept examples become activation vectors;
+                      a linear separator defines the Concept Activation Vector.</li>
+                    <li><strong>What the algorithm measures:</strong> whether the target class logit increases
+                      when the activation moves along that concept direction.</li>
+                    <li><strong>How to interpret it:</strong> a high score means concept sensitivity at class
+                      level, not a pixel localization map.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide method-mechanics-slide">
+                <div class="method-mechanics">
+                  <div>
+                    <h3>TCAV: Testing with Concept Activation Vectors</h3>
+                    <p>
+                      TCAV treats a concept as a direction in the model's activation space. For a chosen
+                      layer, images that strongly contain a concept are used as positive examples, while
+                      images that do not contain it are used as negative examples. A linear separator is
+                      trained between the two groups. The normal vector of this separator is the
+                      <strong>Concept Activation Vector</strong>.
+                    </p>
+                  </div>
+                  <div>
+                    <h4>How the score is computed</h4>
+                    <p>
+                      After the CAV is learned, TCAV evaluates target-class images and counts how often
+                      the class logit increases in the concept direction.
+                    </p>
+                  </div>
+                  <ul>
+                    <li><strong>Input:</strong> images, class labels, AwA2 concept annotations and a selected
+                      ResNet layer.</li>
+                    <li><strong>Mechanism:</strong> learn a linear concept direction in activation space.</li>
+                    <li><strong>Score:</strong> count positive directional derivatives.</li>
+                    <li><strong>Interpretation:</strong> concept evidence tends to increase the class score.</li>
+                  </ul>
+                  <div class="method-mechanics-strip">
+                    <div class="formula">
+                      z_l(x) = activation of image x at layer l<br>
+                      v_k = CAV direction for concept k<br>
+                      sensitivity(x, c, k) = gradient_z S_c(z_l(x)) dot v_k<br>
+                      TCAV(c, k) = (1 / N) sum_i 1[gradient_z S_c(z_l(x_i)) dot v_k &gt; 0]
+                    </div>
+                    <div class="result-note">
+                      In the notebook results, concept directions such as stripes -> tiger and flippers ->
+                      dolphin are strong examples of semantic sensitivity. This is class-level evidence,
+                      not a pixel-level localization map.
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="figure-dots" id="tcav-dots" aria-label="TCAV flashcard position"></div>
+        </div>
+
+        <div class="figure-flashcards" aria-label="Concept Bottleneck flashcard">
+          <div class="figure-flashcard-top">
+            <div>
+              <h3 id="bottleneck-card-heading">Concept Bottleneck intuition</h3>
+              <p id="bottleneck-card-counter">Bottleneck card 1 of 2</p>
+            </div>
+            <div class="metric-controls" aria-label="Concept Bottleneck flashcard controls">
+              <button type="button" id="bottleneck-prev">Previous</button>
+              <button type="button" id="bottleneck-next">Next</button>
+            </div>
+          </div>
+
+          <div class="figure-card-viewport">
+            <div class="figure-card-track" id="bottleneck-card-track">
+              <article class="figure-slide">
+                <figure>
+                  <img src="concept_bottleneck_intuition.svg"
+                    alt="Diagram of a Concept Bottleneck Model from image to predicted concepts, class probabilities and concept interventions." />
+                  <figcaption>Concept Bottleneck routes prediction through explicit semantic attributes.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Concept Bottleneck as a full concept-level flashcard</h4>
+                  <p>
+                    A Concept Bottleneck Model changes the model architecture: the image is first mapped
+                    to a vector of concepts, and the final animal prediction is computed from those
+                    concepts rather than directly from opaque image features.
+                  </p>
+                  <ul>
+                    <li><strong>What the diagram shows:</strong> image features are compressed into concepts
+                      such as horns, hooves, stripes and flippers before class probabilities are produced.</li>
+                    <li><strong>What the algorithm enables:</strong> inspect concept errors and intervene on a
+                      concept value before recomputing the class prediction.</li>
+                    <li><strong>How to interpret it:</strong> the explanation becomes more operational because
+                      the semantic bottleneck can be measured, corrected and stress-tested.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide method-mechanics-slide">
+                <div class="method-mechanics">
+                  <div>
+                    <h3>Concept Bottleneck Model</h3>
+                    <p>
+                      A Concept Bottleneck Model changes the prediction path. Instead of predicting the
+                      animal class directly from image features, the model first predicts a vector of
+                      human-readable concepts and then predicts the class from those concepts. This creates
+                      an explicit semantic interface that can be inspected and intervened on.
+                    </p>
+                  </div>
+                  <div>
+                    <h4>How the bottleneck is trained and read</h4>
+                    <p>
+                      The model has two coupled objectives: predicting the correct animal class and
+                      predicting the semantic attributes. This creates a measurable intermediate layer.
+                    </p>
+                  </div>
+                  <ul>
+                    <li><strong>Concept head:</strong> predicts attributes such as horns, stripes, flippers or
+                      furry.</li>
+                    <li><strong>Class head:</strong> receives the concept vector and assigns class logits.</li>
+                    <li><strong>Training objective:</strong> combines class loss and concept prediction loss.</li>
+                    <li><strong>Interpretability gain:</strong> errors can be decomposed at concept level.</li>
+                  </ul>
+                  <div class="method-mechanics-strip">
+                    <div class="formula">
+                      image x -> feature encoder h(x) -> predicted concepts c_hat -> logits -> softmax probabilities<br>
+                      L = CE(y, y_hat) + lambda * L_concept(c, c_hat)<br>
+                      p(y | x) = softmax(g(c_hat))
+                    </div>
+                    <div class="result-note">
+                      In the project output, the bottleneck classifier reaches 0.805 test class accuracy
+                      and 0.754 concept binary accuracy on the evaluated subset. This makes the model less
+                      opaque than a pure end-to-end classifier, but it also exposes concept prediction
+                      errors.
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="figure-dots" id="bottleneck-dots" aria-label="Concept Bottleneck flashcard position"></div>
+        </div>
+
+        <div class="concept-detail">
+          <h3>Concept interventions</h3>
+          <p>
+            Concept interventions make the explanation operational. After the bottleneck predicts a
+            concept vector, one concept can be forced to a chosen value and the class probability can be
+            recomputed. This answers a causal-style question: if the model believed this animal had more
+            stripes, horns or flippers, how would the class probability change?
+          </p>
+          <div class="formula">
+            intervention_delta = p(y = c | c_hat_k = 1) - p(y = c | c_hat_k = 0)
+          </div>
+          <div class="concept-columns">
+            <div class="concept-mini">
+              <h4>What this reveals</h4>
+              <p>
+                If changing one concept strongly changes a class probability, that class decision is
+                semantically sensitive to the concept. This is more directly testable than simply looking
+                at a heatmap.
+              </p>
+            </div>
+            <div class="concept-mini">
+              <h4>What it does not prove</h4>
+              <p>
+                An intervention on a concept vector does not prove that the original image visibly
+                contains the concept. It proves that the downstream classifier uses that concept variable
+                when it is available.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="concept-detail">
+          <h3>Why concept methods complement saliency maps</h3>
+          <p>
+            Saliency maps are local and spatial: they highlight pixels or regions for one image and one
+            target class. TCAV and bottleneck models are semantic: they evaluate whether the model's
+            representation and prediction pathway are aligned with concepts that humans can name. The two
+            families answer different questions and should be interpreted together.
+          </p>
+          <ul>
+            <li><strong>Grad-CAM, Score-CAM, IG and Expected Gradients:</strong> where is the image evidence
+              located for this prediction?</li>
+            <li><strong>TCAV:</strong> is a class score sensitive to a semantic concept direction in activation
+              space?</li>
+            <li><strong>Concept Bottleneck:</strong> can the prediction be routed through explicit concepts, and
+              can those concepts be intervened on?</li>
+            <li><strong>Project interpretation:</strong> a reliable explanation should connect local attribution,
+              stress-test stability and concept-level behavior.</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -2295,6 +3000,65 @@
       "Prediction behavior: Class transition"
     ];
 
+    const principleCards = [
+      "Explainability",
+      "Local saliency maps",
+      "Logits and softmax",
+      "Gradient attribution",
+      "CAM principle",
+      "Baseline-path attribution",
+      "Faithfulness and stability"
+    ];
+
+    const principleTrack = document.getElementById("principle-card-track");
+    const principleHeading = document.getElementById("principle-card-heading");
+    const principleCounter = document.getElementById("principle-card-counter");
+    const principlePrev = document.getElementById("principle-prev");
+    const principleNext = document.getElementById("principle-next");
+    const principleDots = document.getElementById("principle-dots");
+    let activePrincipleCard = 0;
+
+    function renderPrincipleFlashcard() {
+      if (!principleTrack || !principleHeading || !principleCounter || !principleDots) return;
+      principleTrack.style.transform = `translateX(-${activePrincipleCard * 100}%)`;
+      principleHeading.textContent = principleCards[activePrincipleCard];
+      principleCounter.textContent = `Principle ${activePrincipleCard + 1} of ${principleCards.length}`;
+      principleDots.querySelectorAll("button").forEach((dot, index) => {
+        dot.classList.toggle("active", index === activePrincipleCard);
+        dot.setAttribute("aria-pressed", String(index === activePrincipleCard));
+      });
+    }
+
+    if (principleDots && principleTrack) {
+      principleCards.forEach((name, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "metric-dot";
+        dot.setAttribute("aria-label", `Show ${name}`);
+        dot.addEventListener("click", () => {
+          activePrincipleCard = index;
+          renderPrincipleFlashcard();
+        });
+        principleDots.appendChild(dot);
+      });
+    }
+
+    if (principlePrev) {
+      principlePrev.addEventListener("click", () => {
+        activePrincipleCard = (activePrincipleCard - 1 + principleCards.length) % principleCards.length;
+        renderPrincipleFlashcard();
+      });
+    }
+
+    if (principleNext) {
+      principleNext.addEventListener("click", () => {
+        activePrincipleCard = (activePrincipleCard + 1) % principleCards.length;
+        renderPrincipleFlashcard();
+      });
+    }
+
+    renderPrincipleFlashcard();
+
     const metricTrack = document.getElementById("metric-card-track");
     const metricHeading = document.getElementById("metric-card-heading");
     const metricCounter = document.getElementById("metric-card-counter");
@@ -2405,6 +3169,80 @@
     }
 
     renderFigureFlashcard();
+
+    function initMethodFlashcard(config) {
+      const track = document.getElementById(config.trackId);
+      const heading = document.getElementById(config.headingId);
+      const counter = document.getElementById(config.counterId);
+      const previous = document.getElementById(config.prevId);
+      const next = document.getElementById(config.nextId);
+      const dots = document.getElementById(config.dotsId);
+      let active = 0;
+
+      function render() {
+        if (!track || !heading || !counter || !dots) return;
+        track.style.transform = `translateX(-${active * 100}%)`;
+        heading.textContent = config.cards[active];
+        counter.textContent = `${config.label} ${active + 1} of ${config.cards.length}`;
+        dots.querySelectorAll("button").forEach((dot, index) => {
+          dot.classList.toggle("active", index === active);
+          dot.setAttribute("aria-pressed", String(index === active));
+        });
+      }
+
+      if (dots && track) {
+        config.cards.forEach((name, index) => {
+          const dot = document.createElement("button");
+          dot.type = "button";
+          dot.className = "figure-dot";
+          dot.textContent = String(index + 1);
+          dot.setAttribute("aria-label", `Show ${name}`);
+          dot.addEventListener("click", () => {
+            active = index;
+            render();
+          });
+          dots.appendChild(dot);
+        });
+      }
+
+      if (previous) {
+        previous.addEventListener("click", () => {
+          active = (active - 1 + config.cards.length) % config.cards.length;
+          render();
+        });
+      }
+
+      if (next) {
+        next.addEventListener("click", () => {
+          active = (active + 1) % config.cards.length;
+          render();
+        });
+      }
+
+      render();
+    }
+
+    initMethodFlashcard({
+      trackId: "tcav-card-track",
+      headingId: "tcav-card-heading",
+      counterId: "tcav-card-counter",
+      prevId: "tcav-prev",
+      nextId: "tcav-next",
+      dotsId: "tcav-dots",
+      label: "TCAV card",
+      cards: ["TCAV intuition", "TCAV mechanics"]
+    });
+
+    initMethodFlashcard({
+      trackId: "bottleneck-card-track",
+      headingId: "bottleneck-card-heading",
+      counterId: "bottleneck-card-counter",
+      prevId: "bottleneck-prev",
+      nextId: "bottleneck-next",
+      dotsId: "bottleneck-dots",
+      label: "Bottleneck card",
+      cards: ["Concept Bottleneck intuition", "Concept Bottleneck mechanics"]
+    });
 
     document.querySelectorAll("[data-accordion]").forEach((accordion) => {
       const box = accordion.querySelector("[data-detail]");
