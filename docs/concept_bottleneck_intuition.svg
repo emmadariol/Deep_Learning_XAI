@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">Intuitive Concept Bottleneck Model workflow</title>
+  <desc id="desc">Diagram showing how a concept bottleneck model predicts human concepts from an image, predicts animal class probabilities from the concept vector, and supports concept interventions.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f8fb; }
+      .card { fill: #ffffff; stroke: #d7e0ea; stroke-width: 1.4; }
+      .soft { fill: #e7f6f3; stroke: #9ed8ce; stroke-width: 1.3; }
+      .warn { fill: #fff6dc; stroke: #e8bf65; stroke-width: 1.3; }
+      .ink { fill: #172033; font-family: Inter, Arial, sans-serif; }
+      .muted { fill: #607083; font-family: Inter, Arial, sans-serif; }
+      .title { font-size: 31px; font-weight: 700; }
+      .h { font-size: 19px; font-weight: 700; }
+      .p { font-size: 15px; }
+      .small { font-size: 13px; }
+      .mono { font-family: Consolas, Menlo, monospace; font-size: 15px; fill: #163f3a; }
+      .arrow { stroke: #2e8f84; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .thin { stroke: #9aabbd; stroke-width: 1.5; fill: none; }
+      .bar-bg { fill: #e8eef5; }
+      .bar { fill: #2e8f84; }
+      .bar2 { fill: #4d7fc6; }
+      .bar3 { fill: #d89a2b; }
+      .stripe { stroke: #172033; stroke-width: 3; }
+    </style>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#2e8f84"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="760"/>
+  <text x="56" y="62" class="ink title">Concept Bottleneck Model: prediction through human concepts</text>
+  <text x="56" y="91" class="muted p">The bottleneck makes an intermediate semantic layer explicit: first predict concepts, then predict the animal class.</text>
+
+  <rect x="58" y="132" width="198" height="250" rx="18" class="card"/>
+  <text x="82" y="166" class="ink h">1. RGB image</text>
+  <text x="82" y="193" class="muted p">Input image tensor</text>
+  <g transform="translate(90 222)">
+    <rect x="0" y="0" width="110" height="86" rx="16" fill="#e8edf3" stroke="#cdd8e5"/>
+    <ellipse cx="56" cy="55" rx="42" ry="20" fill="#d9b58a"/>
+    <circle cx="34" cy="35" r="18" fill="#c98c53"/>
+    <path d="M22 19 L10 4 M46 19 L58 4" stroke="#3f2d21" stroke-width="4" stroke-linecap="round"/>
+    <rect x="0" y="70" width="110" height="16" fill="#aacd91" opacity="0.8"/>
+  </g>
+  <text x="82" y="348" class="mono">x in R^(3 x 224 x 224)</text>
+
+  <path d="M266 257 H342" class="arrow"/>
+
+  <rect x="352" y="132" width="210" height="250" rx="18" class="card"/>
+  <text x="376" y="166" class="ink h">2. Encoder</text>
+  <text x="376" y="193" class="muted p">ResNet features</text>
+  <g transform="translate(388 224)">
+    <rect x="0" y="0" width="132" height="28" rx="8" class="soft"/>
+    <rect x="18" y="42" width="132" height="28" rx="8" class="soft"/>
+    <rect x="36" y="84" width="132" height="28" rx="8" class="soft"/>
+    <path d="M132 14 H168 M150 56 H168 M168 98 H188" class="thin"/>
+  </g>
+  <text x="376" y="348" class="mono">h(x)</text>
+
+  <path d="M572 257 H648" class="arrow"/>
+
+  <rect x="658" y="104" width="268" height="306" rx="18" class="card"/>
+  <text x="682" y="138" class="ink h">3. Concept bottleneck</text>
+  <text x="682" y="165" class="muted p">Predict human-readable attributes.</text>
+  <g transform="translate(690 196)">
+    <text x="0" y="15" class="ink small">horns</text>
+    <rect x="86" y="1" width="132" height="14" rx="7" class="bar-bg"/>
+    <rect x="86" y="1" width="108" height="14" rx="7" class="bar"/>
+    <text x="226" y="15" class="muted small">0.82</text>
+
+    <text x="0" y="55" class="ink small">hooves</text>
+    <rect x="86" y="41" width="132" height="14" rx="7" class="bar-bg"/>
+    <rect x="86" y="41" width="112" height="14" rx="7" class="bar"/>
+    <text x="226" y="55" class="muted small">0.85</text>
+
+    <text x="0" y="95" class="ink small">stripes</text>
+    <rect x="86" y="81" width="132" height="14" rx="7" class="bar-bg"/>
+    <rect x="86" y="81" width="28" height="14" rx="7" class="bar2"/>
+    <text x="226" y="95" class="muted small">0.21</text>
+
+    <text x="0" y="135" class="ink small">flippers</text>
+    <rect x="86" y="121" width="132" height="14" rx="7" class="bar-bg"/>
+    <rect x="86" y="121" width="10" height="14" rx="7" class="bar2"/>
+    <text x="226" y="135" class="muted small">0.08</text>
+
+    <text x="0" y="175" class="ink small">furry</text>
+    <rect x="86" y="161" width="132" height="14" rx="7" class="bar-bg"/>
+    <rect x="86" y="161" width="70" height="14" rx="7" class="bar3"/>
+    <text x="226" y="175" class="muted small">0.53</text>
+  </g>
+  <text x="682" y="384" class="mono">c_hat = concept vector</text>
+
+  <path d="M936 257 H1012" class="arrow"/>
+
+  <rect x="1022" y="132" width="202" height="250" rx="18" class="card"/>
+  <text x="1046" y="166" class="ink h">4. Class head</text>
+  <text x="1046" y="193" class="muted p">Classify from concepts.</text>
+  <g transform="translate(1048 225)">
+    <text x="0" y="15" class="ink small">antelope</text>
+    <rect x="72" y="1" width="86" height="14" rx="7" class="bar-bg"/>
+    <rect x="72" y="1" width="72" height="14" rx="7" class="bar"/>
+    <text x="164" y="15" class="muted small">0.48</text>
+
+    <text x="0" y="55" class="ink small">zebra</text>
+    <rect x="72" y="41" width="86" height="14" rx="7" class="bar-bg"/>
+    <rect x="72" y="41" width="14" height="14" rx="7" class="bar2"/>
+    <text x="164" y="55" class="muted small">0.09</text>
+
+    <text x="0" y="95" class="ink small">walrus</text>
+    <rect x="72" y="81" width="86" height="14" rx="7" class="bar-bg"/>
+    <rect x="72" y="81" width="8" height="14" rx="7" class="bar3"/>
+    <text x="164" y="95" class="muted small">0.05</text>
+  </g>
+  <text x="1046" y="348" class="mono">softmax(g(c_hat))</text>
+
+  <rect x="168" y="468" width="944" height="182" rx="22" class="card"/>
+  <text x="206" y="510" class="ink h">Concept intervention</text>
+  <text x="206" y="540" class="muted p">Because concepts are explicit, one concept can be changed and the class probabilities recomputed.</text>
+
+  <rect x="214" y="570" width="240" height="54" rx="13" class="warn"/>
+  <text x="236" y="604" class="mono">set stripes = 1.0</text>
+  <path d="M466 597 H542" class="arrow"/>
+  <rect x="554" y="570" width="238" height="54" rx="13" class="soft"/>
+  <text x="576" y="604" class="mono">recompute p(y | c_hat)</text>
+  <path d="M804 597 H880" class="arrow"/>
+  <rect x="892" y="570" width="174" height="54" rx="13" class="soft"/>
+  <text x="913" y="604" class="mono">delta p_zebra &gt; 0</text>
+
+  <text x="56" y="704" class="muted small">Read the bottleneck as an inspectable prediction path: image features are compressed into concepts before class assignment.</text>
+</svg>
