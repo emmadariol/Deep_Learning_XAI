@@ -1,0 +1,2113 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explainability Audit for Animal Image Classification</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5d6b7c;
+      --line: #dbe3ec;
+      --panel: #ffffff;
+      --soft: #f5f8fb;
+      --navy: #1f3556;
+      --teal: #177f75;
+      --teal-soft: #e4f5f1;
+      --blue: #315d9c;
+      --blue-soft: #eaf1fb;
+      --amber: #8a620f;
+      --amber-soft: #fff4d8;
+      --rose: #9a3f51;
+      --rose-soft: #fdecef;
+      --radius: 12px;
+      --shadow: 0 18px 45px rgba(20, 29, 45, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f7f9fc;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef2f7;
+      color: #26364f;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .hero {
+      padding: 72px 24px 42px;
+      color: #f8fbff;
+      background:
+        linear-gradient(135deg, rgba(14, 22, 36, 0.96), rgba(22, 52, 65, 0.94)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 84px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 84px);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: #9ce7db;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0;
+      color: inherit;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 940px;
+      font-size: clamp(2.5rem, 7vw, 5.6rem);
+      font-weight: 850;
+    }
+
+    .subtitle {
+      max-width: 800px;
+      margin: 22px 0 0;
+      color: #dce8f2;
+      font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 28px;
+      align-items: end;
+    }
+
+    .hero-card {
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 22px 55px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(16px);
+    }
+
+    .hero-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    .hero-card p {
+      margin: 0;
+      color: #d8e4ee;
+      font-size: 0.94rem;
+    }
+
+    .toc {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+    }
+
+    .toc .wrap {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 11px 0;
+    }
+
+    .toc a {
+      flex: 0 0 auto;
+      padding: 8px 11px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .toc a:hover {
+      border-color: var(--line);
+      color: var(--ink);
+      background: #ffffff;
+    }
+
+    .toc a.active {
+      border-color: #58c8b8;
+      color: #0d514a;
+      background: var(--teal-soft);
+    }
+
+    section {
+      padding: 62px 0;
+    }
+
+    main>section[hidden] {
+      display: none;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.55fr);
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 26px;
+    }
+
+    h2 {
+      color: var(--navy);
+      font-size: clamp(2rem, 4.2vw, 3.7rem);
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .panel {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .flow {
+      display: grid;
+      gap: 12px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr) 180px;
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: 0 12px 30px rgba(20, 29, 45, 0.05);
+    }
+
+    .flow-step .num {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--navy);
+      color: #ffffff;
+      font-weight: 850;
+    }
+
+    .flow-step h3 {
+      margin-bottom: 4px;
+      color: var(--navy);
+      font-size: 1.05rem;
+    }
+
+    .flow-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .flow-step .tag {
+      justify-self: end;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      color: var(--teal);
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .accordion {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+
+    .accordion button {
+      min-height: 86px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      box-shadow: 0 12px 30px rgba(20, 29, 45, 0.05);
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    .accordion button:hover,
+    .accordion button:focus-visible {
+      transform: translateY(-2px);
+      border-color: #9fb9d8;
+      outline: none;
+    }
+
+    .accordion button.active {
+      border-color: #58c8b8;
+      background: var(--teal-soft);
+    }
+
+    .accordion strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+
+    .accordion span {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    .accordion-detail {
+      grid-column: 1 / -1;
+      padding: 22px;
+      border: 1px solid #b9d8d2;
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .accordion-detail[hidden] {
+      display: none;
+    }
+
+    .accordion-detail h3 {
+      margin-bottom: 10px;
+      color: var(--navy);
+      font-size: 1.45rem;
+    }
+
+    .formula {
+      margin-top: 14px;
+      padding: 15px;
+      border-left: 5px solid var(--teal);
+      border-radius: 8px;
+      background: #f3faf8;
+      color: #183a37;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92rem;
+      overflow-x: auto;
+    }
+
+    .resnet {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .resnet-visual {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .resnet-visual img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .sim-link {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 9px 12px;
+      border: 1px solid #9fd7cc;
+      border-radius: 999px;
+      background: #e4f5f1;
+      color: #0d514a;
+      font-weight: 800;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+
+    .sim-embed {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .sim-embed iframe {
+      display: block;
+      width: 100%;
+      height: 980px;
+      border: 0;
+      background: #ffffff;
+    }
+
+    .node {
+      position: relative;
+      min-height: 118px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(20, 29, 45, 0.05);
+    }
+
+    .node::after {
+      content: ">";
+      position: absolute;
+      top: 50%;
+      right: -10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 0.75rem;
+      line-height: 20px;
+      text-align: center;
+      transform: translateY(-50%);
+    }
+
+    .node:last-child::after {
+      content: none;
+    }
+
+    .node strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--navy);
+    }
+
+    .node span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.36;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    th,
+    td {
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.94rem;
+    }
+
+    th {
+      color: var(--navy);
+      background: #eef3f8;
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .metric {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .metric .label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric .value {
+      display: block;
+      color: var(--navy);
+      font-size: 1.55rem;
+      font-weight: 850;
+    }
+
+    .metric p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .metric-principle {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    .metric-principle h3 {
+      color: var(--navy);
+      font-size: 1.35rem;
+    }
+
+    .metric-principle p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .metric-axis {
+      display: grid;
+      gap: 10px;
+    }
+
+    .axis-row {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .axis-bar {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--rose-soft), var(--amber-soft), var(--teal-soft));
+      border: 1px solid var(--line);
+    }
+
+    .metric .formula {
+      margin-top: 12px;
+      font-size: 0.82rem;
+    }
+
+    .metric-readout {
+      display: block;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      color: var(--navy);
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
+    .metric-flashcards {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .metric-flashcard-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #f7f9fc;
+    }
+
+    .metric-flashcard-top h3 {
+      color: var(--navy);
+      font-size: 1.12rem;
+    }
+
+    .metric-flashcard-top p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .metric-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .metric-controls button {
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--navy);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+
+    .metric-controls button:hover,
+    .metric-controls button:focus-visible {
+      border-color: #9fb9d8;
+      outline: none;
+    }
+
+    .metric-card-viewport {
+      overflow: hidden;
+    }
+
+    .metric-card-track {
+      display: flex;
+      transition: transform 280ms ease;
+    }
+
+    .metric-slide {
+      flex: 0 0 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 18px;
+      align-items: start;
+      padding: 22px;
+    }
+
+    .metric-slide .label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric-slide .value {
+      display: block;
+      color: var(--navy);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .metric-slide p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .metric-slide .formula {
+      margin: 0;
+    }
+
+    .metric-card-detail {
+      display: grid;
+      gap: 12px;
+    }
+
+    .metric-card-detail strong {
+      color: var(--navy);
+    }
+
+    .metric-insights {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .metric-insight {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f7f9fc;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .metric-insight strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--navy);
+      font-size: 0.73rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .metric-insight.warning {
+      background: #fff9e8;
+      border-color: #dec074;
+    }
+
+    .metric-insight.metric-name {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--navy);
+      background: var(--blue-soft);
+      border-color: #c7d7ec;
+      font-weight: 800;
+    }
+
+    .metric-insight.metric-name strong {
+      margin-bottom: 0;
+      flex: 0 0 auto;
+    }
+
+    .reading-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .reading-card {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: 0 12px 30px rgba(20, 29, 45, 0.05);
+    }
+
+    .reading-cell {
+      padding: 12px;
+      border-radius: 10px;
+      background: #f7f9fc;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.42;
+    }
+
+    .reading-cell strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--navy);
+      font-size: 0.76rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .reading-cell.followup {
+      background: var(--teal-soft);
+      color: #35515a;
+    }
+
+    .reading-cell.warning {
+      background: #fff9e8;
+    }
+
+    .final-position {
+      margin-top: 18px;
+      padding: 20px;
+      border: 1px solid #b9d8d2;
+      border-left: 6px solid var(--teal);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .final-position h3 {
+      color: var(--navy);
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    .final-position p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .final-position .checklist {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .final-position .checklist span {
+      padding: 9px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--navy);
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .metric-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px 18px;
+    }
+
+    .metric-dot {
+      width: 9px;
+      height: 9px;
+      border: 0;
+      border-radius: 999px;
+      background: #cdd8e5;
+      cursor: pointer;
+    }
+
+    .metric-dot.active {
+      width: 24px;
+      background: var(--teal);
+    }
+
+    .results-overview {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .result-kpi {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .result-kpi span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .result-kpi strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--navy);
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .result-kpi p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .result-card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .result-card h3 {
+      color: var(--navy);
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+
+    .result-card p {
+      color: var(--muted);
+    }
+
+    .result-evidence {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .evidence-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--soft);
+      color: var(--ink);
+      font-size: 0.92rem;
+    }
+
+    .evidence-row strong {
+      color: var(--navy);
+    }
+
+    .evidence-row span {
+      color: var(--teal-dark);
+      font-weight: 900;
+    }
+
+    .method-bars {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .method-bar {
+      display: grid;
+      gap: 6px;
+    }
+
+    .method-bar-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .bar-track {
+      height: 9px;
+      border-radius: 999px;
+      background: #e7edf4;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+    }
+
+    .result-note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-left: 4px solid var(--amber);
+      border-radius: 10px;
+      background: #fff8e8;
+      color: #67470d;
+      font-size: 0.92rem;
+    }
+
+    .result-figures {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .result-figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .result-figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #ffffff;
+    }
+
+    .result-figure figcaption {
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .test-card {
+      border-top: 5px solid var(--blue);
+    }
+
+    .test-card:nth-child(2) {
+      border-top-color: var(--amber);
+    }
+
+    .test-card:nth-child(3) {
+      border-top-color: var(--rose);
+    }
+
+    .interpretation {
+      padding: 18px;
+      border-left: 5px solid var(--teal);
+      border-radius: var(--radius);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .interpretation strong {
+      color: var(--navy);
+    }
+
+    .footer {
+      padding: 38px 0 60px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+
+      .hero-grid,
+      .section-head,
+      .two,
+      .three,
+      .four,
+      .metric-principle,
+      .metric-flashcard-top,
+      .metric-slide,
+      .metric-insights,
+      .results-overview,
+      .result-grid,
+      .result-figures,
+      .reading-card,
+      .flow-step {
+        grid-template-columns: 1fr;
+      }
+
+      .final-position .checklist {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric-insight.metric-name {
+        display: block;
+      }
+
+      .metric-insight.metric-name strong {
+        margin-bottom: 4px;
+      }
+
+      .flow-step .tag {
+        justify-self: start;
+      }
+
+      .accordion {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .resnet {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+
+      .accordion,
+      .resnet {
+        grid-template-columns: 1fr;
+      }
+
+      .node::after {
+        top: auto;
+        right: 50%;
+        bottom: -10px;
+        transform: translateX(50%) rotate(90deg);
+      }
+
+      .final-position .checklist {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <h1> Saliency Maps Look Need Verification</h1>
+
+      </div>
+      <aside class="hero-card">
+        <strong>Core claim</strong>
+        <p>
+          A heatmap is not an explanation by itself. It becomes useful only when it is compared across
+          methods, tested under interventions, connected to concepts and checked against model behavior.
+        </p>
+      </aside>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Report navigation">
+    <div class="wrap">
+      <a href="#overview">Overview</a>
+      <a href="#model">Model</a>
+      <a href="#methods">Attribution</a>
+      <a href="#stress">Stress test</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#results">Results</a>
+      <a href="#concepts">Concepts</a>
+      <a href="#reading">Interpretation</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="overview">
+      <div class="wrap">
+        <div class="section-head">
+          <p>
+            The project explains a trained ResNet50 classifier on AwA2. The analysis starts from local
+            saliency maps, then tests whether those maps remain meaningful when the input, target class and
+            semantic interpretation are changed.
+          </p><br>
+          <div>
+            <span class="eyebrow">Project logic</span>
+          </div>
+
+        </div>
+
+        <div class="flow" aria-label="Explainability audit flow">
+          <article class="flow-step">
+            <div class="num">1</div>
+            <div>
+              <h3>Train or load the classifier</h3>
+              <p>Define the exact function being explained: image tensor to animal-class logits.</p>
+            </div>
+            <span class="tag">baseline</span>
+          </article>
+          <article class="flow-step">
+            <div class="num">2</div>
+            <div>
+              <h3>Generate attribution maps</h3>
+              <p>Compare gradient, activation and baseline-path methods on correct and incorrect predictions.</p>
+            </div>
+            <span class="tag">local evidence</span>
+          </article>
+          <article class="flow-step">
+            <div class="num">3</div>
+            <div>
+              <h3>Perturb the background</h3>
+              <p>Modify mostly contextual pixels and observe whether predictions and saliency maps drift.</p>
+            </div>
+            <span class="tag">intervention</span>
+          </article>
+          <article class="flow-step">
+            <div class="num">4</div>
+            <div>
+              <h3>Quantify reliability</h3>
+              <p>Use overlap, rank correlation, deletion, insertion, occlusion and sensitivity diagnostics.</p>
+            </div>
+            <span class="tag">metrics</span>
+          </article>
+          <article class="flow-step">
+            <div class="num">5</div>
+            <div>
+              <h3>Move to semantic concepts</h3>
+              <p>Check whether model behavior aligns with attributes such as stripes, horns or hooves.</p>
+            </div>
+            <span class="tag">concepts</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="model" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Explained model</span>
+            <h2>ResNet50 model</h2>
+            <a class="sim-link" href="resnet_activation_simulator.html">Open the ResNet simulator</a>
+          </div>
+        </div>
+
+        <div class="panel">
+          <figure class="resnet-visual">
+            <img src="resnet50_visual.svg"
+              alt="Visual diagram of the ResNet50 image-classification pipeline, including RGB preprocessing, downsampling stages, residual skip connections, trainable layers, logits, softmax probabilities and the layer4 CAM target." />
+          </figure>
+
+          <div class="resnet" aria-label="ResNet50 schematic">
+            <div class="node">
+              <strong>RGB image</strong>
+              <span>Loaded with <code>convert("RGB")</code>.</span>
+              <span>Three channels: red, green, blue.</span>
+            </div>
+            <div class="node">
+              <strong>Preprocessing</strong>
+              <span>Resize 256, center crop 224.</span>
+              <span>Normalize with ImageNet mean/std.</span>
+            </div>
+            <div class="node">
+              <strong>Stem</strong>
+              <span>7 x 7 convolution, stride 2.</span>
+              <span>MaxPool further downsamples to 56 x 56.</span>
+            </div>
+            <div class="node">
+              <strong>Residual blocks</strong>
+              <span>Layer1 to layer4 increase channels and reduce resolution.</span>
+              <span>Skip connections compute y = F(x) + x.</span>
+            </div>
+            <div class="node">
+              <strong>Layer4</strong>
+              <span>2048 x 7 x 7 feature map.</span>
+              <span>Target layer for Grad-CAM and Score-CAM.</span>
+            </div>
+            <div class="node">
+              <strong>Average pooling</strong>
+              <span>Spatial maps become a 2048-dimensional vector.</span>
+            </div>
+            <div class="node">
+              <strong>Linear head</strong>
+              <span>ImageNet classifier is replaced with AwA2 logits.</span>
+            </div>
+            <div class="node">
+              <strong>Softmax</strong>
+              <span>Logits become probabilities.</span>
+              <span>Prediction = class with maximum probability.</span>
+            </div>
+          </div>
+
+          <table aria-label="ResNet spatial resolution">
+            <thead>
+              <tr>
+                <th>Stage</th>
+                <th>Stride</th>
+                <th>Approximate tensor size</th>
+                <th>Interpretation for XAI</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Input crop</td>
+                <td>-</td>
+                <td>3 x 224 x 224</td>
+                <td>Pixel-level methods operate on this normalized RGB tensor.</td>
+              </tr>
+              <tr>
+                <td>Conv1 + MaxPool</td>
+                <td>2 + 2</td>
+                <td>64 x 56 x 56</td>
+                <td>Early edges, colors and local texture patterns.</td>
+              </tr>
+              <tr>
+                <td>Layer1</td>
+                <td>1</td>
+                <td>256 x 56 x 56</td>
+                <td>Low-level feature compositions.</td>
+              </tr>
+              <tr>
+                <td>Layer2</td>
+                <td>2</td>
+                <td>512 x 28 x 28</td>
+                <td>Mid-level parts and textures.</td>
+              </tr>
+              <tr>
+                <td>Layer3</td>
+                <td>2</td>
+                <td>1024 x 14 x 14</td>
+                <td>Trainable high-level representation in the baseline.</td>
+              </tr>
+              <tr>
+                <td>Layer4</td>
+                <td>2</td>
+                <td>2048 x 7 x 7</td>
+                <td>Coarse semantic map used by CAM methods, later upsampled for visualization.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid two" style="margin-top: 16px;">
+          <div class="panel">
+            <h3>Training</h3>
+            <p>
+              Training minimizes cross-entropy between the true animal label and the predicted logits.
+              The model is initialized from ImageNet weights. Early blocks are frozen, while <code>layer3</code>,
+              <code>layer4</code> and the final classifier are fine-tuned.
+            </p>
+            <div class="formula">
+              z = f_theta(x)<br />
+              p(y=c | x) = exp(z_c) / sum_j exp(z_j)<br />
+              predicted class = argmax_c p(y=c | x)<br />
+              L(x,y) = -log p(y | x)
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Overfitting controls</h3>
+            <p>
+              The baseline avoids overfitting through transfer learning, freezing early blocks, AdamW
+              weight decay, validation-based learning-rate reduction and early stopping. Dropout is not
+              added to the baseline ResNet50 head; dropout is used in the Concept Bottleneck head.
+            </p>
+            <p>
+              The checkpoint with the best validation behavior is used for all saliency, perturbation and
+              concept analyses.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="methods" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Attribution methods</span>
+          </div>
+        </div>
+
+        <div class="accordion" data-accordion="methods">
+          <button type="button" data-topic="gradcam">
+            <strong>Grad-CAM</strong>
+            <span>Where do late convolutional activations support the selected class?</span>
+          </button>
+          <button type="button" data-topic="scorecam">
+            <strong>Score-CAM</strong>
+            <span>Which activation masks increase the target score without using gradients?</span>
+          </button>
+          <button type="button" data-topic="ig">
+            <strong>Integrated Gradients</strong>
+            <span>Which pixels accumulate evidence from a blurred baseline to the image?</span>
+          </button>
+          <button type="button" data-topic="expected">
+            <strong>Expected Gradients</strong>
+            <span>Does attribution remain stable across a distribution of baselines?</span>
+          </button>
+          <button type="button" data-topic="smoothgrad">
+            <strong>SmoothGrad</strong>
+            <span>Can noisy gradient averaging reduce unstable pixel-level maps?</span>
+          </button>
+          <button type="button" data-topic="occlusion">
+            <strong>Occlusion</strong>
+            <span>What happens to the target probability when a patch is removed?</span>
+          </button>
+          <article class="accordion-detail" data-detail hidden></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="stress" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Intervention</span>
+            <h2>The background is changed to test shortcut behavior.</h2>
+          </div>
+          <p class="lead">
+            A saliency map can look plausible while the model depends on contextual evidence. The stress
+            test keeps the animal region approximately stable and perturbs mostly background pixels.
+          </p>
+        </div>
+
+        <div class="grid three">
+          <article class="panel test-card">
+            <h3>Gaussian noise</h3>
+            <p>
+              Adds random noise to the background. If the prediction changes while the animal remains
+              visible, the classifier is sensitive to non-semantic texture variation.
+            </p>
+          </article>
+          <article class="panel test-card">
+            <h3>Color shift</h3>
+            <p>
+              Alters background color channels. This tests whether the model uses global color statistics
+              as class evidence.
+            </p>
+          </article>
+          <article class="panel test-card">
+            <h3>Background swap</h3>
+            <p>
+              Replaces background pixels with uniform noise. Large prediction or saliency drift indicates
+              context dependence.
+            </p>
+          </article>
+        </div>
+
+        <div class="interpretation" style="margin-top: 18px;">
+          <strong>Interpretation.</strong>
+          The goal is to measure whether the explanation follows the animal or
+          moves toward unstable context when non-morphological evidence is perturbed.
+        </div>
+      </div>
+    </section>
+
+    <section id="metrics" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Quantitative checks</span>
+            <h2>Reliability is measured, not inferred from visual appeal.</h2>
+          </div>
+
+        </div>
+
+        <div class="panel metric-principle">
+          <div>
+            <h3>How to read the numbers</h3>
+            <p>
+              The questions is if the same evidence
+              remains important when the image is perturbed, and whether removing or inserting that
+              evidence changes the model score in the expected direction.
+            </p>
+          </div>
+          <div class="metric-axis" aria-label="Metric interpretation axes">
+            <div class="axis-row">
+              <strong>Stability</strong>
+              <span>High IoU and high Spearman mean the saliency structure survives the intervention.</span>
+            </div>
+            <div class="axis-bar" aria-hidden="true"></div>
+            <div class="axis-row">
+              <strong>Faithfulness</strong>
+              <span>Good deletion and insertion curves mean salient pixels are behaviorally important.</span>
+            </div>
+            <div class="axis-bar" aria-hidden="true"></div>
+            <div class="axis-row">
+              <strong>Context use</strong>
+              <span>High background ratio means the explanation is using pixels outside the animal proxy.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-flashcards" aria-label="Metric flashcards">
+          <div class="metric-flashcard-top">
+            <div>
+              <h3 id="metric-card-heading">Spatial stability: Top-k IoU</h3>
+              <p id="metric-card-counter">Metric 1 of 6</p>
+            </div>
+            <div class="metric-controls" aria-label="Metric flashcard controls">
+              <button type="button" id="metric-prev">Previous</button>
+              <button type="button" id="metric-next">Next</button>
+            </div>
+          </div>
+          <div class="metric-card-viewport">
+            <div class="metric-card-track" id="metric-card-track">
+              <article class="metric-slide">
+                <div>
+                  <span class="label">Spatial stability</span>
+                  <span class="value">Top-k IoU</span>
+                  <p>
+                    Binarize the top 20% most salient pixels in the original and perturbed images, then
+                    compare their overlap.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">IoU = |S_original intersect S_perturbed| / |S_original union S_perturbed|</div>
+                  <span class="metric-readout">High is good for stability. Low means the explanation moved.</span>
+                  <p><strong>Use it when:</strong> you want to know whether the highlighted region remains spatially
+                    consistent.</p>
+                  <div class="metric-insights" aria-label="Top-k IoU metric interpretation">
+                    <div class="metric-insight metric-name"><strong>Metric</strong>Top-k IoU</div>
+                    <div class="metric-insight"><strong>? Main question</strong>Does the highlighted spatial support
+                      remain in the same region?</div>
+                    <div class="metric-insight"><strong>Desired direction</strong>Higher values indicate stable
+                      localization.</div>
+                    <div class="metric-insight warning"><strong>&#9888; Warning sign</strong>Low IoU means the map moved
+                      after a background intervention.</div>
+                  </div>
+                </div>
+              </article>
+              <article class="metric-slide">
+                <div>
+                  <span class="label">Rank stability</span>
+                  <span class="value">Spearman</span>
+                  <p>
+                    Flatten both saliency maps and compare the rank ordering of pixels, not their absolute
+                    values.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">rho = corr(rank(M_original), rank(M_perturbed))</div>
+                  <span class="metric-readout">High is good. Low means the saliency priority changed.</span>
+                  <p><strong>Use it when:</strong> you want to check whether the method still ranks evidence in the same
+                    order.</p>
+                  <div class="metric-insights" aria-label="Spearman metric interpretation">
+                    <div class="metric-insight metric-name"><strong>Metric</strong>Spearman correlation</div>
+                    <div class="metric-insight"><strong>? Main question</strong>Are pixels ranked similarly before and
+                      after perturbation?</div>
+                    <div class="metric-insight"><strong>Desired direction</strong>Higher values indicate stable saliency
+                      ordering.</div>
+                    <div class="metric-insight warning"><strong>&#9888; Warning sign</strong>Low correlation means the
+                      method changed its evidence ranking.</div>
+                  </div>
+                </div>
+              </article>
+              <article class="metric-slide">
+                <div>
+                  <span class="label">Object focus</span>
+                  <span class="value">Background ratio</span>
+                  <p>
+                    Uses the animal proxy mask to estimate how much saliency falls outside the animal
+                    region.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">background ratio = saliency outside mask / total saliency</div>
+                  <span class="metric-readout">Lower is better if the task should rely on morphology.</span>
+                  <p><strong>Use it when:</strong> you want to quantify whether the explanation is object-centered or
+                    context-heavy.</p>
+                  <div class="metric-insights" aria-label="Background ratio metric interpretation">
+                    <div class="metric-insight metric-name"><strong>Metric</strong>Background ratio</div>
+                    <div class="metric-insight"><strong>? Main question</strong>How much explanation mass lies outside
+                      the animal proxy?</div>
+                    <div class="metric-insight"><strong>Desired direction</strong>Lower values are better when testing
+                      morphology reliance.</div>
+                    <div class="metric-insight warning"><strong>&#9888; Warning sign</strong>High background saliency
+                      suggests contextual shortcut behavior.</div>
+                  </div>
+                </div>
+              </article>
+              <article class="metric-slide">
+                <div>
+                  <span class="label">Evidence necessity</span>
+                  <span class="value">Deletion</span>
+                  <p>
+                    Remove pixels from most salient to least salient and track how quickly the target
+                    probability decreases.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">deletion curve: p_c(x after removing top-k saliency pixels)</div>
+                  <span class="metric-readout">Lower AUC is better: important pixels were removed early.</span>
+                  <p><strong>Use it when:</strong> you want to test whether highlighted pixels are necessary for the
+                    score.</p>
+                  <div class="metric-insights" aria-label="Deletion AUC metric interpretation">
+                    <div class="metric-insight metric-name"><strong>Metric</strong>Deletion AUC</div>
+                    <div class="metric-insight"><strong>? Main question</strong>Are highlighted pixels necessary for the
+                      class score?</div>
+                    <div class="metric-insight"><strong>Desired direction</strong>Lower values are better for
+                      faithfulness.</div>
+                    <div class="metric-insight warning"><strong>&#9888; Warning sign</strong>High deletion AUC means
+                      removing salient pixels barely hurts the score.</div>
+                  </div>
+                </div>
+              </article>
+              <article class="metric-slide">
+                <div>
+                  <span class="label">Evidence sufficiency</span>
+                  <span class="value">Insertion</span>
+                  <p>
+                    Start from a blurred or masked image, insert pixels from most salient to least salient,
+                    and track score recovery.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">insertion curve: p_c(x after restoring top-k saliency pixels)</div>
+                  <span class="metric-readout">Higher AUC is better: salient pixels recover the class score.</span>
+                  <p><strong>Use it when:</strong> you want to test whether highlighted pixels are sufficient evidence.
+                  </p>
+                  <div class="metric-insights" aria-label="Insertion AUC metric interpretation">
+                    <div class="metric-insight metric-name"><strong>Metric</strong>Insertion AUC</div>
+                    <div class="metric-insight"><strong>? Main question</strong>Are highlighted pixels sufficient to
+                      recover the class score?</div>
+                    <div class="metric-insight"><strong>Desired direction</strong>Higher values are better for
+                      faithfulness.</div>
+                    <div class="metric-insight warning"><strong>&#9888; Warning sign</strong>Low insertion AUC means the
+                      highlighted pixels do not reconstruct evidence well.</div>
+                  </div>
+                </div>
+              </article>
+              <article class="metric-slide">
+                <div>
+                  <span class="label">Prediction behavior</span>
+                  <span class="value">Class transition</span>
+                  <p>
+                    Records whether the predicted animal changes after perturbation and which class it
+                    becomes.
+                  </p>
+                </div>
+                <div class="metric-card-detail">
+                  <div class="formula">transition = predicted(original) -> predicted(perturbed)</div>
+                  <span class="metric-readout">A changed prediction makes saliency drift more suspicious.</span>
+                  <p><strong>Use it when:</strong> you want to connect explanation drift to actual classifier behavior.
+                  </p>
+                  <div class="metric-insights" aria-label="Class transition metric interpretation">
+                    <div class="metric-insight metric-name"><strong>Metric</strong>Class transition</div>
+                    <div class="metric-insight"><strong>? Main question</strong>Does the predicted label change after a
+                      background perturbation?</div>
+                    <div class="metric-insight"><strong>Desired direction</strong>Stable predictions are easier to
+                      compare; changed predictions reveal sensitivity.</div>
+                    <div class="metric-insight warning"><strong>&#9888; Warning sign</strong>A switch to another animal
+                      after only background changes suggests context dependence.</div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="metric-dots" id="metric-dots" aria-label="Metric flashcard position"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="results" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Notebook results</span>
+            <h2>What the applied algorithms show on this project.</h2>
+          </div>
+        </div>
+
+        <div class="results-overview" aria-label="Key notebook results">
+          <article class="result-kpi">
+            <span>Background swap</span>
+            <strong>75%</strong>
+            <p>Prediction-change rate on the sampled stress-test examples.</p>
+          </article>
+          <article class="result-kpi">
+            <span>Grad-CAM focus</span>
+            <strong>0.827</strong>
+            <p>Mean saliency ratio inside the animal proxy mask.</p>
+          </article>
+          <article class="result-kpi">
+            <span>IG background mass</span>
+            <strong>0.451</strong>
+            <p>Mean saliency ratio outside the animal proxy mask.</p>
+          </article>
+          <article class="result-kpi">
+            <span>CBM accuracy</span>
+            <strong>0.805</strong>
+            <p>Test accuracy of the concept bottleneck classifier.</p>
+          </article>
+        </div>
+
+        <div class="result-grid">
+          <article class="result-card">
+            <h3>Local attribution comparison</h3>
+            <p>
+              Grad-CAM and Score-CAM produce more object-concentrated maps on the audited examples,
+              while Integrated Gradients and Expected Gradients distribute substantially more attribution
+              outside the animal mask. This does not make CAM methods automatically faithful; it only says
+              their spatial support is more aligned with the proxy object region in this run.
+            </p>
+            <div class="method-bars" aria-label="Mean animal saliency ratio by method">
+              <div class="method-bar">
+                <div class="method-bar-top"><span>Grad-CAM animal ratio</span><span>0.827</span></div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width: 82.7%;"></div>
+                </div>
+              </div>
+              <div class="method-bar">
+                <div class="method-bar-top"><span>Score-CAM animal ratio</span><span>0.774</span></div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width: 77.4%;"></div>
+                </div>
+              </div>
+              <div class="method-bar">
+                <div class="method-bar-top"><span>Integrated Gradients animal ratio</span><span>0.549</span></div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width: 54.9%;"></div>
+                </div>
+              </div>
+              <div class="method-bar">
+                <div class="method-bar-top"><span>Expected Gradients animal ratio</span><span>0.505</span></div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width: 50.5%;"></div>
+                </div>
+              </div>
+            </div>
+            <div class="result-note">
+              Integrated Gradients is especially sensitive to baseline choice: blur-vs-black IG overlap is
+              low in this run (top-20 IoU 0.204, Spearman 0.283).
+            </div>
+          </article>
+
+          <article class="result-card">
+            <h3>Stress-test behavior</h3>
+            <p>
+              Background interventions are not visually aimed at the animal morphology, but they still
+              change both predictions and saliency maps. This is the central diagnostic of the project:
+              an explanation that moves when only context is perturbed is not sufficient evidence of
+              morphology-based reasoning.
+            </p>
+            <div class="result-evidence">
+              <div class="evidence-row"><strong>Background swap</strong><span>change rate 0.75</span></div>
+              <div class="evidence-row"><strong>Color shift</strong><span>change rate 0.50</span></div>
+              <div class="evidence-row"><strong>Gaussian noise</strong><span>change rate 0.25</span></div>
+              <div class="evidence-row"><strong>Observed transition</strong><span>antelope -> walrus</span></div>
+            </div>
+            <div class="result-note">
+              For background swap, mean Grad-CAM IoU is 0.517 and mean IG IoU is 0.278. The maps are not
+              stable enough to be interpreted from visualization alone.
+            </div>
+          </article>
+
+          <article class="result-card">
+            <h3>Faithfulness and sanity checks</h3>
+            <p>
+              Deletion/insertion results test whether highlighted pixels affect the model score. In the
+              advanced attribution audit, Grad-CAM and Score-CAM have larger insertion AUC than the
+              gradient-path methods, while Expected Gradients has the smallest faithfulness gap on the
+              inspected subset.
+            </p>
+            <div class="result-evidence">
+              <div class="evidence-row"><strong>Grad-CAM deletion / insertion</strong><span>0.102 / 0.298</span></div>
+              <div class="evidence-row"><strong>Score-CAM deletion / insertion</strong><span>0.104 / 0.300</span></div>
+              <div class="evidence-row"><strong>IG deletion / insertion</strong><span>0.080 / 0.170</span></div>
+              <div class="evidence-row"><strong>Expected Gradients deletion / insertion</strong><span>0.070 /
+                  0.113</span></div>
+            </div>
+            <div class="result-note">
+              Phase 9 confirms that vanilla gradients are not interchangeable with perturbation-based
+              evidence: mean vanilla-vs-occlusion Spearman is 0.158.
+            </div>
+          </article>
+
+          <article class="result-card">
+            <h3>Concept-level evidence</h3>
+            <p>
+              TCAV and the bottleneck model move the project beyond pixel heatmaps. TCAV asks whether a
+              learned concept direction increases a class logit; the bottleneck model forces prediction
+              through explicit concept estimates before the final class decision.
+            </p>
+            <div class="result-evidence">
+              <div class="evidence-row"><strong>TCAV stripes -> tiger</strong><span>0.933</span></div>
+              <div class="evidence-row"><strong>TCAV flippers -> dolphin</strong><span>1.000</span></div>
+              <div class="evidence-row"><strong>CBM concept binary accuracy</strong><span>0.754</span></div>
+              <div class="evidence-row"><strong>CBM vs baseline agreement</strong><span>0.735</span></div>
+            </div>
+            <div class="result-note">
+              A high TCAV score means sensitivity along a concept direction, not proof that the visible
+              object literally contains that concept. Concept methods still need sanity checks.
+            </div>
+          </article>
+        </div>
+
+        <div class="result-figures" aria-label="Notebook output figures">
+          <figure class="result-figure">
+            <img src="../outputs/figures/xai_correct_examples_notebook.png"
+              alt="Correctly classified examples with input gradients, Grad-CAM and Integrated Gradients overlays." />
+            <figcaption>
+              Correct predictions: saliency maps are visually plausible, but they still require
+              perturbation and faithfulness checks.
+            </figcaption>
+          </figure>
+          <figure class="result-figure">
+            <img src="../outputs/figures/xai_incorrect_examples_notebook.png"
+              alt="Misclassified examples with predicted labels and attribution maps." />
+            <figcaption>
+              Incorrect predictions: attribution is useful for diagnosing what the model emphasized when
+              the predicted class was wrong.
+            </figcaption>
+          </figure>
+          <figure class="result-figure">
+            <img src="../outputs/figures/phase5_saliency_comparison_notebook_gradcam.png"
+              alt="Grad-CAM saliency comparison under background perturbations." />
+            <figcaption>
+              Grad-CAM under stress tests: the map is coarse and often object-centered, but it can drift
+              when background evidence is changed.
+            </figcaption>
+          </figure>
+          <figure class="result-figure">
+            <img src="../outputs/figures/phase5_saliency_comparison_notebook_expected_gradients.png"
+              alt="Expected Gradients saliency comparison under background perturbations." />
+            <figcaption>
+              Expected Gradients under stress tests: distributed pixel attributions expose stronger
+              sensitivity to baseline and background choices.
+            </figcaption>
+          </figure>
+          <figure class="result-figure">
+            <img src="../outputs/figures/phase7_tcav_heatmap_notebook.png"
+              alt="TCAV concept sensitivity heatmap across target classes." />
+            <figcaption>
+              TCAV heatmap: concept sensitivity is inspected at class level instead of through individual
+              pixels.
+            </figcaption>
+          </figure>
+          <figure class="result-figure">
+            <img src="../outputs/figures/phase8_cbm_summary_notebook.png" alt="Concept bottleneck summary plot." />
+            <figcaption>
+              Concept bottleneck summary: the project checks whether semantic concepts can support a
+              more interpretable prediction path.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="concepts" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Semantic level</span>
+            <h2>Concepts make the explanation closer to human reasoning.</h2>
+          </div>
+          <p class="lead">
+            Pixel heatmaps describe spatial sensitivity. Concept-level methods ask whether the model is
+            sensitive to human-readable animal attributes.
+          </p>
+        </div>
+
+        <div class="grid two">
+          <article class="panel">
+            <h3>TCAV</h3>
+            <p>
+              TCAV learns a direction in activation space for a concept and checks whether moving along
+              that direction increases the class score. It provides a class-level concept sensitivity
+              rather than a pixel map.
+            </p>
+            <div class="formula">
+              TCAV(c, concept) = fraction of examples where dS_c / dv_concept &gt; 0
+            </div>
+          </article>
+          <article class="panel">
+            <h3>Concept Bottleneck Model</h3>
+            <p>
+              A bottleneck model predicts concepts before predicting the class. This makes the semantic
+              interface explicit: errors can be inspected at the concept level and then at the class level.
+            </p>
+            <div class="formula">
+              x -> predicted concepts -> predicted class
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="reading" hidden>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">How to read the project</span>
+          </div>
+        </div>
+
+        <div class="reading-grid" aria-label="Interpretation guide">
+          <article class="reading-card">
+            <div class="reading-cell">
+              <strong>Observation</strong>
+              The heatmap covers the animal.
+            </div>
+            <div class="reading-cell warning">
+              <strong>Conservative interpretation</strong>
+              The explanation is visually plausible, but visual plausibility is not evidence of
+              faithfulness.
+            </div>
+            <div class="reading-cell followup">
+              <strong>Required follow-up</strong>
+              Check deletion, insertion and perturbation stability.
+            </div>
+          </article>
+
+          <article class="reading-card">
+            <div class="reading-cell">
+              <strong>Observation</strong>
+              The prediction is correct with high confidence.
+            </div>
+            <div class="reading-cell warning">
+              <strong>Conservative interpretation</strong>
+              The model is confident, not necessarily right for the right reason.
+            </div>
+            <div class="reading-cell followup">
+              <strong>Required follow-up</strong>
+              Compare saliency with background perturbations and concept evidence.
+            </div>
+          </article>
+
+          <article class="reading-card">
+            <div class="reading-cell">
+              <strong>Observation</strong>
+              Grad-CAM and Integrated Gradients disagree.
+            </div>
+            <div class="reading-cell warning">
+              <strong>Conservative interpretation</strong>
+              The definition of importance matters: activation-based localization and path-integrated
+              pixel attribution are not measuring the same object.
+            </div>
+            <div class="reading-cell followup">
+              <strong>Required follow-up</strong>
+              Inspect which method is more stable under perturbations and more faithful under
+              deletion/insertion.
+            </div>
+          </article>
+
+          <article class="reading-card">
+            <div class="reading-cell">
+              <strong>Observation</strong>
+              Saliency moves after changing the background.
+            </div>
+            <div class="reading-cell warning">
+              <strong>Conservative interpretation</strong>
+              The model or the attribution method is sensitive to contextual evidence.
+            </div>
+            <div class="reading-cell followup">
+              <strong>Required follow-up</strong>
+              Quantify IoU, Spearman, background ratio and prediction transitions.
+            </div>
+          </article>
+
+          <article class="reading-card">
+            <div class="reading-cell">
+              <strong>Observation</strong>
+              Concept scores match animal attributes.
+            </div>
+            <div class="reading-cell warning">
+              <strong>Conservative interpretation</strong>
+              The representation has semantic alignment at class level, but this does not prove that the
+              final decision used those concepts.
+            </div>
+            <div class="reading-cell followup">
+              <strong>Required follow-up</strong>
+              Check whether concepts also support predictions through TCAV scores or a concept bottleneck.
+            </div>
+          </article>
+        </div>
+
+        <div class="final-position">
+          <h3>Final position</h3>
+          <p>
+            Grad-CAM, Score-CAM, Integrated Gradients and Expected Gradients are useful diagnostic tools,
+            but they should not be presented as standalone proof. A reliable explainability analysis
+            combines several independent signals before claiming that a heatmap reflects the evidence
+            actually used by the model.
+          </p>
+          <div class="checklist" aria-label="Required evidence for reliable explainability">
+            <span>Local attribution</span>
+            <span>Perturbation tests</span>
+            <span>Faithfulness metrics</span>
+            <span>Concept evidence</span>
+            <span>Sanity checks</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+
+
+  <script>
+    const reportSections = Array.from(document.querySelectorAll("main > section[id]"));
+    const reportNavLinks = Array.from(document.querySelectorAll(".toc a[href^='#']"));
+
+    function showReportSection(sectionId, updateHash = true) {
+      const fallbackId = "overview";
+      const targetId = reportSections.some((section) => section.id === sectionId) ? sectionId : fallbackId;
+
+      reportSections.forEach((section) => {
+        section.hidden = section.id !== targetId;
+      });
+
+      reportNavLinks.forEach((link) => {
+        const isActive = link.getAttribute("href") === `#${targetId}`;
+        link.classList.toggle("active", isActive);
+        link.setAttribute("aria-current", isActive ? "page" : "false");
+      });
+
+      if (updateHash) {
+        history.replaceState(null, "", `#${targetId}`);
+      }
+    }
+
+    reportNavLinks.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        showReportSection(link.getAttribute("href").slice(1));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+
+    showReportSection(window.location.hash ? window.location.hash.slice(1) : "overview", false);
+
+    const details = {
+      gradcam: {
+        title: "Grad-CAM",
+        body:
+          "Grad-CAM explains a target logit through the last convolutional feature maps. It is useful for localization, but the native map is coarse because layer4 is about 7 x 7 before upsampling.",
+        formula:
+          "alpha_k^c = mean_{i,j}(dS_c / dA^k_{i,j})<br />M_c = ReLU(sum_k alpha_k^c A^k)"
+      },
+      scorecam: {
+        title: "Score-CAM",
+        body:
+          "Score-CAM does not use gradients. It upsamples activation maps into masks, applies them to the input and uses the resulting target score as a channel weight.",
+        formula:
+          "w_k^c = S_c(x masked by upsample(A^k))<br />M_c = ReLU(sum_k w_k^c A^k)"
+      },
+      ig: {
+        title: "Integrated Gradients",
+        body:
+          "Integrated Gradients accumulates gradients along a path from a baseline to the image. In this project, a blurred baseline is preferred because a black image can create unrealistic contrast.",
+        formula:
+          "IG_i(x) = (x_i - x'_i) integral_0^1 dS_c(x' + a(x-x')) / dx_i da"
+      },
+      expected: {
+        title: "Expected Gradients",
+        body:
+          "Expected Gradients averages path attributions over several baseline samples and interpolation points. It checks whether IG-like explanations depend too strongly on a single baseline.",
+        formula:
+          "EG_i(x) = E_{x',a}[(x_i - x'_i) dS_c(x' + a(x-x')) / dx_i]"
+      },
+      smoothgrad: {
+        title: "SmoothGrad",
+        body:
+          "SmoothGrad computes gradients over noisy copies of the same image and averages them. It can reduce local gradient noise, but it does not turn sensitivity into causal evidence.",
+        formula:
+          "M_smooth(x) = (1/N) sum_n M_grad(x + epsilon_n)"
+      },
+      occlusion: {
+        title: "Occlusion",
+        body:
+          "Occlusion replaces image patches with a baseline and measures the target-score drop. It is slower than gradients but closer to an intervention because the input is actually changed.",
+        formula:
+          "Importance(patch) = S_c(x) - S_c(x with patch removed)"
+      }
+    };
+
+    const metricCards = [
+      "Spatial stability: Top-k IoU",
+      "Rank stability: Spearman",
+      "Object focus: Background ratio",
+      "Evidence necessity: Deletion",
+      "Evidence sufficiency: Insertion",
+      "Prediction behavior: Class transition"
+    ];
+
+    const metricTrack = document.getElementById("metric-card-track");
+    const metricHeading = document.getElementById("metric-card-heading");
+    const metricCounter = document.getElementById("metric-card-counter");
+    const metricPrev = document.getElementById("metric-prev");
+    const metricNext = document.getElementById("metric-next");
+    const metricDots = document.getElementById("metric-dots");
+    let activeMetricCard = 0;
+
+    function renderMetricFlashcard() {
+      if (!metricTrack || !metricHeading || !metricCounter || !metricDots) return;
+      metricTrack.style.transform = `translateX(-${activeMetricCard * 100}%)`;
+      metricHeading.textContent = metricCards[activeMetricCard];
+      metricCounter.textContent = `Metric ${activeMetricCard + 1} of ${metricCards.length}`;
+      metricDots.querySelectorAll("button").forEach((dot, index) => {
+        dot.classList.toggle("active", index === activeMetricCard);
+        dot.setAttribute("aria-pressed", String(index === activeMetricCard));
+      });
+    }
+
+    if (metricDots && metricTrack) {
+      metricCards.forEach((name, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "metric-dot";
+        dot.setAttribute("aria-label", `Show ${name}`);
+        dot.addEventListener("click", () => {
+          activeMetricCard = index;
+          renderMetricFlashcard();
+        });
+        metricDots.appendChild(dot);
+      });
+    }
+
+    if (metricPrev) {
+      metricPrev.addEventListener("click", () => {
+        activeMetricCard = (activeMetricCard - 1 + metricCards.length) % metricCards.length;
+        renderMetricFlashcard();
+      });
+    }
+
+    if (metricNext) {
+      metricNext.addEventListener("click", () => {
+        activeMetricCard = (activeMetricCard + 1) % metricCards.length;
+        renderMetricFlashcard();
+      });
+    }
+
+    renderMetricFlashcard();
+
+    document.querySelectorAll("[data-accordion]").forEach((accordion) => {
+      const box = accordion.querySelector("[data-detail]");
+      const buttons = accordion.querySelectorAll("[data-topic]");
+
+      function closeDetail() {
+        buttons.forEach((candidate) => {
+          candidate.classList.remove("active");
+        });
+        box.hidden = true;
+        box.innerHTML = "";
+      }
+
+      function update(button) {
+        const item = details[button.dataset.topic];
+        if (!item || !box) return;
+
+        if (button.classList.contains("active") && !box.hidden) {
+          closeDetail();
+          return;
+        }
+
+        buttons.forEach((candidate) => {
+          candidate.classList.toggle("active", candidate === button);
+        });
+        box.innerHTML = `
+          <h3>${item.title}</h3>
+          <p>${item.body}</p>
+          <div class="formula">${item.formula}</div>
+        `;
+        button.insertAdjacentElement("afterend", box);
+        box.hidden = false;
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => update(button));
+      });
+
+      closeDetail();
+    });
+  </script>
+</body>
+
+</html>
