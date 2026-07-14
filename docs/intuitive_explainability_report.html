@@ -953,15 +953,8 @@
       font-size: 0.92rem;
     }
 
-    .result-figures {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+    .figure-flashcards {
       margin-top: 18px;
-    }
-
-    .result-figure {
-      margin: 0;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: #ffffff;
@@ -969,18 +962,125 @@
       overflow: hidden;
     }
 
-    .result-figure img {
+    .figure-flashcard-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #f7f9fc;
+    }
+
+    .figure-flashcard-top h3 {
+      color: var(--navy);
+      font-size: 1.12rem;
+    }
+
+    .figure-flashcard-top p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .figure-card-viewport {
+      overflow: hidden;
+    }
+
+    .figure-card-track {
+      display: flex;
+      transition: transform 280ms ease;
+    }
+
+    .figure-slide {
+      flex: 0 0 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+      gap: 18px;
+      align-items: stretch;
+      padding: 18px;
+    }
+
+    .figure-slide figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .figure-slide img {
       display: block;
       width: 100%;
       height: auto;
       background: #ffffff;
     }
 
-    .result-figure figcaption {
+    .figure-slide figcaption {
       padding: 12px 14px;
       border-top: 1px solid var(--line);
       color: var(--muted);
       font-size: 0.9rem;
+    }
+
+    .figure-commentary {
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--soft);
+    }
+
+    .figure-commentary h4 {
+      color: var(--navy);
+      font-size: 1.05rem;
+    }
+
+    .figure-commentary p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .figure-commentary ul {
+      display: grid;
+      gap: 9px;
+      padding-left: 18px;
+      color: var(--ink);
+      font-size: 0.92rem;
+    }
+
+    .figure-commentary li strong {
+      color: var(--navy);
+    }
+
+    .figure-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px 18px;
+    }
+
+    .figure-dot {
+      min-height: 30px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .figure-dot.active {
+      border-color: #58c8b8;
+      background: var(--teal-soft);
+      color: var(--navy);
     }
 
     .test-card {
@@ -1025,7 +1125,8 @@
       .metric-insights,
       .results-overview,
       .result-grid,
-      .result-figures,
+      .figure-flashcard-top,
+      .figure-slide,
       .reading-card,
       .flow-step {
         grid-template-columns: 1fr;
@@ -1730,54 +1831,229 @@
           </article>
         </div>
 
-        <div class="result-figures" aria-label="Notebook output figures">
-          <figure class="result-figure">
-            <img src="../outputs/figures/xai_correct_examples_notebook.png"
-              alt="Correctly classified examples with input gradients, Grad-CAM and Integrated Gradients overlays." />
-            <figcaption>
-              Correct predictions: saliency maps are visually plausible, but they still require
-              perturbation and faithfulness checks.
-            </figcaption>
-          </figure>
-          <figure class="result-figure">
-            <img src="../outputs/figures/xai_incorrect_examples_notebook.png"
-              alt="Misclassified examples with predicted labels and attribution maps." />
-            <figcaption>
-              Incorrect predictions: attribution is useful for diagnosing what the model emphasized when
-              the predicted class was wrong.
-            </figcaption>
-          </figure>
-          <figure class="result-figure">
-            <img src="../outputs/figures/phase5_saliency_comparison_notebook_gradcam.png"
-              alt="Grad-CAM saliency comparison under background perturbations." />
-            <figcaption>
-              Grad-CAM under stress tests: the map is coarse and often object-centered, but it can drift
-              when background evidence is changed.
-            </figcaption>
-          </figure>
-          <figure class="result-figure">
-            <img src="../outputs/figures/phase5_saliency_comparison_notebook_expected_gradients.png"
-              alt="Expected Gradients saliency comparison under background perturbations." />
-            <figcaption>
-              Expected Gradients under stress tests: distributed pixel attributions expose stronger
-              sensitivity to baseline and background choices.
-            </figcaption>
-          </figure>
-          <figure class="result-figure">
-            <img src="../outputs/figures/phase7_tcav_heatmap_notebook.png"
-              alt="TCAV concept sensitivity heatmap across target classes." />
-            <figcaption>
-              TCAV heatmap: concept sensitivity is inspected at class level instead of through individual
-              pixels.
-            </figcaption>
-          </figure>
-          <figure class="result-figure">
-            <img src="../outputs/figures/phase8_cbm_summary_notebook.png" alt="Concept bottleneck summary plot." />
-            <figcaption>
-              Concept bottleneck summary: the project checks whether semantic concepts can support a
-              more interpretable prediction path.
-            </figcaption>
-          </figure>
+        <div class="figure-flashcards" aria-label="Notebook output flashcards">
+          <div class="figure-flashcard-top">
+            <div>
+              <h3 id="figure-card-heading">Correct predictions and first attribution maps</h3>
+              <p id="figure-card-counter">Result 1 of 9</p>
+            </div>
+            <div class="metric-controls" aria-label="Result flashcard controls">
+              <button type="button" id="figure-prev">Previous</button>
+              <button type="button" id="figure-next">Next</button>
+            </div>
+          </div>
+
+          <div class="figure-card-viewport">
+            <div class="figure-card-track" id="figure-card-track">
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/xai_correct_examples_notebook.png"
+                    alt="Correctly classified examples with input gradients, Grad-CAM and Integrated Gradients overlays." />
+                  <figcaption>Correct predictions with local attribution maps.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What to observe</h4>
+                  <p>
+                    This card is the first sanity check: the classifier predicts the right class, then
+                    different attribution methods are computed for that predicted class.
+                  </p>
+                  <ul>
+                    <li><strong>Input gradients</strong> show local pixel sensitivity and often emphasize edges,
+                      texture changes and high-frequency details.</li>
+                    <li><strong>Grad-CAM</strong> uses the last convolutional block, so the heatmap is spatially
+                      coarse and class-discriminative rather than pixel-precise.</li>
+                    <li><strong>Integrated Gradients</strong> attributes the prediction along a path from a blurred
+                      baseline to the real image; bright regions indicate pixels that accumulate evidence for the
+                      target logit.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/xai_incorrect_examples_notebook.png"
+                    alt="Misclassified examples with predicted labels and attribution maps." />
+                  <figcaption>Incorrect predictions with predicted-class explanations.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>How to read errors</h4>
+                  <p>
+                    These maps should be read with the predicted label, not only with the ground truth.
+                    The explanation answers: which evidence supported the wrong class score?
+                  </p>
+                  <ul>
+                    <li><strong>If the heatmap covers the animal</strong>, the model may be using morphology but
+                      confusing similar visual patterns.</li>
+                    <li><strong>If the heatmap moves to the background</strong>, the error is compatible with
+                      contextual shortcut behavior.</li>
+                    <li><strong>If methods disagree</strong>, the failure is not explained by one universal
+                      notion of importance; gradient, activation and path methods are measuring different signals.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_gradcam.png"
+                    alt="Grad-CAM saliency comparison under background perturbations." />
+                  <figcaption>Grad-CAM before and after background perturbations.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What Grad-CAM sees</h4>
+                  <p>
+                    Grad-CAM weights the layer4 feature maps by the gradient of the target logit. It
+                    therefore highlights broad semantic regions whose activations increase the class score.
+                  </p>
+                  <ul>
+                    <li><strong>Coarse localization</strong> is expected because the native feature map is around
+                      7 x 7 before upsampling.</li>
+                    <li><strong>Stable animal focus</strong> supports visual plausibility, but does not prove
+                      causality.</li>
+                    <li><strong>Map drift after background swap</strong> means that the target score or the CAM
+                      weights changed when non-animal pixels were modified.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_scorecam.png"
+                    alt="Score-CAM saliency comparison under background perturbations." />
+                  <figcaption>Score-CAM under the same perturbation protocol.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What Score-CAM adds</h4>
+                  <p>
+                    Score-CAM does not use gradients. It masks the input with activation maps and measures
+                    how much each masked image increases the target score.
+                  </p>
+                  <ul>
+                    <li><strong>Gradient-free weighting</strong> makes it a useful comparison against Grad-CAM.</li>
+                    <li><strong>Similar maps to Grad-CAM</strong> suggest that the last convolutional activations
+                      carry a consistent localization signal.</li>
+                    <li><strong>Differences under perturbation</strong> reveal whether gradient weights or score
+                      responses are driving the explanation.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_integrated_gradients.png"
+                    alt="Integrated Gradients saliency comparison under background perturbations." />
+                  <figcaption>Integrated Gradients with a blurred-image baseline.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What Integrated Gradients sees</h4>
+                  <p>
+                    Integrated Gradients accumulates input gradients along the interpolation path from the
+                    baseline to the real image. In this project the baseline is blurred, so mean brightness
+                    and global color are less artificially destroyed than with a black image.
+                  </p>
+                  <ul>
+                    <li><strong>Fine-grained attribution</strong> can spread across texture, contours and
+                      background pixels.</li>
+                    <li><strong>Baseline sensitivity</strong> is part of the method, not an implementation bug.</li>
+                    <li><strong>Low overlap after perturbation</strong> indicates that the pixel ranking changes
+                      substantially when context is modified.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_expected_gradients.png"
+                    alt="Expected Gradients saliency comparison under background perturbations." />
+                  <figcaption>Expected Gradients with a distribution of reference baselines.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What Expected Gradients changes</h4>
+                  <p>
+                    Expected Gradients generalizes Integrated Gradients by averaging over multiple
+                    baselines. The objective is to reduce dependence on one arbitrary reference image.
+                  </p>
+                  <ul>
+                    <li><strong>Distributed attribution</strong> is expected because evidence is averaged over
+                      several paths.</li>
+                    <li><strong>Background mass</strong> is important here: the notebook summary shows a high
+                      background saliency ratio for Expected Gradients.</li>
+                    <li><strong>Interpretation</strong> should focus on stability and faithfulness metrics, not
+                      only on whether the map looks smooth.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase9_explainability_audit_notebook.png"
+                    alt="Sanity audit comparing vanilla gradients with SmoothGrad, Occlusion and randomized controls." />
+                  <figcaption>Sanity audit with SmoothGrad, Occlusion and randomized references.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Why this matters</h4>
+                  <p>
+                    This diagnostic checks whether different explanation families agree on the same
+                    evidence. A visually convincing heatmap is weaker if it does not match occlusion or
+                    if it remains similar to randomized controls.
+                  </p>
+                  <ul>
+                    <li><strong>SmoothGrad</strong> averages noisy gradients to reduce visual noise.</li>
+                    <li><strong>Occlusion</strong> is closer to an intervention because image patches are removed
+                      and the score response is measured.</li>
+                    <li><strong>Randomized checks</strong> help detect explanations that look structured even
+                      when they should not be trusted.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase7_tcav_heatmap_notebook.png"
+                    alt="TCAV concept sensitivity heatmap across target classes." />
+                  <figcaption>TCAV concept sensitivity at class level.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What TCAV sees</h4>
+                  <p>
+                    TCAV does not produce a pixel map. It learns a direction in activation space for a
+                    human concept and checks whether moving along that direction increases a target class
+                    logit.
+                  </p>
+                  <ul>
+                    <li><strong>High score</strong> means the class score is often positively sensitive to that
+                      concept direction.</li>
+                    <li><strong>Example result</strong>: stripes -> tiger is high, which is semantically plausible.</li>
+                    <li><strong>Important caveat</strong>: TCAV reports representation sensitivity, not visual proof
+                      that the concept is present in a specific image.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase8_cbm_summary_notebook.png"
+                    alt="Concept bottleneck summary plot." />
+                  <figcaption>Concept Bottleneck Model summary.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What the bottleneck changes</h4>
+                  <p>
+                    The Concept Bottleneck Model forces an explicit intermediate representation: image to
+                    concepts, then concepts to class. This makes errors inspectable at a semantic level.
+                  </p>
+                  <ul>
+                    <li><strong>Concept accuracy</strong> tests whether attributes such as stripes, flippers or
+                      horns are predicted reliably.</li>
+                    <li><strong>Class accuracy</strong> tests whether those predicted concepts are sufficient for
+                      the animal classifier.</li>
+                    <li><strong>Interventions</strong> can change a concept value and observe how the class
+                      probability changes, making the explanation more operational than a heatmap.</li>
+                  </ul>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="figure-dots" id="figure-dots" aria-label="Result flashcard position"></div>
         </div>
       </div>
     </section>
@@ -2067,6 +2343,68 @@
     }
 
     renderMetricFlashcard();
+
+    const figureCards = [
+      "Correct predictions and first attribution maps",
+      "Incorrect predictions and wrong-class evidence",
+      "Grad-CAM under background perturbations",
+      "Score-CAM under background perturbations",
+      "Integrated Gradients under background perturbations",
+      "Expected Gradients under background perturbations",
+      "Sanity audit with smoothing and occlusion",
+      "TCAV concept sensitivity",
+      "Concept Bottleneck Model summary"
+    ];
+
+    const figureTrack = document.getElementById("figure-card-track");
+    const figureHeading = document.getElementById("figure-card-heading");
+    const figureCounter = document.getElementById("figure-card-counter");
+    const figurePrev = document.getElementById("figure-prev");
+    const figureNext = document.getElementById("figure-next");
+    const figureDots = document.getElementById("figure-dots");
+    let activeFigureCard = 0;
+
+    function renderFigureFlashcard() {
+      if (!figureTrack || !figureHeading || !figureCounter || !figureDots) return;
+      figureTrack.style.transform = `translateX(-${activeFigureCard * 100}%)`;
+      figureHeading.textContent = figureCards[activeFigureCard];
+      figureCounter.textContent = `Result ${activeFigureCard + 1} of ${figureCards.length}`;
+      figureDots.querySelectorAll("button").forEach((dot, index) => {
+        dot.classList.toggle("active", index === activeFigureCard);
+        dot.setAttribute("aria-pressed", String(index === activeFigureCard));
+      });
+    }
+
+    if (figureDots && figureTrack) {
+      figureCards.forEach((name, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "figure-dot";
+        dot.textContent = String(index + 1);
+        dot.setAttribute("aria-label", `Show ${name}`);
+        dot.addEventListener("click", () => {
+          activeFigureCard = index;
+          renderFigureFlashcard();
+        });
+        figureDots.appendChild(dot);
+      });
+    }
+
+    if (figurePrev) {
+      figurePrev.addEventListener("click", () => {
+        activeFigureCard = (activeFigureCard - 1 + figureCards.length) % figureCards.length;
+        renderFigureFlashcard();
+      });
+    }
+
+    if (figureNext) {
+      figureNext.addEventListener("click", () => {
+        activeFigureCard = (activeFigureCard + 1) % figureCards.length;
+        renderFigureFlashcard();
+      });
+    }
+
+    renderFigureFlashcard();
 
     document.querySelectorAll("[data-accordion]").forEach((accordion) => {
       const box = accordion.querySelector("[data-detail]");
