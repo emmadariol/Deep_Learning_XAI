@@ -424,6 +424,39 @@
       height: auto;
     }
 
+    .model-lite .resnet-visual img {
+      max-height: 360px;
+      object-fit: contain;
+    }
+
+    .model-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .model-detail-item {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--soft);
+    }
+
+    .model-detail-item strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--navy);
+      font-size: 0.95rem;
+    }
+
+    .model-detail-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
     .sim-link {
       display: inline-block;
       margin-top: 12px;
@@ -1348,6 +1381,186 @@
       font-size: 0.93rem;
     }
 
+    .model-path {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+      align-items: stretch;
+    }
+
+    .path-step {
+      position: relative;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      min-height: 116px;
+    }
+
+    .path-step:not(:last-child)::after {
+      content: ">";
+      position: absolute;
+      top: 50%;
+      right: -12px;
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      color: var(--teal);
+      font-weight: 900;
+      transform: translateY(-50%);
+      z-index: 2;
+    }
+
+    .path-step strong,
+    .kernel-card strong,
+    .model-spec strong {
+      display: block;
+      color: var(--navy);
+      font-size: 0.95rem;
+      margin-bottom: 5px;
+    }
+
+    .path-step span,
+    .kernel-card span,
+    .model-spec span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.35;
+    }
+
+    .kernel-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .kernel-card {
+      padding: 15px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--soft);
+    }
+
+    .kernel-card code {
+      display: inline-block;
+      margin: 2px 0 6px;
+      color: #123b36;
+      font-weight: 800;
+    }
+
+    .model-spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .model-spec {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+    }
+
+    @media (max-width: 920px) {
+
+      .model-path,
+      .kernel-grid,
+      .model-spec-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .path-step:not(:last-child)::after {
+        top: auto;
+        right: 50%;
+        bottom: -15px;
+        transform: translateX(50%) rotate(90deg);
+      }
+    }
+
+    .attribution-slide {
+      grid-template-columns: minmax(0, 0.95fr) minmax(340px, 1.05fr);
+      align-items: stretch;
+    }
+
+    .method-explainer,
+    .method-results {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+    }
+
+    .method-explainer h4,
+    .method-results h4 {
+      margin-bottom: 8px;
+      color: var(--navy);
+      font-size: 1.05rem;
+    }
+
+    .method-explainer p,
+    .method-results p {
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .method-result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .method-result {
+      padding: 10px 11px;
+      border-radius: 10px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+    }
+
+    .method-result strong {
+      display: block;
+      color: var(--navy);
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+    }
+
+    .method-result span {
+      display: block;
+      color: var(--teal-dark);
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .method-mini-figure {
+      margin: 12px 0 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .method-mini-figure img {
+      display: block;
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      background: #ffffff;
+    }
+
+    .method-mini-figure figcaption {
+      padding: 9px 11px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
     .test-card {
       border-top: 5px solid var(--blue);
     }
@@ -1379,11 +1592,20 @@
 
     @media (max-width: 920px) {
 
+      .attribution-slide,
+      .method-result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 920px) {
+
       .hero-grid,
       .section-head,
       .two,
       .three,
       .four,
+      .model-detail-grid,
       .metric-principle,
       .metric-flashcard-top,
       .metric-slide,
@@ -1739,131 +1961,113 @@
             <h2>ResNet50 model</h2>
             <a class="sim-link" href="resnet_activation_simulator.html">Open the ResNet simulator</a>
           </div>
+          <p class="lead">
+            The model is a ResNet50 classifier fine-tuned on AwA2. This section explains the architecture
+            only where it matters for explainability: kernels, downsampling, layer4, logits and training.
+          </p>
         </div>
 
-        <div class="panel">
+        <div class="panel model-lite">
           <figure class="resnet-visual">
             <img src="resnet50_visual.svg"
-              alt="Visual diagram of the ResNet50 image-classification pipeline, including RGB preprocessing, downsampling stages, residual skip connections, trainable layers, logits, softmax probabilities and the layer4 CAM target." />
+              alt="Compact diagram of the ResNet50 image-classification pipeline, including preprocessing, residual stages, layer4 CAM target, logits and softmax probabilities." />
           </figure>
 
-          <div class="resnet" aria-label="ResNet50 schematic">
-            <div class="node">
-              <strong>RGB image</strong>
-              <span>Loaded with <code>convert("RGB")</code>.</span>
-              <span>Three channels: red, green, blue.</span>
+          <div class="model-path" aria-label="Simple ResNet50 computation path">
+            <div class="path-step">
+              <strong>1. RGB input</strong>
+              <span>Image is read as 3 channels and transformed to a normalized 3 x 224 x 224 tensor.</span>
             </div>
-            <div class="node">
-              <strong>Preprocessing</strong>
-              <span>Resize 256, center crop 224.</span>
-              <span>Normalize with ImageNet mean/std.</span>
+            <div class="path-step">
+              <strong>2. Stem</strong>
+              <span>A 7 x 7 convolution with stride 2 starts the spatial compression, then max pooling reduces
+                resolution again.</span>
             </div>
-            <div class="node">
-              <strong>Stem</strong>
-              <span>7 x 7 convolution, stride 2.</span>
-              <span>MaxPool further downsamples to 56 x 56.</span>
+            <div class="path-step">
+              <strong>3. Residual stages</strong>
+              <span>Layer1 to layer4 apply bottleneck residual blocks: 1 x 1, 3 x 3, 1 x 1 convolutions plus skip
+                connections.</span>
             </div>
-            <div class="node">
-              <strong>Residual blocks</strong>
-              <span>Layer1 to layer4 increase channels and reduce resolution.</span>
-              <span>Skip connections compute y = F(x) + x.</span>
+            <div class="path-step">
+              <strong>4. Layer4 map</strong>
+              <span>The final convolutional map is 2048 x 7 x 7. This is the target for Grad-CAM and Score-CAM.</span>
             </div>
-            <div class="node">
-              <strong>Layer4</strong>
-              <span>2048 x 7 x 7 feature map.</span>
-              <span>Target layer for Grad-CAM and Score-CAM.</span>
+            <div class="path-step">
+              <strong>5. Class logits</strong>
+              <span>Average pooling compresses spatial maps to 2048 features. The final linear layer outputs AwA2
+                logits.</span>
             </div>
-            <div class="node">
-              <strong>Average pooling</strong>
-              <span>Spatial maps become a 2048-dimensional vector.</span>
-            </div>
-            <div class="node">
-              <strong>Linear head</strong>
-              <span>ImageNet classifier is replaced with AwA2 logits.</span>
-            </div>
-            <div class="node">
-              <strong>Softmax</strong>
-              <span>Logits become probabilities.</span>
-              <span>Prediction = class with maximum probability.</span>
+            <div class="path-step">
+              <strong>6. Softmax</strong>
+              <span>Softmax converts logits into probabilities. The predicted animal is the class with maximum
+                probability.</span>
             </div>
           </div>
 
-          <table aria-label="ResNet spatial resolution">
-            <thead>
-              <tr>
-                <th>Stage</th>
-                <th>Stride</th>
-                <th>Approximate tensor size</th>
-                <th>Interpretation for XAI</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Input crop</td>
-                <td>-</td>
-                <td>3 x 224 x 224</td>
-                <td>Pixel-level methods operate on this normalized RGB tensor.</td>
-              </tr>
-              <tr>
-                <td>Conv1 + MaxPool</td>
-                <td>2 + 2</td>
-                <td>64 x 56 x 56</td>
-                <td>Early edges, colors and local texture patterns.</td>
-              </tr>
-              <tr>
-                <td>Layer1</td>
-                <td>1</td>
-                <td>256 x 56 x 56</td>
-                <td>Low-level feature compositions.</td>
-              </tr>
-              <tr>
-                <td>Layer2</td>
-                <td>2</td>
-                <td>512 x 28 x 28</td>
-                <td>Mid-level parts and textures.</td>
-              </tr>
-              <tr>
-                <td>Layer3</td>
-                <td>2</td>
-                <td>1024 x 14 x 14</td>
-                <td>Trainable high-level representation in the baseline.</td>
-              </tr>
-              <tr>
-                <td>Layer4</td>
-                <td>2</td>
-                <td>2048 x 7 x 7</td>
-                <td>Coarse semantic map used by CAM methods, later upsampled for visualization.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="grid two" style="margin-top: 16px;">
-          <div class="panel">
-            <h3>Training</h3>
-            <p>
-              Training minimizes cross-entropy between the true animal label and the predicted logits.
-              The model is initialized from ImageNet weights. Early blocks are frozen, while <code>layer3</code>,
-              <code>layer4</code> and the final classifier are fine-tuned.
-            </p>
-            <div class="formula">
-              z = f_theta(x)<br />
-              p(y=c | x) = exp(z_c) / sum_j exp(z_j)<br />
-              predicted class = argmax_c p(y=c | x)<br />
-              L(x,y) = -log p(y | x)
+          <div class="kernel-grid" aria-label="ResNet50 kernel details">
+            <div class="kernel-card">
+              <strong>First kernel: broad local scan</strong>
+              <code>Conv1: 7 x 7, stride 2, 64 filters</code>
+              <span>The first convolution reads relatively large RGB neighborhoods. It detects simple edges, colors and
+                textures while reducing 224 x 224 to about 112 x 112.</span>
+            </div>
+            <div class="kernel-card">
+              <strong>Bottleneck block: efficient feature building</strong>
+              <code>1 x 1 -> 3 x 3 -> 1 x 1</code>
+              <span>The first 1 x 1 changes channel depth, the 3 x 3 kernel looks spatially around each location, and
+                the last 1 x 1 expands channels again.</span>
+            </div>
+            <div class="kernel-card">
+              <strong>Skip connection: residual learning</strong>
+              <code>output = F(x) + x</code>
+              <span>The block learns a correction to the input instead of a fully new representation. This helps deep
+                networks train reliably.</span>
+            </div>
+            <div class="kernel-card">
+              <strong>Downsampling: from pixels to concepts</strong>
+              <code>56 -> 28 -> 14 -> 7</code>
+              <span>Layer2, layer3 and layer4 reduce spatial size with stride 2. When channels or size change, the skip
+                path uses a 1 x 1 projection.</span>
+            </div>
+            <div class="kernel-card">
+              <strong>XAI consequence</strong>
+              <code>Layer4 = 2048 x 7 x 7</code>
+              <span>CAM methods explain this coarse semantic grid and then upsample it to image size. This is why
+                Grad-CAM localizes broadly, not pixel-perfectly.</span>
+            </div>
+            <div class="kernel-card">
+              <strong>Pixel attribution consequence</strong>
+              <code>Input gradients and IG use 3 x 224 x 224</code>
+              <span>Gradient-based pixel methods operate at the input resolution, so they can look sharper but also more
+                sensitive to texture, noise and baseline choice.</span>
             </div>
           </div>
-          <div class="panel">
-            <h3>Overfitting controls</h3>
-            <p>
-              The baseline avoids overfitting through transfer learning, freezing early blocks, AdamW
-              weight decay, validation-based learning-rate reduction and early stopping. Dropout is not
-              added to the baseline ResNet50 head; dropout is used in the Concept Bottleneck head.
-            </p>
-            <p>
-              The checkpoint with the best validation behavior is used for all saliency, perturbation and
-              concept analyses.
-            </p>
+
+          <div class="model-spec-grid" aria-label="Training and output details">
+            <div class="model-spec">
+              <strong>Training objective</strong>
+              <span>Cross-entropy compares the true AwA2 animal label with the predicted logits.</span>
+            </div>
+            <div class="model-spec">
+              <strong>Fine-tuning</strong>
+              <span>ImageNet weights initialize the network. Early blocks stay frozen; layer3, layer4 and the final
+                classifier adapt to AwA2.</span>
+            </div>
+            <div class="model-spec">
+              <strong>Overfitting control</strong>
+              <span>Validation monitoring, learning-rate reduction, AdamW weight decay and early stopping select the
+                checkpoint used for XAI.</span>
+            </div>
+            <div class="model-spec">
+              <strong>Explained score</strong>
+              <span>Attribution methods usually explain a target logit. Softmax is mainly used to report
+                confidence.</span>
+            </div>
+          </div>
+
+          <div class="formula">
+            z = f_theta(x) &nbsp; | &nbsp; p(y=c | x) = exp(z_c) / sum_j exp(z_j) &nbsp; | &nbsp;
+            predicted class = argmax_c p(y=c | x) &nbsp; | &nbsp; L(x,y) = -log p(y | x)
           </div>
         </div>
       </div>
@@ -1874,35 +2078,229 @@
         <div class="section-head">
           <div>
             <span class="eyebrow">Attribution methods</span>
+            <h2>Each attribution method answers a different question.</h2>
           </div>
+          <p class="lead">
+            The same ResNet50 prediction is inspected with activation-based, gradient-path and perturbation-based
+            methods.
+            The notebook results below report behavior on the evaluated examples, not universal method rankings.
+          </p>
         </div>
 
-        <div class="accordion" data-accordion="methods">
-          <button type="button" data-topic="gradcam">
-            <strong>Grad-CAM</strong>
-            <span>Where do late convolutional activations support the selected class?</span>
-          </button>
-          <button type="button" data-topic="scorecam">
-            <strong>Score-CAM</strong>
-            <span>Which activation masks increase the target score without using gradients?</span>
-          </button>
-          <button type="button" data-topic="ig">
-            <strong>Integrated Gradients</strong>
-            <span>Which pixels accumulate evidence from a blurred baseline to the image?</span>
-          </button>
-          <button type="button" data-topic="expected">
-            <strong>Expected Gradients</strong>
-            <span>Does attribution remain stable across a distribution of baselines?</span>
-          </button>
-          <button type="button" data-topic="smoothgrad">
-            <strong>SmoothGrad</strong>
-            <span>Can noisy gradient averaging reduce unstable pixel-level maps?</span>
-          </button>
-          <button type="button" data-topic="occlusion">
-            <strong>Occlusion</strong>
-            <span>What happens to the target probability when a patch is removed?</span>
-          </button>
-          <article class="accordion-detail" data-detail hidden></article>
+        <div class="figure-flashcards" aria-label="Attribution method flashcards">
+          <div class="figure-flashcard-top">
+            <div>
+              <h3 id="attribution-card-heading">Grad-CAM</h3>
+              <p id="attribution-card-counter">Method 1 of 6</p>
+            </div>
+            <div class="metric-controls" aria-label="Attribution method flashcard controls">
+              <button type="button" id="attribution-prev">Previous</button>
+              <button type="button" id="attribution-next">Next</button>
+            </div>
+          </div>
+
+          <div class="figure-card-viewport">
+            <div class="figure-card-track" id="attribution-card-track">
+              <article class="figure-slide attribution-slide">
+                <div class="method-explainer">
+                  <h4>Grad-CAM</h4>
+                  <p>
+                    Grad-CAM explains a target logit using the last convolutional feature maps. It computes
+                    gradient weights for each channel in layer4, combines the weighted activation maps, applies
+                    ReLU and upsamples the result to image size.
+                  </p>
+                  <div class="formula">alpha_k^c = mean_{i,j}(dS_c / dA^k_{i,j})<br>M_c = ReLU(sum_k alpha_k^c A^k)
+                  </div>
+                  <p>
+                    It is good for broad localization, but the native map is coarse because layer4 is only
+                    about 7 x 7 before upsampling.
+                  </p>
+                </div>
+                <div class="method-results">
+                  <h4>Notebook results</h4>
+                  <p>Grad-CAM is the most object-centered method in the advanced attribution audit.</p>
+                  <div class="method-result-grid">
+                    <div class="method-result"><strong>Animal saliency ratio</strong><span>0.827</span></div>
+                    <div class="method-result"><strong>Background ratio</strong><span>0.173</span></div>
+                    <div class="method-result"><strong>Sensitivity IoU</strong><span>0.870</span></div>
+                    <div class="method-result"><strong>Sensitivity Spearman</strong><span>0.914</span></div>
+                    <div class="method-result"><strong>Deletion / insertion AUC</strong><span>0.102 / 0.298</span></div>
+                    <div class="method-result"><strong>Background-swap IoU</strong><span>0.517</span></div>
+                  </div>
+                  <figure class="method-mini-figure">
+                    <img src="../outputs/figures/phase5_saliency_comparison_notebook_gradcam.png"
+                      alt="Grad-CAM stress-test comparison." />
+                    <figcaption>Broad semantic localization; useful, but still unstable under some background
+                      interventions.</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="figure-slide attribution-slide">
+                <div class="method-explainer">
+                  <h4>Score-CAM</h4>
+                  <p>
+                    Score-CAM uses activation maps without gradients. Each activation map is upsampled and used
+                    as a mask on the input image; the masked image is forwarded through the model and the target
+                    score becomes the channel weight.
+                  </p>
+                  <div class="formula">w_k^c = softmax(S_c(x * upsample(A_k)))<br>M_c = ReLU(sum_k w_k^c A_k)</div>
+                  <p>
+                    This makes it a useful comparison to Grad-CAM: if both agree, the last convolutional features
+                    are carrying a consistent localization signal.
+                  </p>
+                </div>
+                <div class="method-results">
+                  <h4>Notebook results</h4>
+                  <p>Score-CAM remains object-focused and is highly class-discriminative on the inspected subset.</p>
+                  <div class="method-result-grid">
+                    <div class="method-result"><strong>Animal saliency ratio</strong><span>0.774</span></div>
+                    <div class="method-result"><strong>Background ratio</strong><span>0.226</span></div>
+                    <div class="method-result"><strong>Sensitivity IoU</strong><span>0.789</span></div>
+                    <div class="method-result"><strong>Sensitivity Spearman</strong><span>0.863</span></div>
+                    <div class="method-result"><strong>Deletion / insertion AUC</strong><span>0.104 / 0.300</span></div>
+                    <div class="method-result"><strong>Class discriminativeness IoU</strong><span>0.973</span></div>
+                  </div>
+                  <figure class="method-mini-figure">
+                    <img src="../outputs/figures/phase5_saliency_comparison_notebook_scorecam.png"
+                      alt="Score-CAM stress-test comparison." />
+                    <figcaption>Gradient-free activation weighting; useful as a control against Grad-CAM gradient
+                      weights.</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="figure-slide attribution-slide">
+                <div class="method-explainer">
+                  <h4>Integrated Gradients</h4>
+                  <p>
+                    Integrated Gradients attributes a prediction by accumulating gradients along a path from a
+                    baseline to the real image. In this project the baseline is a strongly blurred version of
+                    the image, not a black image, to preserve average brightness.
+                  </p>
+                  <div class="formula">IG_i(x) = (x_i - x'_i) integral_0^1 dS_c(x' + a(x-x')) / dx_i da</div>
+                  <p>
+                    It provides fine-grained pixel attribution, but it is sensitive to baseline choice and can
+                    distribute importance over texture and background.
+                  </p>
+                </div>
+                <div class="method-results">
+                  <h4>Notebook results</h4>
+                  <p>IG is less object-centered than CAM methods and strongly affected by baseline choice.</p>
+                  <div class="method-result-grid">
+                    <div class="method-result"><strong>Animal saliency ratio</strong><span>0.549</span></div>
+                    <div class="method-result"><strong>Background ratio</strong><span>0.451</span></div>
+                    <div class="method-result"><strong>Sensitivity IoU</strong><span>0.446</span></div>
+                    <div class="method-result"><strong>Sensitivity Spearman</strong><span>0.700</span></div>
+                    <div class="method-result"><strong>Blur vs black IoU</strong><span>0.204</span></div>
+                    <div class="method-result"><strong>Background-swap IoU</strong><span>0.278</span></div>
+                  </div>
+                  <figure class="method-mini-figure">
+                    <img src="../outputs/figures/phase5_saliency_comparison_notebook_integrated_gradients.png"
+                      alt="Integrated Gradients stress-test comparison." />
+                    <figcaption>Pixel-level attribution; informative but more baseline- and background-sensitive.
+                    </figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="figure-slide attribution-slide">
+                <div class="method-explainer">
+                  <h4>Expected Gradients</h4>
+                  <p>
+                    Expected Gradients generalizes Integrated Gradients by sampling multiple baselines and
+                    interpolation points. The attribution is an expectation over reference images and path positions.
+                  </p>
+                  <div class="formula">EG_i(x) = E_{x',a}[(x_i - x'_i) dS_c(x' + a(x-x')) / dx_i]</div>
+                  <p>
+                    It reduces dependence on a single baseline, but in this project it still assigns substantial
+                    attribution outside the animal proxy mask.
+                  </p>
+                </div>
+                <div class="method-results">
+                  <h4>Notebook results</h4>
+                  <p>Expected Gradients is the most distributed method in the advanced attribution audit.</p>
+                  <div class="method-result-grid">
+                    <div class="method-result"><strong>Animal saliency ratio</strong><span>0.505</span></div>
+                    <div class="method-result"><strong>Background ratio</strong><span>0.495</span></div>
+                    <div class="method-result"><strong>Sensitivity IoU</strong><span>0.349</span></div>
+                    <div class="method-result"><strong>Sensitivity Spearman</strong><span>0.635</span></div>
+                    <div class="method-result"><strong>Deletion / insertion AUC</strong><span>0.070 / 0.113</span></div>
+                    <div class="method-result"><strong>Saliency entropy</strong><span>0.965</span></div>
+                  </div>
+                  <figure class="method-mini-figure">
+                    <img src="../outputs/figures/phase5_saliency_comparison_notebook_expected_gradients.png"
+                      alt="Expected Gradients stress-test comparison." />
+                    <figcaption>Distributed attribution; useful for baseline averaging, but not automatically more
+                      faithful.</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="figure-slide attribution-slide">
+                <div class="method-explainer">
+                  <h4>SmoothGrad</h4>
+                  <p>
+                    SmoothGrad averages gradients over noisy copies of the same image. The objective is to reduce
+                    high-frequency gradient noise and reveal more persistent local sensitivity patterns.
+                  </p>
+                  <div class="formula">M_smooth(x) = (1/N) sum_n M_grad(x + epsilon_n)</div>
+                  <p>
+                    It is a denoising wrapper around gradients. It does not turn gradient sensitivity into causal
+                    evidence, so it should be compared with perturbation methods.
+                  </p>
+                </div>
+                <div class="method-results">
+                  <h4>Notebook results</h4>
+                  <p>Phase 9 compares vanilla gradients with SmoothGrad on correctly predicted examples.</p>
+                  <div class="method-result-grid">
+                    <div class="method-result"><strong>Vanilla vs SmoothGrad IoU</strong><span>0.253</span></div>
+                    <div class="method-result"><strong>Vanilla vs SmoothGrad Spearman</strong><span>0.366</span></div>
+                    <div class="method-result"><strong>Interpretation</strong><span>moderate drift</span></div>
+                    <div class="method-result"><strong>Main use</strong><span>gradient denoising</span></div>
+                  </div>
+                  <figure class="method-mini-figure">
+                    <img src="../outputs/figures/phase9_explainability_audit_notebook.png"
+                      alt="SmoothGrad and occlusion sanity audit." />
+                    <figcaption>Gradient smoothing changes the map substantially; smoothing is not the same as
+                      faithfulness.</figcaption>
+                  </figure>
+                </div>
+              </article>
+
+              <article class="figure-slide attribution-slide">
+                <div class="method-explainer">
+                  <h4>Occlusion</h4>
+                  <p>
+                    Occlusion removes or replaces image patches and measures how much the target score changes.
+                    It is slower than gradients, but closer to an intervention because the input is actually modified.
+                  </p>
+                  <div class="formula">Importance(patch) = S_c(x) - S_c(x with patch removed)</div>
+                  <p>
+                    It is useful as a sanity check: if a saliency map highlights evidence that occlusion says is
+                    behaviorally irrelevant, the visual explanation should be treated cautiously.
+                  </p>
+                </div>
+                <div class="method-results">
+                  <h4>Notebook results</h4>
+                  <p>Phase 9 shows that vanilla gradients and occlusion do not rank evidence in the same way.</p>
+                  <div class="method-result-grid">
+                    <div class="method-result"><strong>Vanilla vs Occlusion IoU</strong><span>0.201</span></div>
+                    <div class="method-result"><strong>Vanilla vs Occlusion Spearman</strong><span>0.158</span></div>
+                    <div class="method-result"><strong>Randomized IoU</strong><span>0.119</span></div>
+                    <div class="method-result"><strong>Randomized Spearman</strong><span>0.111</span></div>
+                  </div>
+                  <figure class="method-mini-figure">
+                    <img src="../outputs/figures/phase9_explainability_audit_notebook.png"
+                      alt="Occlusion sanity audit." />
+                    <figcaption>Occlusion is slower but more intervention-like; low agreement warns against relying on
+                      gradients alone.</figcaption>
+                  </figure>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="figure-dots" id="attribution-dots" aria-label="Attribution method flashcard position"></div>
         </div>
       </div>
     </section>
@@ -1948,6 +2346,151 @@
           <strong>Interpretation.</strong>
           The goal is to measure whether the explanation follows the animal or
           moves toward unstable context when non-morphological evidence is perturbed.
+        </div>
+        <div class="figure-flashcards" aria-label="Stress-test notebook visual sequence">
+          <div class="figure-flashcard-top">
+            <div>
+              <h3 id="stress-card-heading">Perturbed inputs</h3>
+              <p id="stress-card-counter">Stress image 1 of 6</p>
+            </div>
+            <div class="figure-controls" aria-label="Stress-test image controls">
+              <button type="button" id="stress-prev">Previous</button>
+              <button type="button" id="stress-next">Next</button>
+            </div>
+          </div>
+
+          <div class="figure-card-viewport">
+            <div class="figure-card-track" id="stress-card-track">
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase4_stress_test_notebook.png"
+                    alt="Notebook grid showing original AwA2 images and background perturbations." />
+                  <figcaption>Raw intervention grid from the notebook: original image, animal proxy mask and background
+                    perturbations.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>What the intervention changes</h4>
+                  <p>
+                    The perturbations are designed to keep the animal morphology approximately visible while changing
+                    the context around it.
+                    This separates object evidence from background evidence.
+                  </p>
+                  <ul>
+                    <li><strong>Gaussian noise:</strong> tests sensitivity to random background texture.</li>
+                    <li><strong>Color shift:</strong> tests dependence on global color statistics.</li>
+                    <li><strong>Background swap:</strong> tests whether context replacement changes the model decision
+                      or the explanation.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_gradcam.png"
+                    alt="Grad-CAM saliency maps before and after stress-test perturbations." />
+                  <figcaption>Grad-CAM under the stress-test perturbations.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Grad-CAM response</h4>
+                  <p>
+                    Grad-CAM remains the most object-concentrated method in the audit, but the map still moves when the
+                    background is altered.
+                  </p>
+                  <ul>
+                    <li><strong>Animal saliency ratio:</strong> 0.827.</li>
+                    <li><strong>Background saliency ratio:</strong> 0.173.</li>
+                    <li><strong>Background-swap IoU:</strong> 0.517, meaning the highlighted region changes noticeably
+                      under context replacement.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_scorecam.png"
+                    alt="Score-CAM saliency maps before and after stress-test perturbations." />
+                  <figcaption>Score-CAM under the same perturbation protocol.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Score-CAM response</h4>
+                  <p>
+                    Score-CAM uses activation masks instead of gradients. Agreement with Grad-CAM indicates that the
+                    last convolutional features carry a consistent localization signal.
+                  </p>
+                  <ul>
+                    <li><strong>Animal saliency ratio:</strong> 0.774.</li>
+                    <li><strong>Background saliency ratio:</strong> 0.226.</li>
+                    <li><strong>Class-discriminative IoU:</strong> 0.973 on the inspected subset.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_integrated_gradients.png"
+                    alt="Integrated Gradients saliency maps before and after stress-test perturbations." />
+                  <figcaption>Integrated Gradients with the blurred-image baseline under perturbation.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Integrated Gradients response</h4>
+                  <p>
+                    Integrated Gradients is more pixel-level and more baseline-sensitive. The stress test shows that
+                    attribution can spread outside the animal proxy.
+                  </p>
+                  <ul>
+                    <li><strong>Animal saliency ratio:</strong> 0.549.</li>
+                    <li><strong>Background saliency ratio:</strong> 0.451.</li>
+                    <li><strong>Background-swap IoU:</strong> 0.278, lower than Grad-CAM and therefore less spatially
+                      stable here.</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase5_saliency_comparison_notebook_expected_gradients.png"
+                    alt="Expected Gradients saliency maps before and after stress-test perturbations." />
+                  <figcaption>Expected Gradients with multiple reference baselines under perturbation.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Expected Gradients response</h4>
+                  <p>
+                    Expected Gradients averages over baselines, but averaging does not automatically make the
+                    explanation more localized or more faithful.
+                  </p>
+                  <ul>
+                    <li><strong>Animal saliency ratio:</strong> 0.505.</li>
+                    <li><strong>Background saliency ratio:</strong> 0.495.</li>
+                    <li><strong>Sensitivity IoU:</strong> 0.349, showing substantial spatial drift under input noise.
+                    </li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="figure-slide">
+                <figure>
+                  <img src="../outputs/figures/phase9_explainability_audit_notebook.png"
+                    alt="Sanity audit comparing gradients, SmoothGrad, Occlusion and randomized controls." />
+                  <figcaption>Additional sanity audit: SmoothGrad, Occlusion and randomized controls.</figcaption>
+                </figure>
+                <div class="figure-commentary">
+                  <h4>Why this matters</h4>
+                  <p>
+                    The stress test is not only a visualization exercise. It asks whether saliency agrees with model
+                    behavior when evidence is removed, smoothed or randomized.
+                  </p>
+                  <ul>
+                    <li><strong>Vanilla vs SmoothGrad IoU:</strong> 0.253.</li>
+                    <li><strong>Vanilla vs Occlusion IoU:</strong> 0.201.</li>
+                    <li><strong>Interpretation:</strong> gradient maps, smoothing and occlusion do not rank evidence in
+                      the same way.</li>
+                  </ul>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="figure-dots" id="stress-dots" aria-label="Stress-test image position"></div>
         </div>
       </div>
     </section>
@@ -2806,105 +3349,129 @@
       <div class="wrap">
         <div class="section-head">
           <div>
-            <span class="eyebrow">How to read the project</span>
+            <span class="eyebrow">Final conclusions</span>
+            <h2>Explainability is reliable only when visual evidence, interventions and concepts agree.</h2>
           </div>
+          <p class="lead">
+            The project does not treat a heatmap as an explanation by itself. A saliency map is interpreted as a
+            hypothesis about the evidence used by the model, and that hypothesis is accepted only when it survives
+            quantitative and semantic checks.
+          </p>
         </div>
 
-        <div class="reading-grid" aria-label="Interpretation guide">
+        <div class="reading-grid" aria-label="Final conclusions from the explainability audit">
           <article class="reading-card">
             <div class="reading-cell">
-              <strong>Observation</strong>
-              The heatmap covers the animal.
+              <strong>Local attribution</strong>
+              Grad-CAM, Score-CAM, Integrated Gradients, Expected Gradients, SmoothGrad and Occlusion expose different
+              definitions of importance.
             </div>
             <div class="reading-cell warning">
-              <strong>Conservative interpretation</strong>
-              The explanation is visually plausible, but visual plausibility is not evidence of
-              faithfulness.
+              <strong>Observed result</strong>
+              CAM-based methods are more object-concentrated on the audited examples; path-gradient methods distribute
+              more attribution over the background.
             </div>
             <div class="reading-cell followup">
-              <strong>Required follow-up</strong>
-              Check deletion, insertion and perturbation stability.
+              <strong>Conclusion</strong>
+              Agreement between methods is informative, but disagreement is expected because localization, pixel
+              sensitivity and intervention response are not equivalent quantities.
             </div>
           </article>
 
           <article class="reading-card">
             <div class="reading-cell">
-              <strong>Observation</strong>
-              The prediction is correct with high confidence.
+              <strong>Background stress test</strong>
+              The animal region is kept approximately stable while background texture, color or content is perturbed.
             </div>
             <div class="reading-cell warning">
-              <strong>Conservative interpretation</strong>
-              The model is confident, not necessarily right for the right reason.
+              <strong>Observed result</strong>
+              Background interventions change both predictions and saliency maps. For example, background-swap IoU is
+              0.517 for Grad-CAM and 0.278 for Integrated Gradients.
             </div>
             <div class="reading-cell followup">
-              <strong>Required follow-up</strong>
-              Compare saliency with background perturbations and concept evidence.
+              <strong>Conclusion</strong>
+              A visually plausible heatmap can still be context-sensitive. The explanation must therefore be evaluated
+              against controlled perturbations, not only by visual inspection.
             </div>
           </article>
 
           <article class="reading-card">
             <div class="reading-cell">
-              <strong>Observation</strong>
-              Grad-CAM and Integrated Gradients disagree.
+              <strong>Faithfulness metrics</strong>
+              IoU, Spearman correlation, deletion AUC and insertion AUC measure whether salient regions are stable and
+              behaviorally relevant.
             </div>
             <div class="reading-cell warning">
-              <strong>Conservative interpretation</strong>
-              The definition of importance matters: activation-based localization and path-integrated
-              pixel attribution are not measuring the same object.
+              <strong>Observed result</strong>
+              Score-CAM and Grad-CAM show stronger localization and insertion behavior than the more distributed
+              gradient-path methods on the inspected subset.
             </div>
             <div class="reading-cell followup">
-              <strong>Required follow-up</strong>
-              Inspect which method is more stable under perturbations and more faithful under
-              deletion/insertion.
+              <strong>Conclusion</strong>
+              The most useful explanation is not necessarily the sharpest heatmap. It is the explanation whose
+              highlighted evidence changes the model score in the expected direction.
             </div>
           </article>
 
           <article class="reading-card">
             <div class="reading-cell">
-              <strong>Observation</strong>
-              Saliency moves after changing the background.
+              <strong>Sanity checks</strong>
+              SmoothGrad, Occlusion and randomized controls test whether gradients, smoothing and intervention-based
+              evidence tell the same story.
             </div>
             <div class="reading-cell warning">
-              <strong>Conservative interpretation</strong>
-              The model or the attribution method is sensitive to contextual evidence.
+              <strong>Observed result</strong>
+              Vanilla gradients agree weakly with SmoothGrad and Occlusion: the reported IoUs are 0.253 and 0.201
+              respectively.
             </div>
             <div class="reading-cell followup">
-              <strong>Required follow-up</strong>
-              Quantify IoU, Spearman, background ratio and prediction transitions.
+              <strong>Conclusion</strong>
+              Gradient sensitivity alone is not enough. A reliable audit must compare saliency with perturbation-based
+              evidence and randomized references.
             </div>
           </article>
 
           <article class="reading-card">
             <div class="reading-cell">
-              <strong>Observation</strong>
-              Concept scores match animal attributes.
+              <strong>Concept-level evidence</strong>
+              TCAV and the Concept Bottleneck Model move the analysis from pixels toward human-readable animal
+              attributes.
             </div>
             <div class="reading-cell warning">
-              <strong>Conservative interpretation</strong>
-              The representation has semantic alignment at class level, but this does not prove that the
-              final decision used those concepts.
+              <strong>Observed result</strong>
+              The bottleneck classifier reaches 0.805 test class accuracy and 0.754 concept binary accuracy on the
+              evaluated subset.
             </div>
             <div class="reading-cell followup">
-              <strong>Required follow-up</strong>
-              Check whether concepts also support predictions through TCAV scores or a concept bottleneck.
+              <strong>Conclusion</strong>
+              Concepts make the explanation more inspectable, but they also expose a second source of error: the model
+              can be wrong because the class classifier is wrong or because the concept predictor is wrong.
             </div>
           </article>
         </div>
 
         <div class="final-position">
-          <h3>Final position</h3>
+          <h3>Final conclusion</h3>
           <p>
-            Grad-CAM, Score-CAM, Integrated Gradients and Expected Gradients are useful diagnostic tools,
-            but they should not be presented as standalone proof. A reliable explainability analysis
-            combines several independent signals before claiming that a heatmap reflects the evidence
-            actually used by the model.
+            The project supports a conservative interpretation of explainability in computer vision: attribution maps
+            are useful diagnostic instruments, not standalone proof of reasoning. The ResNet50 classifier can assign
+            high confidence to an animal class, and a saliency method can produce a visually convincing heatmap, but
+            this does not guarantee that the model relied on animal morphology. The audit becomes meaningful only when
+            local attribution, background perturbations, faithfulness metrics, sanity checks and concept-level
+            explanations are read together.
           </p>
-          <div class="checklist" aria-label="Required evidence for reliable explainability">
-            <span>Local attribution</span>
-            <span>Perturbation tests</span>
+          <p style="margin-top: 10px;">
+            The strongest conclusion is therefore methodological: explainability should be treated as an evidence
+            pipeline. A claim is credible when the highlighted pixels remain stable under irrelevant changes, when
+            removing those pixels changes the score, when different attribution families give compatible signals, and
+            when semantic concepts support the same interpretation.
+          </p>
+          <div class="checklist" aria-label="Evidence required for final explainability claim">
+            <span>Prediction behavior</span>
+            <span>Attribution maps</span>
+            <span>Stress tests</span>
             <span>Faithfulness metrics</span>
-            <span>Concept evidence</span>
-            <span>Sanity checks</span>
+            <span>Concept validation</span>
           </div>
         </div>
       </div>
@@ -3107,6 +3674,64 @@
     }
 
     renderMetricFlashcard();
+    const stressCards = [
+      "Perturbed inputs",
+      "Grad-CAM stress response",
+      "Score-CAM stress response",
+      "Integrated Gradients stress response",
+      "Expected Gradients stress response",
+      "Sanity audit"
+    ];
+
+    const stressTrack = document.getElementById("stress-card-track");
+    const stressHeading = document.getElementById("stress-card-heading");
+    const stressCounter = document.getElementById("stress-card-counter");
+    const stressPrev = document.getElementById("stress-prev");
+    const stressNext = document.getElementById("stress-next");
+    const stressDots = document.getElementById("stress-dots");
+    let activeStressCard = 0;
+
+    function renderStressFlashcard() {
+      if (!stressTrack || !stressHeading || !stressCounter || !stressDots) return;
+      stressTrack.style.transform = `translateX(-${activeStressCard * 100}%)`;
+      stressHeading.textContent = stressCards[activeStressCard];
+      stressCounter.textContent = `Stress image ${activeStressCard + 1} of ${stressCards.length}`;
+      stressDots.querySelectorAll("button").forEach((dot, index) => {
+        dot.classList.toggle("active", index === activeStressCard);
+        dot.setAttribute("aria-pressed", String(index === activeStressCard));
+      });
+    }
+
+    if (stressDots && stressTrack) {
+      stressCards.forEach((name, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "figure-dot";
+        dot.textContent = String(index + 1);
+        dot.setAttribute("aria-label", `Show ${name}`);
+        dot.addEventListener("click", () => {
+          activeStressCard = index;
+          renderStressFlashcard();
+        });
+        stressDots.appendChild(dot);
+      });
+    }
+
+    if (stressPrev) {
+      stressPrev.addEventListener("click", () => {
+        activeStressCard = (activeStressCard - 1 + stressCards.length) % stressCards.length;
+        renderStressFlashcard();
+      });
+    }
+
+    if (stressNext) {
+      stressNext.addEventListener("click", () => {
+        activeStressCard = (activeStressCard + 1) % stressCards.length;
+        renderStressFlashcard();
+      });
+    }
+
+    renderStressFlashcard();
 
     const figureCards = [
       "Correct predictions and first attribution maps",
@@ -3169,6 +3794,64 @@
     }
 
     renderFigureFlashcard();
+    const attributionCards = [
+      "Grad-CAM",
+      "Score-CAM",
+      "Integrated Gradients",
+      "Expected Gradients",
+      "SmoothGrad",
+      "Occlusion"
+    ];
+
+    const attributionTrack = document.getElementById("attribution-card-track");
+    const attributionHeading = document.getElementById("attribution-card-heading");
+    const attributionCounter = document.getElementById("attribution-card-counter");
+    const attributionPrev = document.getElementById("attribution-prev");
+    const attributionNext = document.getElementById("attribution-next");
+    const attributionDots = document.getElementById("attribution-dots");
+    let activeAttributionCard = 0;
+
+    function renderAttributionFlashcard() {
+      if (!attributionTrack || !attributionHeading || !attributionCounter || !attributionDots) return;
+      attributionTrack.style.transform = `translateX(-${activeAttributionCard * 100}%)`;
+      attributionHeading.textContent = attributionCards[activeAttributionCard];
+      attributionCounter.textContent = `Method ${activeAttributionCard + 1} of ${attributionCards.length}`;
+      attributionDots.querySelectorAll("button").forEach((dot, index) => {
+        dot.classList.toggle("active", index === activeAttributionCard);
+        dot.setAttribute("aria-pressed", String(index === activeAttributionCard));
+      });
+    }
+
+    if (attributionDots && attributionTrack) {
+      attributionCards.forEach((name, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "figure-dot";
+        dot.textContent = String(index + 1);
+        dot.setAttribute("aria-label", `Show ${name}`);
+        dot.addEventListener("click", () => {
+          activeAttributionCard = index;
+          renderAttributionFlashcard();
+        });
+        attributionDots.appendChild(dot);
+      });
+    }
+
+    if (attributionPrev) {
+      attributionPrev.addEventListener("click", () => {
+        activeAttributionCard = (activeAttributionCard - 1 + attributionCards.length) % attributionCards.length;
+        renderAttributionFlashcard();
+      });
+    }
+
+    if (attributionNext) {
+      attributionNext.addEventListener("click", () => {
+        activeAttributionCard = (activeAttributionCard + 1) % attributionCards.length;
+        renderAttributionFlashcard();
+      });
+    }
+
+    renderAttributionFlashcard();
 
     function initMethodFlashcard(config) {
       const track = document.getElementById(config.trackId);
