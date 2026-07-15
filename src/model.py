@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 from torch import nn
@@ -93,6 +94,17 @@ def log_trainable_modules(model: nn.Module) -> None:
             total,
             trainable > 0,
         )
+
+
+def load_checkpoint(model: nn.Module, checkpoint_path: str | Path, device: torch.device) -> None:
+    """Load a model checkpoint saved either as a raw state dict or training bundle."""
+    path = Path(checkpoint_path).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"Checkpoint not found: {path}")
+    checkpoint = torch.load(path, map_location=device)
+    state_dict = checkpoint.get("model_state_dict", checkpoint)
+    model.load_state_dict(state_dict)
+    LOGGER.info("Loaded checkpoint: %s", path)
 
 
 def get_device(requested_device: str = "auto") -> torch.device:

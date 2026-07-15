@@ -14,22 +14,25 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_stress_test import names_from_labels
-from scripts.run_xai import collect_correct_examples, load_checkpoint, load_idx_to_class
-from scripts.train_baseline import infer_num_classes
-from src.data import build_dataloaders, denormalize_batch
+from scripts.run_xai import collect_correct_examples
+from src.data import (
+    build_dataloaders,
+    denormalize_batch,
+    infer_num_classes,
+    load_idx_to_class,
+    names_from_labels,
+)
 from src.metrics import (
     saliency_iou_at_top_percent,
     spearman_rank_correlation,
-    write_metrics_csv,
 )
-from src.model import build_resnet50_classifier, get_device
+from src.model import build_resnet50_classifier, get_device, load_checkpoint
 from src.perturb import apply_perturbation_suite, predict_batch
-from src.utils import set_seed, setup_logging
+from src.utils import set_seed, setup_logging, write_csv
 from src.xai import (
-    GradCAM,
     ScoreCAM,
     expected_gradients,
+    gradcam_saliency,
     input_gradient_saliency,
     integrated_gradients,
     overlay_heatmap,
@@ -124,11 +127,7 @@ def compute_saliency_maps(
     if method == "input_gradient":
         return input_gradient_saliency(model, images, targets)
     if method == "gradcam":
-        gradcam = GradCAM(model, model.layer4[-1])
-        try:
-            return gradcam(images, targets)
-        finally:
-            gradcam.close()
+        return gradcam_saliency(model, images, targets, model.layer4[-1])
     if method == "scorecam":
         scorecam = ScoreCAM(
             model,
@@ -378,7 +377,7 @@ def main() -> None:
         top_percent=args.top_percent,
         idx_to_class=idx_to_class,
     )
-    write_metrics_csv(rows, args.csv_output)
+    write_csv(rows, args.csv_output)
 
     save_saliency_comparison_grid(
         images=images,

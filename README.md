@@ -1,22 +1,24 @@
 # The Illusion of Saliency Maps
 
-Stress testing Grad-CAM and Integrated Gradients on AwA2.
+Stress testing saliency and concept-based explanations on AwA2.
 
 ## Directory Setup
 
 ```text
 Deep_Learning_XAI/
-  configs/
   data/
     AWA2/
       JPEGImages/
+  docs/
+  notebooks/
   outputs/
     checkpoints/
     figures/
     reports/
-  notebooks/
+  sample_data/
   scripts/
   src/
+  requirements.txt
 ```
 
 AwA2 requires roughly 13 GB of storage. You can either copy `JPEGImages/`
@@ -26,25 +28,45 @@ manually into `data/AWA2/JPEGImages/`, or use the preparation script with
 Do not commit the full dataset. Keep raw images in `data/`, on an external
 drive, or on shared storage; those paths are intentionally ignored by Git.
 
+## Environment
+
+The command examples below assume that `python` points to the project
+environment. If the virtual environment is not active, use `.venv/bin/python`
+or activate it first:
+
+```bash
+source .venv/bin/activate
+```
+
+For a fresh local environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+`requirements.txt` intentionally lists only the direct, portable project
+dependencies. Do not replace it with a full `pip freeze`: CUDA/NVIDIA runtime
+packages are environment-specific and are not required for the macOS/CPU setup.
+
 ## Notebook Workflow
 
-The notebooks are consolidated into three clean entry points:
+The notebooks are consolidated into five maintained entry points:
 
 ```text
 notebooks/01_data_baseline_xai.ipynb
 notebooks/02_stress_concepts_tcav.ipynb
 notebooks/03_bottleneck_sanity_report.ipynb
+notebooks/04_real_forward_inspection.ipynb
+notebooks/05_blog_figures.ipynb
 ```
 
-The older phase-by-phase notebooks are preserved for traceability in:
-
-```text
-notebooks/archive_phase_notebooks/
-```
-
-Use the consolidated notebooks for normal analysis. Heavy execution is behind
+Use the maintained notebooks for normal analysis. Heavy execution is behind
 explicit flags, so opening a notebook does not accidentally retrain the model
-or recompute expensive XAI maps.
+or recompute expensive XAI maps. The forward-inspection notebook exports a
+compact trace for the HTML activation simulator, and the blog-figures notebook
+generates lightweight assets for the explanatory report.
 
 ## Phase 1
 
@@ -131,13 +153,6 @@ python scripts/check_dataloader.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv
 ```
 
-Notebook versions:
-
-```text
-notebooks/01_phase1_prepare_awa2.ipynb
-notebooks/02_phase1_dataloader_smoke_test.ipynb
-```
-
 Phase 1 is data-only. Gradients are intentionally not tracked here; they will
 be enabled explicitly in the later XAI phase.
 
@@ -184,7 +199,7 @@ python scripts/run_xai.py \
   --ig-steps 16
 ```
 
-For a code-only sanity run from a weak checkpoint, allow misclassified examples:
+For a quicker method-comparison run:
 
 ```bash
 python scripts/run_xai.py \
@@ -193,16 +208,26 @@ python scripts/run_xai.py \
   --output outputs/figures/xai_smoke_test.png \
   --max-images 2 \
   --ig-steps 4 \
-  --allow-incorrect
+  --expected-gradient-samples 4 \
+  --expected-gradient-baselines 4 \
+  --scorecam-max-channels 16
 ```
 
-Implemented attribution methods:
+Project attribution methods:
 
 ```text
-input gradient: explicit d(class score) / d(image)
-Grad-CAM: gradient of the class score at model.layer4[-1]
-Integrated Gradients: explicit gradient loop from a blurred baseline to the image
+Input gradients: Captum Saliency
+Grad-CAM: Captum LayerGradCam at model.layer4[-1]
+Score-CAM: local implementation kept for report parity
+Integrated Gradients: Captum IntegratedGradients from a blurred image baseline
+Expected Gradients: Captum GradientShap over a distribution of image baselines
+SmoothGrad and Occlusion: Captum NoiseTunnel and Occlusion in the sanity audit
 ```
+
+`scripts/run_xai.py` writes a visual grid for Grad-CAM, Score-CAM, Integrated
+Gradients and Expected Gradients. Most attribution methods are backed by
+Captum; Score-CAM is the exception because Captum does not provide it and the
+blog/report includes Score-CAM results that should remain reproducible.
 
 ## Phase 4 Background Stress Test
 
@@ -278,8 +303,9 @@ python scripts/run_phase5_metrics.py \
   --csv-output outputs/reports/phase5_saliency_metrics.csv \
   --figure-output outputs/figures/phase5_saliency_comparison.png \
   --max-images 4 \
-  --xai-methods gradcam integrated_gradients \
+  --xai-methods gradcam scorecam integrated_gradients expected_gradients \
   --ig-steps 16 \
+  --scorecam-max-channels 48 \
   --mask-strategy center_ellipse
 ```
 
@@ -328,8 +354,10 @@ python scripts/run_phase6_concepts.py \
   --stress-csv outputs/reports/phase5_saliency_metrics.csv \
   --class-profile-output outputs/reports/phase6_class_concepts.csv \
   --transition-output outputs/reports/phase6_concept_transitions.csv \
+  --saliency-alignment-output outputs/reports/phase6_concept_saliency_alignment.csv \
   --heatmap-output outputs/figures/phase6_class_concept_heatmap.png \
-  --transition-figure-output outputs/figures/phase6_concept_transition_examples.png
+  --transition-figure-output outputs/figures/phase6_concept_transition_examples.png \
+  --saliency-alignment-figure-output outputs/figures/phase6_concept_saliency_alignment.png
 ```
 
 Outputs:
@@ -337,15 +365,13 @@ Outputs:
 ```text
 outputs/reports/phase6_class_concepts.csv
 outputs/reports/phase6_concept_transitions.csv
+outputs/reports/phase6_concept_saliency_alignment.csv
 outputs/figures/phase6_class_concept_heatmap.png
 outputs/figures/phase6_concept_transition_examples.png
+outputs/figures/phase6_concept_saliency_alignment.png
 ```
 
-Notebook:
-
-```text
-notebooks/06_phase6_concepts.ipynb
-```
+Notebook: `notebooks/02_stress_concepts_tcav.ipynb`
 
 This phase is the bridge toward TCAV: before training Concept Activation
 Vectors, the project now has an explicit concept vocabulary and a way to inspect
@@ -383,11 +409,7 @@ outputs/figures/phase7_tcav_heatmap.png
 outputs/figures/phase7_tcav_top_scores.png
 ```
 
-Notebook:
-
-```text
-notebooks/07_phase7_tcav.ipynb
-```
+Notebook: `notebooks/02_stress_concepts_tcav.ipynb`
 
 Interpretation:
 
@@ -423,12 +445,19 @@ python scripts/run_phase8_cbm.py \
   --backbone-checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --checkpoint-output outputs/checkpoints/phase8_cbm.pt \
   --history-output outputs/reports/phase8_cbm_history.csv \
+  --summary-output outputs/reports/phase8_cbm_summary.csv \
   --concept-metrics-output outputs/reports/phase8_concept_metrics.csv \
+  --concept-confusion-output outputs/reports/phase8_concept_confusion_matrix.csv \
   --predictions-output outputs/reports/phase8_cbm_predictions.csv \
+  --error-analysis-output outputs/reports/phase8_cbm_error_analysis.csv \
+  --error-summary-output outputs/reports/phase8_cbm_error_summary.csv \
   --intervention-output outputs/reports/phase8_concept_interventions.csv \
   --training-figure-output outputs/figures/phase8_cbm_training.png \
+  --summary-figure-output outputs/figures/phase8_cbm_summary.png \
   --concept-figure-output outputs/figures/phase8_concept_prediction_metrics.png \
+  --concept-confusion-figure-output outputs/figures/phase8_concept_confusion_matrix.png \
   --intervention-figure-output outputs/figures/phase8_concept_interventions.png \
+  --error-figure-output outputs/figures/phase8_cbm_error_analysis.png \
   --top-concepts 20 \
   --epochs 5
 ```
@@ -438,19 +467,22 @@ Outputs:
 ```text
 outputs/checkpoints/phase8_cbm.pt
 outputs/reports/phase8_cbm_history.csv
+outputs/reports/phase8_cbm_summary.csv
 outputs/reports/phase8_concept_metrics.csv
+outputs/reports/phase8_concept_confusion_matrix.csv
 outputs/reports/phase8_cbm_predictions.csv
+outputs/reports/phase8_cbm_error_analysis.csv
+outputs/reports/phase8_cbm_error_summary.csv
 outputs/reports/phase8_concept_interventions.csv
 outputs/figures/phase8_cbm_training.png
+outputs/figures/phase8_cbm_summary.png
 outputs/figures/phase8_concept_prediction_metrics.png
+outputs/figures/phase8_concept_confusion_matrix.png
 outputs/figures/phase8_concept_interventions.png
+outputs/figures/phase8_cbm_error_analysis.png
 ```
 
-Notebook:
-
-```text
-notebooks/08_phase8_concept_bottleneck.ipynb
-```
+Notebook: `notebooks/03_bottleneck_sanity_report.ipynb`
 
 Interpretation:
 
@@ -458,6 +490,43 @@ Interpretation:
 high concept accuracy -> the image encoder can recover the selected semantic attributes
 high class accuracy   -> the predicted concepts are sufficient for classification
 large intervention    -> manually changing a concept strongly affects a class probability
+```
+
+## Phase 9 Saliency Sanity Audit
+
+Phase 9 compares vanilla input gradients with SmoothGrad, occlusion sensitivity
+and gradients from a randomized copy of the model. This checks whether the
+saliency maps are stable, perturbation-consistent and model-dependent.
+
+Run Phase 9:
+
+```bash
+python scripts/run_phase9_explainability_audit.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --num-examples 4 \
+  --smoothgrad-samples 12 \
+  --occlusion-patch-size 32 \
+  --occlusion-stride 16 \
+  --metrics-output outputs/reports/phase9_explainability_audit.csv \
+  --figure-output outputs/figures/phase9_explainability_audit.png
+```
+
+Outputs:
+
+```text
+outputs/reports/phase9_explainability_audit.csv
+outputs/figures/phase9_explainability_audit.png
+```
+
+Notebook: `notebooks/03_bottleneck_sanity_report.ipynb`
+
+Interpretation:
+
+```text
+vanilla vs SmoothGrad       -> local noise stability
+vanilla vs occlusion        -> agreement with perturbation-based evidence
+vanilla vs randomized model -> model-dependence sanity check
 ```
 
 ## Advanced Attribution Audit
@@ -472,9 +541,10 @@ Run the audit:
 python scripts/run_advanced_attribution_audit.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --methods gradcam integrated_gradients \
+  --methods gradcam scorecam integrated_gradients expected_gradients \
   --num-examples 4 \
   --ig-steps 12 \
+  --scorecam-max-channels 48 \
   --report-output outputs/reports/advanced_attribution_audit.csv \
   --summary-output outputs/reports/advanced_attribution_audit_summary.csv \
   --figure-dir outputs/figures/advanced_attribution_audit
@@ -508,4 +578,36 @@ high background saliency ratio        -> possible reliance on contextual shortcu
 high top-1/top-2 map similarity       -> attribution is weakly class-discriminative
 low noise-stability metrics           -> explanation is fragile even when prediction is stable
 low blurred-vs-black IG similarity    -> Integrated Gradients is strongly baseline-dependent
+```
+
+## Real Forward Inspection
+
+This utility records real intermediate tensors from a trained ResNet50 on one
+AwA2 image. It attaches hooks to the main ResNet stages, prints compact tensor
+statistics, saves a visual summary and exports a JSON trace that can be loaded
+by `docs/resnet_activation_simulator.html`.
+
+Run the inspection:
+
+```bash
+python scripts/run_forward_inspection.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --output outputs/figures/real_forward_inspection.png \
+  --trace-json outputs/reports/real_forward_trace.json \
+  --split test \
+  --sample-index 0
+```
+
+Outputs:
+
+```text
+outputs/figures/real_forward_inspection.png
+outputs/reports/real_forward_trace.json
+```
+
+Notebook:
+
+```text
+notebooks/04_real_forward_inspection.ipynb
 ```

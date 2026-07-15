@@ -41,7 +41,7 @@ from src.concepts import (
 )
 from src.data import build_dataloaders
 from src.model import build_resnet50_classifier, get_device
-from src.utils import set_seed, setup_logging
+from src.utils import set_seed, setup_logging, write_csv
 
 LOGGER = logging.getLogger("run_phase8_cbm")
 
@@ -177,18 +177,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
-
-
-def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
-    output_path = output_path.expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError(f"No rows to write for {output_path}")
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-    LOGGER.info("saved %s", output_path)
 
 
 def build_concept_dataloaders(

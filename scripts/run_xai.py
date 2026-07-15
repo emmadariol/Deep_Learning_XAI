@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import logging
 import sys
 from pathlib import Path
@@ -13,13 +12,13 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data import build_dataloaders
-from src.model import build_resnet50_classifier, get_device
+from src.data import build_dataloaders, infer_num_classes, load_class_names
+from src.model import build_resnet50_classifier, get_device, load_checkpoint
 from src.utils import set_seed, setup_logging
 from src.xai import (
-    GradCAM,
     ScoreCAM,
     expected_gradients_maps,
+    gradcam_saliency,
     integrated_gradients_maps,
     log_tensor_stats,
     save_xai_grid,
@@ -60,43 +59,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
-
-
-def infer_num_classes(manifest_path: Path) -> int:
-    labels: set[int] = set()
-    with manifest_path.open("r", newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        for row in reader:
-            labels.add(int(row["label"]))
-    if not labels:
-        raise ValueError(f"No labels found in manifest: {manifest_path}")
-    return max(labels) + 1
-
-
-def load_class_names(manifest_path: Path) -> dict[int, str]:
-    names: dict[int, str] = {}
-    with manifest_path.open("r", newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        for row in reader:
-            names[int(row["label"])] = row["class_name"]
-    return names
-
-
-def load_idx_to_class(manifest_path: Path) -> dict[int, str]:
-    """Compatibility alias used by later phases."""
-    return load_class_names(manifest_path)
-
-
-def load_checkpoint(model: torch.nn.Module, checkpoint_path: Path, device: torch.device) -> None:
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"Checkpoint not found: {checkpoint_path}. "
-            "Run scripts/train_baseline.py before Phase 3."
-        )
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    state_dict = checkpoint.get("model_state_dict", checkpoint)
-    model.load_state_dict(state_dict)
-    LOGGER.info("Loaded checkpoint: %s", checkpoint_path)
 
 
 def collect_correct_examples(
@@ -312,12 +274,7 @@ def main() -> None:
     log_tensor_stats("xai.inputs", images)
     LOGGER.info("Selected target labels: %s", [int(label.item()) for label in labels])
 
-    gradcam = GradCAM(model, model.layer4[-1])
-    try:
-        gradcam_maps = gradcam(images, labels)
-    finally:
-        gradcam.close()
-
+    gradcam_maps = gradcam_saliency(model, images, labels, model.layer4[-1])
     scorecam = ScoreCAM(
         model=model,
         target_layer=model.layer4[-1],

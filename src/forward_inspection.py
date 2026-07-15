@@ -18,7 +18,7 @@ from PIL import Image
 from torch import nn
 
 from src.data import denormalize_batch
-from src.xai import GradCAM, normalize_maps, overlay_heatmap
+from src.xai import gradcam_saliency, normalize_maps, overlay_heatmap
 
 LOGGER = logging.getLogger(__name__)
 
@@ -117,11 +117,12 @@ class ForwardActivationInspector:
         target = int(predicted.item() if target_label is None else target_label)
         gradcam_map: torch.Tensor | None = None
         if compute_gradcam:
-            gradcam = GradCAM(self.model, self.model.layer4[-1])
-            try:
-                gradcam_map = gradcam(image, torch.tensor([target], device=device)).detach().cpu()
-            finally:
-                gradcam.close()
+            gradcam_map = gradcam_saliency(
+                self.model,
+                image,
+                torch.tensor([target], device=device),
+                self.model.layer4[-1],
+            ).detach().cpu()
 
         activation_maps = {
             name: activation_to_map(tensor, image_size=image.shape[-2:])
