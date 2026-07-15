@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -36,7 +37,9 @@ def make_background_mask(
     - ``center_box`` keeps a centered rectangular region clean.
     - ``global`` treats the whole image as background, useful as a fallback.
     """
-    if not 0.0 < foreground_scale < 1.0:
+    if images.dim() != 4:
+        raise ValueError("images must have shape [B, C, H, W].")
+    if not math.isfinite(foreground_scale) or not 0.0 < foreground_scale < 1.0:
         raise ValueError("foreground_scale must be in (0, 1).")
 
     batch_size, _channels, height, width = images.shape
@@ -69,6 +72,12 @@ def perturb_background(
     generator: torch.Generator | None = None,
 ) -> torch.Tensor:
     """Apply one perturbation method to the selected background pixels."""
+    if inputs.dim() != 4:
+        raise ValueError("inputs must have shape [B, C, H, W].")
+    if not math.isfinite(noise_std) or noise_std < 0.0:
+        raise ValueError("noise_std must be a non-negative finite number.")
+    if background_mask.shape != (inputs.size(0), 1, inputs.size(2), inputs.size(3)):
+        raise ValueError("background_mask must have shape [B, 1, H, W] matching inputs.")
     images = denormalize_batch(inputs.detach()).clamp(0.0, 1.0)
     mask = background_mask.to(device=images.device, dtype=torch.bool)
     mask_rgb = mask.expand_as(images)
@@ -111,6 +120,8 @@ def apply_perturbation_suite(
     seed: int = 42,
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     """Create the background mask and all requested perturbed batches."""
+    if not methods:
+        raise ValueError("methods must contain at least one perturbation.")
     background_mask = make_background_mask(
         inputs,
         strategy=mask_strategy,
@@ -138,12 +149,43 @@ def predict_batch(
     images: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return predicted labels and confidences."""
+    predictions, confidences, _probabilities = predict_batch_probabilities(
+        model,
+        images,
+    )
+    return predictions, confidences
+
+
+def predict_batch_probabilities(
+    model: torch.nn.Module,
+    images: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return predicted labels, top-1 confidences and all class probabilities."""
     model.eval()
     with torch.no_grad():
         logits = model(images)
         probabilities = torch.softmax(logits, dim=1)
         confidences, predictions = probabilities.max(dim=1)
-    return predictions.detach(), confidences.detach()
+    return predictions.detach(), confidences.detach(), probabilities.detach()
+
+
+def probabilities_for_targets(
+    probabilities: torch.Tensor,
+    targets: torch.Tensor,
+) -> torch.Tensor:
+    """Select each sample's probability for a fixed target class."""
+    if probabilities.dim() != 2:
+        raise ValueError("probabilities must have shape [B, C].")
+    if targets.dim() != 1 or targets.size(0) != probabilities.size(0):
+        raise ValueError("targets must have shape [B] matching probabilities.")
+    if targets.dtype == torch.bool or targets.dtype.is_floating_point:
+        raise ValueError("targets must contain integer class indices.")
+    targets = targets.to(device=probabilities.device, dtype=torch.long)
+    if targets.numel() and (
+        (targets < 0).any() or (targets >= probabilities.size(1)).any()
+    ):
+        raise ValueError("targets contain a class index outside the probability matrix.")
+    return probabilities.gather(1, targets.unsqueeze(1)).squeeze(1)
 
 
 def save_perturbation_grid(

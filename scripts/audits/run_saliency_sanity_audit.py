@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import math
 import sys
 from pathlib import Path
 
@@ -12,7 +13,13 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data import build_dataloaders, infer_class_map_path, infer_num_classes
+from scripts.experiments.run_xai import collect_correct_examples
+from src.data import (
+    build_dataloaders,
+    infer_class_map_path,
+    infer_num_classes,
+    load_class_names,
+)
 from src.explainability_audit import (
     occlusion_sensitivity,
     randomized_copy,
@@ -23,7 +30,16 @@ from src.explainability_audit import (
     topk_iou,
 )
 from src.model import build_resnet50_classifier, get_device, load_checkpoint
+from src.metrics import top_fraction_label
 from src.utils import set_seed, setup_logging, write_csv
+from src.validation import (
+    device_spec,
+    log_level,
+    nonnegative_int,
+    open_unit_float,
+    positive_float,
+    positive_int,
+)
 from src.xai import input_gradient_saliency
 
 LOGGER = logging.getLogger("run_saliency_sanity_audit")
@@ -47,15 +63,15 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "outputs" / "checkpoints" / "best_resnet50_awa2.pt",
     )
-    parser.add_argument("--num-examples", type=int, default=4)
-    parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--num-workers", type=int, default=0)
-    parser.add_argument("--smoothgrad-samples", type=int, default=12)
-    parser.add_argument("--smoothgrad-noise-std", type=float, default=0.12)
-    parser.add_argument("--occlusion-patch-size", type=int, default=32)
-    parser.add_argument("--occlusion-stride", type=int, default=16)
-    parser.add_argument("--occlusion-batch-size", type=int, default=32)
-    parser.add_argument("--top-fraction", type=float, default=0.2)
+    parser.add_argument("--num-examples", type=positive_int, default=4)
+    parser.add_argument("--batch-size", type=positive_int, default=16)
+    parser.add_argument("--num-workers", type=nonnegative_int, default=0)
+    parser.add_argument("--smoothgrad-samples", type=positive_int, default=12)
+    parser.add_argument("--smoothgrad-noise-std", type=positive_float, default=0.12)
+    parser.add_argument("--occlusion-patch-size", type=positive_int, default=32)
+    parser.add_argument("--occlusion-stride", type=positive_int, default=16)
+    parser.add_argument("--occlusion-batch-size", type=positive_int, default=32)
+    parser.add_argument("--top-fraction", type=open_unit_float, default=0.2)
     parser.add_argument(
         "--metrics-output",
         type=Path,
@@ -66,65 +82,10 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase9_explainability_audit.png",
     )
-    parser.add_argument("--device", type=str, default="auto")
+    parser.add_argument("--device", type=device_spec, default="auto")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--log-level", type=str, default="INFO")
+    parser.add_argument("--log-level", type=log_level, default="INFO")
     return parser.parse_args()
-
-
-def collect_correct_examples(
-    model: torch.nn.Module,
-    dataloader,
-    device: torch.device,
-    num_examples: int,
-) -> tuple[torch.Tensor, torch.Tensor, list[str], list[str], list[float], list[str]]:
-    """Collect correctly classified test examples for explanation auditing."""
-    images_out: list[torch.Tensor] = []
-    labels_out: list[torch.Tensor] = []
-    names_out: list[str] = []
-    pred_names_out: list[str] = []
-    confidences_out: list[float] = []
-    paths_out: list[str] = []
-    model.eval()
-
-    with torch.no_grad():
-        for batch in dataloader:
-            images = batch[0].to(device, non_blocking=True)
-            labels = torch.as_tensor(batch[1], dtype=torch.long, device=device)
-            names = list(batch[2])
-            paths = list(batch[3])
-            logits = model(images)
-            probabilities = torch.softmax(logits, dim=1)
-            confidences, predictions = probabilities.max(dim=1)
-            for index in range(images.size(0)):
-                if int(predictions[index].item()) != int(labels[index].item()):
-                    continue
-                images_out.append(images[index].detach().cpu())
-                labels_out.append(labels[index].detach().cpu())
-                names_out.append(names[index])
-                pred_names_out.append(names[index])
-                confidences_out.append(float(confidences[index].item()))
-                paths_out.append(paths[index])
-                if len(images_out) >= num_examples:
-                    return (
-                        torch.stack(images_out, dim=0),
-                        torch.stack(labels_out, dim=0).long(),
-                        names_out,
-                        pred_names_out,
-                        confidences_out,
-                        paths_out,
-                    )
-
-    if not images_out:
-        raise RuntimeError("No correctly classified examples found.")
-    return (
-        torch.stack(images_out, dim=0),
-        torch.stack(labels_out, dim=0).long(),
-        names_out,
-        pred_names_out,
-        confidences_out,
-        paths_out,
-    )
 
 
 def per_example_rows(
@@ -139,6 +100,7 @@ def per_example_rows(
     top_fraction: float,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
+    top_label = top_fraction_label(top_fraction)
     for index in range(vanilla_maps.size(0)):
         rows.append(
             {
@@ -147,11 +109,11 @@ def per_example_rows(
                 "true_class": true_names[index],
                 "predicted_class": predicted_names[index],
                 "confidence": f"{confidences[index]:.6f}",
-                "vanilla_vs_smoothgrad_iou_top20": f"{topk_iou(vanilla_maps[index], smoothgrad_maps[index], top_fraction):.6f}",
+                f"vanilla_vs_smoothgrad_iou_{top_label}": f"{topk_iou(vanilla_maps[index], smoothgrad_maps[index], top_fraction):.6f}",
                 "vanilla_vs_smoothgrad_spearman": f"{rank_correlation(vanilla_maps[index], smoothgrad_maps[index]):.6f}",
-                "vanilla_vs_occlusion_iou_top20": f"{topk_iou(vanilla_maps[index], occlusion_maps[index], top_fraction):.6f}",
+                f"vanilla_vs_occlusion_iou_{top_label}": f"{topk_iou(vanilla_maps[index], occlusion_maps[index], top_fraction):.6f}",
                 "vanilla_vs_occlusion_spearman": f"{rank_correlation(vanilla_maps[index], occlusion_maps[index]):.6f}",
-                "vanilla_vs_randomized_iou_top20": f"{topk_iou(vanilla_maps[index], randomized_maps[index], top_fraction):.6f}",
+                f"vanilla_vs_randomized_iou_{top_label}": f"{topk_iou(vanilla_maps[index], randomized_maps[index], top_fraction):.6f}",
                 "vanilla_vs_randomized_spearman": f"{rank_correlation(vanilla_maps[index], randomized_maps[index]):.6f}",
             }
         )
@@ -162,7 +124,7 @@ def summary_row(rows: list[dict[str, object]]) -> dict[str, object]:
     numeric_keys = [
         key
         for key in rows[0]
-        if key.endswith("_iou_top20") or key.endswith("_spearman")
+        if "_iou_top" in key or key.endswith("_spearman")
     ]
     summary: dict[str, object] = {
         "index": "summary_mean",
@@ -172,7 +134,13 @@ def summary_row(rows: list[dict[str, object]]) -> dict[str, object]:
         "confidence": "",
     }
     for key in numeric_keys:
-        summary[key] = f"{sum(float(row[key]) for row in rows) / len(rows):.6f}"
+        values = [float(row[key]) for row in rows]
+        finite_values = [value for value in values if math.isfinite(value)]
+        summary[key] = (
+            f"{sum(finite_values) / len(finite_values):.6f}"
+            if finite_values
+            else "nan"
+        )
     return summary
 
 
@@ -186,6 +154,7 @@ def main() -> None:
     checkpoint = args.checkpoint.expanduser().resolve()
     device = get_device(args.device)
     num_classes = infer_num_classes(manifest)
+    class_names_by_label = load_class_names(manifest)
 
     loaders = build_dataloaders(
         manifest_path=manifest,
@@ -201,9 +170,11 @@ def main() -> None:
 
     images, targets, true_names, predicted_names, confidences, image_paths = collect_correct_examples(
         model=model,
-        dataloader=loaders["test"],
+        loader=loaders["test"],
         device=device,
-        num_examples=args.num_examples,
+        class_names_by_label=class_names_by_label,
+        max_images=args.num_examples,
+        seed=args.seed,
     )
     images = images.to(device)
     targets = targets.to(device)

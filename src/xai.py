@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -24,6 +25,21 @@ def normalize_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
     flat = maps.flatten(start_dim=1)
     mins = flat.min(dim=1).values.view(-1, 1, 1, 1)
     maxs = flat.max(dim=1).values.view(-1, 1, 1, 1)
+    return (maps - mins) / (maxs - mins + eps)
+
+
+def normalize_channel_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    """Min-max normalize every channel of every map independently.
+
+    Score-CAM uses each activation channel as a separate input mask. Sharing
+    one min/max range across channels would suppress low-amplitude channels
+    before their masked class scores are measured.
+    """
+    if maps.dim() != 4:
+        raise ValueError("Expected channel maps with shape [B, C, H, W].")
+    flat = maps.flatten(start_dim=2)
+    mins = flat.min(dim=2).values.unsqueeze(-1).unsqueeze(-1)
+    maxs = flat.max(dim=2).values.unsqueeze(-1).unsqueeze(-1)
     return (maps - mins) / (maxs - mins + eps)
 
 
@@ -80,6 +96,12 @@ class ScoreCAM:
         batch_size: int = 16,
         blur_radius: float = 18.0,
     ) -> None:
+        if max_channels is not None and max_channels < 1:
+            raise ValueError("max_channels must be positive or None.")
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive.")
+        if not math.isfinite(blur_radius) or blur_radius < 0.0:
+            raise ValueError("blur_radius must be a non-negative finite number.")
         self.model = model
         self.target_layer = target_layer
         self.max_channels = max_channels
@@ -128,7 +150,7 @@ class ScoreCAM:
                 mode="bilinear",
                 align_corners=False,
             )
-            masks = normalize_maps(masks)
+            masks = normalize_channel_maps(masks)
             masked_inputs = baseline[index : index + 1] + masks.transpose(0, 1) * (
                 inputs[index : index + 1] - baseline[index : index + 1]
             )
@@ -177,6 +199,10 @@ def blurred_baseline(
     The blur is applied in RGB image space, not normalized tensor space. This
     preserves average brightness and color statistics better than a black image.
     """
+    if not math.isfinite(blur_radius) or blur_radius < 0.0:
+        raise ValueError("blur_radius must be a non-negative finite number.")
+    if inputs.dim() != 4 or inputs.size(0) == 0 or inputs.size(1) != 3:
+        raise ValueError("inputs must contain at least one RGB image with shape [B, 3, H, W].")
     device = inputs.device
     denorm = denormalize_batch(inputs.detach()).clamp(0, 1).cpu()
     blurred_tensors: list[torch.Tensor] = []
@@ -203,6 +229,10 @@ def integrated_gradients_maps(
     blur_radius: float = 18.0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Compute IG attribution maps using the blurred-image baseline."""
+    if steps < 1:
+        raise ValueError("steps must be positive.")
+    if internal_batch_size is not None and internal_batch_size < 1:
+        raise ValueError("internal_batch_size must be positive or None.")
     baseline = blurred_baseline(inputs, blur_radius=blur_radius)
     ig = IntegratedGradients(model)
     attributions = ig.attribute(
@@ -242,21 +272,74 @@ def integrated_gradients(
 def _prepare_expected_gradient_baselines(
     inputs: torch.Tensor,
     baselines: torch.Tensor | None,
-    blur_radius: float,
 ) -> torch.Tensor:
     if baselines is None:
-        if inputs.size(0) > 1:
-            rolled = torch.roll(inputs.detach(), shifts=1, dims=0)
-            blurred = blurred_baseline(inputs, blur_radius=blur_radius)
-            baselines = torch.cat([rolled, blurred], dim=0)
-        else:
-            baselines = blurred_baseline(inputs, blur_radius=blur_radius)
+        raise ValueError(
+            "Expected Gradients requires an explicit reference pool, such as "
+            "normalized images collected from the training split."
+        )
     baselines = baselines.detach().to(device=inputs.device, dtype=inputs.dtype)
     if baselines.dim() != 4 or baselines.size(1) != inputs.size(1):
         raise ValueError("Expected baselines with shape [N, C, H, W].")
+    if baselines.size(0) < 2:
+        raise ValueError("Expected Gradients requires at least two reference baselines.")
+    if not torch.isfinite(baselines).all():
+        raise ValueError("Expected Gradients baselines must contain only finite values.")
     if baselines.shape[-2:] != inputs.shape[-2:]:
         baselines = F.interpolate(baselines, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
     return baselines
+
+
+def _batched_gradient_shap_attribute(
+    model: nn.Module,
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    baseline_pool: torch.Tensor,
+    n_samples: int,
+    internal_batch_size: int | None,
+) -> torch.Tensor:
+    """Run GradientShap while bounding expanded samples per forward pass."""
+    if inputs.size(0) == 0:
+        raise ValueError("Expected Gradients inputs must not be empty.")
+    if targets.dim() != 1 or targets.size(0) != inputs.size(0):
+        raise ValueError("targets must have shape [B] matching the inputs batch.")
+
+    gradient_shap = GradientShap(model)
+    if internal_batch_size is None:
+        return gradient_shap.attribute(
+            inputs,
+            baselines=baseline_pool,
+            target=targets,
+            n_samples=n_samples,
+            stdevs=0.0,
+        )
+    if internal_batch_size < 1:
+        raise ValueError("internal_batch_size must be positive or None.")
+
+    attribution_chunks: list[torch.Tensor] = []
+    input_chunk_size = min(inputs.size(0), internal_batch_size)
+    for start in range(0, inputs.size(0), input_chunk_size):
+        input_chunk = inputs[start : start + input_chunk_size]
+        target_chunk = targets[start : start + input_chunk_size]
+        samples_per_call = max(1, internal_batch_size // input_chunk.size(0))
+        weighted_attributions = torch.zeros_like(input_chunk)
+        completed_samples = 0
+
+        while completed_samples < n_samples:
+            call_samples = min(samples_per_call, n_samples - completed_samples)
+            call_attributions = gradient_shap.attribute(
+                input_chunk,
+                baselines=baseline_pool,
+                target=target_chunk,
+                n_samples=call_samples,
+                stdevs=0.0,
+            )
+            weighted_attributions += call_attributions * call_samples
+            completed_samples += call_samples
+
+        attribution_chunks.append(weighted_attributions / n_samples)
+
+    return torch.cat(attribution_chunks, dim=0)
 
 
 def expected_gradients_maps(
@@ -266,21 +349,36 @@ def expected_gradients_maps(
     baselines: torch.Tensor | None = None,
     n_samples: int = 24,
     internal_batch_size: int | None = 8,
-    blur_radius: float = 18.0,
+    seed: int | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Compute Expected Gradients with Captum GradientShap."""
+    """Compute Expected Gradients from an explicit reference distribution."""
     if n_samples < 1:
         raise ValueError("n_samples must be at least 1.")
 
     model.eval()
-    baseline_pool = _prepare_expected_gradient_baselines(inputs, baselines, blur_radius)
-    attributions = GradientShap(model).attribute(
-        inputs,
-        baselines=baseline_pool,
-        target=targets,
-        n_samples=n_samples,
-        stdevs=0.0,
-    )
+    baseline_pool = _prepare_expected_gradient_baselines(inputs, baselines)
+    rng_devices = [inputs.device.index or 0] if inputs.device.type == "cuda" else []
+    numpy_rng_state = np.random.get_state() if seed is not None else None
+    try:
+        with torch.random.fork_rng(devices=rng_devices, enabled=seed is not None):
+            if seed is not None:
+                # Captum draws both reference indices and interpolation factors
+                # through NumPy, while NoiseTunnel samples through PyTorch.
+                np.random.seed(seed)
+                torch.manual_seed(seed)
+                if inputs.device.type == "cuda":
+                    torch.cuda.manual_seed_all(seed)
+            attributions = _batched_gradient_shap_attribute(
+                model=model,
+                inputs=inputs,
+                targets=targets,
+                baseline_pool=baseline_pool,
+                n_samples=n_samples,
+                internal_batch_size=internal_batch_size,
+            )
+    finally:
+        if numpy_rng_state is not None:
+            np.random.set_state(numpy_rng_state)
     maps = attributions_to_saliency_map(attributions)
 
     log_tensor_stats("expected_gradients.baseline_pool", baseline_pool)
@@ -296,7 +394,7 @@ def expected_gradients(
     baselines: torch.Tensor | None = None,
     n_samples: int = 24,
     internal_batch_size: int | None = 8,
-    blur_radius: float = 18.0,
+    seed: int | None = None,
 ) -> torch.Tensor:
     """Return only normalized Expected Gradients maps for metric pipelines."""
     maps, _attributions, _baseline_pool = expected_gradients_maps(
@@ -306,7 +404,7 @@ def expected_gradients(
         baselines=baselines,
         n_samples=n_samples,
         internal_batch_size=internal_batch_size,
-        blur_radius=blur_radius,
+        seed=seed,
     )
     return maps
 

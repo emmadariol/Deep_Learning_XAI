@@ -194,6 +194,9 @@ python scripts/experiments/run_xai.py \
   --ig-steps 16
 ```
 
+Audit examples are selected reproducibly with class-balanced reservoir sampling,
+so ordered manifests do not concentrate the analysis on the first class.
+
 For a quicker method-comparison run:
 
 ```bash
@@ -254,7 +257,9 @@ Implemented metrics:
 ```text
 IoU top 20%: overlap between the most salient pixels before/after perturbation
 Spearman: rank correlation between flattened saliency maps
-confidence_delta: prediction confidence change after perturbation
+confidence_delta: change in the fixed saliency-target probability (perturbed - original)
+confidence_drop: decrease in the fixed saliency-target probability (original - perturbed)
+original/perturbed_confidence: top-1 confidence before/after perturbation
 prediction_changed: whether the predicted class changed
 ```
 

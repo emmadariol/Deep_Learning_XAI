@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ from captum.attr import NoiseTunnel, Occlusion, Saliency
 from torch import nn
 
 from src.data import denormalize_batch
+from src.metrics import spearman_rank_correlation, top_fraction_label, top_fraction_mask
 from src.xai import attributions_to_saliency_map, blurred_baseline, overlay_heatmap
 
 
@@ -25,6 +27,8 @@ def smoothgrad_saliency(
     """Compute SmoothGrad through Captum NoiseTunnel."""
     if n_samples <= 0:
         raise ValueError("n_samples must be positive.")
+    if not math.isfinite(noise_std) or noise_std < 0.0:
+        raise ValueError("noise_std must be a non-negative finite number.")
 
     gradient_inputs = inputs.detach().clone().requires_grad_(True)
     attributions = NoiseTunnel(Saliency(model)).attribute(
@@ -47,8 +51,8 @@ def occlusion_sensitivity(
     batch_size: int = 32,
 ) -> torch.Tensor:
     """Compute occlusion sensitivity through Captum Occlusion."""
-    if patch_size <= 0 or stride <= 0:
-        raise ValueError("patch_size and stride must be positive.")
+    if patch_size <= 0 or stride <= 0 or batch_size <= 0:
+        raise ValueError("patch_size, stride and batch_size must be positive.")
 
     model.eval()
     baselines = blurred_baseline(inputs)
@@ -80,30 +84,22 @@ def topk_iou(first: torch.Tensor, second: torch.Tensor, fraction: float = 0.2) -
         raise ValueError("fraction must be between 0 and 1.")
     first_flat = first.detach().flatten()
     second_flat = second.detach().flatten()
-    k = max(1, int(first_flat.numel() * fraction))
-    first_indices = torch.topk(first_flat, k=k).indices
-    second_indices = torch.topk(second_flat, k=k).indices
-    first_mask = torch.zeros_like(first_flat, dtype=torch.bool)
-    second_mask = torch.zeros_like(second_flat, dtype=torch.bool)
-    first_mask[first_indices] = True
-    second_mask[second_indices] = True
+    if first_flat.numel() != second_flat.numel():
+        raise ValueError("saliency maps must contain the same number of values.")
+    first_mask = top_fraction_mask(first_flat.reshape(1, -1), fraction).flatten()
+    second_mask = top_fraction_mask(second_flat.reshape(1, -1), fraction).flatten()
     intersection = torch.logical_and(first_mask, second_mask).sum().item()
     union = torch.logical_or(first_mask, second_mask).sum().item()
     return float(intersection / max(union, 1))
 
 
 def rank_correlation(first: torch.Tensor, second: torch.Tensor) -> float:
-    """Spearman-like rank correlation for flattened saliency tensors."""
-    x = first.detach().flatten().float()
-    y = second.detach().flatten().float()
-    x_rank = torch.argsort(torch.argsort(x)).float()
-    y_rank = torch.argsort(torch.argsort(y)).float()
-    x_rank = x_rank - x_rank.mean()
-    y_rank = y_rank - y_rank.mean()
-    denominator = x_rank.norm() * y_rank.norm()
-    if denominator <= 1e-12:
-        return 0.0
-    return float(torch.dot(x_rank, y_rank).item() / denominator.item())
+    """Tie-aware Spearman correlation for two saliency tensors."""
+    correlation = spearman_rank_correlation(
+        first.detach().reshape(1, -1),
+        second.detach().reshape(1, -1),
+    )
+    return float(correlation[0].item())
 
 
 def saliency_pair_metrics(
@@ -119,8 +115,16 @@ def saliency_pair_metrics(
     for index in range(reference.size(0)):
         ious.append(topk_iou(reference[index], candidate[index], fraction=top_fraction))
         correlations.append(rank_correlation(reference[index], candidate[index]))
-    rows[f"{prefix}_iou_top20_mean"] = float(np.mean(ious))
-    rows[f"{prefix}_spearman_mean"] = float(np.mean(correlations))
+    finite_correlations = [value for value in correlations if np.isfinite(value)]
+    top_label = top_fraction_label(top_fraction)
+    rows[f"{prefix}_iou_{top_label}_mean"] = float(np.mean(ious))
+    rows[f"{prefix}_spearman_mean"] = (
+        float(np.mean(finite_correlations)) if finite_correlations else float("nan")
+    )
+    rows[f"{prefix}_spearman_valid_count"] = len(finite_correlations)
+    rows[f"{prefix}_spearman_undefined_count"] = len(correlations) - len(
+        finite_correlations
+    )
     return rows
 
 

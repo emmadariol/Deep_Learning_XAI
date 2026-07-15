@@ -110,7 +110,14 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str | Path, device: torch
 def get_device(requested_device: str = "auto") -> torch.device:
     if requested_device == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device(requested_device)
+    try:
+        device = torch.device(requested_device)
+    except (RuntimeError, ValueError) as error:
+        raise ValueError(f"Invalid PyTorch device: {requested_device!r}") from error
+    if device.type not in {"cpu", "cuda", "mps"}:
+        raise ValueError(f"Unsupported device type: {device.type!r}")
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested but is not available.")
+    if device.type == "mps" and not torch.backends.mps.is_available():
+        raise RuntimeError("MPS was requested but is not available.")
     return device
