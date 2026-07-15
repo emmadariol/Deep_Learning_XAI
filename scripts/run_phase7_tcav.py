@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import logging
 import sys
 from pathlib import Path
@@ -22,8 +21,8 @@ from src.concepts import (
     normalize_class_name,
     read_manifest_classes,
 )
-from src.data import build_dataloaders
-from src.model import build_resnet50_classifier, get_device
+from src.data import build_dataloaders, infer_num_classes
+from src.model import build_resnet50_classifier, get_device, load_checkpoint
 from src.tcav import (
     build_subset_loader,
     compute_tcav_score,
@@ -33,7 +32,7 @@ from src.tcav import (
     select_concept_sample_indices,
     train_cav,
 )
-from src.utils import set_seed, setup_logging
+from src.utils import set_seed, setup_logging, write_csv
 
 LOGGER = logging.getLogger("run_phase7_tcav")
 
@@ -122,44 +121,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
-
-
-def infer_num_classes(manifest_path: Path) -> int:
-    labels: set[int] = set()
-    with manifest_path.open("r", newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        for row in reader:
-            labels.add(int(row["label"]))
-    if not labels:
-        raise ValueError(f"No labels found in manifest: {manifest_path}")
-    expected = set(range(max(labels) + 1))
-    if labels != expected:
-        raise ValueError(f"Labels are not contiguous from 0 to {max(labels)}.")
-    return len(labels)
-
-
-def load_checkpoint(model: torch.nn.Module, checkpoint_path: Path, device: torch.device) -> None:
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"Checkpoint not found: {checkpoint_path}. "
-            "Run scripts/train_baseline.py before Phase 7."
-        )
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    state_dict = checkpoint.get("model_state_dict", checkpoint)
-    model.load_state_dict(state_dict)
-    LOGGER.info("loaded checkpoint: %s", checkpoint_path)
-
-
-def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
-    output_path = output_path.expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError(f"No rows to write for {output_path}")
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-    LOGGER.info("saved %s", output_path)
 
 
 def class_name_to_label(manifest_classes: list[str]) -> dict[str, int]:

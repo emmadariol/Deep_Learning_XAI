@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import logging
 import sys
 from collections import Counter
@@ -23,7 +22,7 @@ from src.concepts import (
     read_manifest_classes,
     top_concepts_for_class,
 )
-from src.utils import setup_logging
+from src.utils import setup_logging, write_csv
 
 LOGGER = logging.getLogger("run_phase6_concepts")
 
@@ -92,18 +91,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-transitions-plot", type=int, default=8)
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
-
-
-def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
-    output_path = output_path.expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError(f"No rows to write for {output_path}")
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-    LOGGER.info("saved %s", output_path)
 
 
 def build_class_profile_rows(concept_bank, top_k: int) -> list[dict[str, object]]:

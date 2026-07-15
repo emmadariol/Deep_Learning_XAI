@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import copy
-import csv
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from captum.attr import NoiseTunnel, Occlusion, Saliency
 from torch import nn
 
 from src.data import denormalize_batch
-from src.xai import blurred_baseline, input_gradient_saliency, normalize_maps, overlay_heatmap
+from src.xai import attributions_to_saliency_map, blurred_baseline, overlay_heatmap
 
 
 def smoothgrad_saliency(
@@ -22,16 +22,20 @@ def smoothgrad_saliency(
     n_samples: int = 12,
     noise_std: float = 0.12,
 ) -> torch.Tensor:
-    """Average input-gradient saliency over noisy copies of the same image."""
+    """Compute SmoothGrad through Captum NoiseTunnel."""
     if n_samples <= 0:
         raise ValueError("n_samples must be positive.")
 
-    maps: list[torch.Tensor] = []
-    for _index in range(n_samples):
-        noise = torch.randn_like(inputs) * noise_std
-        noisy_inputs = (inputs + noise).detach()
-        maps.append(input_gradient_saliency(model, noisy_inputs, targets))
-    return normalize_maps(torch.stack(maps, dim=0).mean(dim=0))
+    gradient_inputs = inputs.detach().clone().requires_grad_(True)
+    attributions = NoiseTunnel(Saliency(model)).attribute(
+        gradient_inputs,
+        nt_type="smoothgrad",
+        nt_samples=n_samples,
+        stdevs=noise_std,
+        target=targets,
+        abs=True,
+    )
+    return attributions_to_saliency_map(attributions).detach()
 
 
 def occlusion_sensitivity(
@@ -42,47 +46,21 @@ def occlusion_sensitivity(
     stride: int = 16,
     batch_size: int = 32,
 ) -> torch.Tensor:
-    """Measure target-probability drop after replacing local patches with blur."""
+    """Compute occlusion sensitivity through Captum Occlusion."""
     if patch_size <= 0 or stride <= 0:
         raise ValueError("patch_size and stride must be positive.")
 
     model.eval()
-    device = inputs.device
     baselines = blurred_baseline(inputs)
-    maps = torch.zeros((inputs.size(0), 1, inputs.size(2), inputs.size(3)), device=device)
-    counts = torch.zeros_like(maps)
-
-    with torch.no_grad():
-        original_probs = torch.softmax(model(inputs), dim=1).gather(1, targets.view(-1, 1))
-
-    for sample_index in range(inputs.size(0)):
-        occluded_images: list[torch.Tensor] = []
-        windows: list[tuple[int, int, int, int]] = []
-        for top in range(0, inputs.size(2), stride):
-            bottom = min(top + patch_size, inputs.size(2))
-            top = max(0, bottom - patch_size)
-            for left in range(0, inputs.size(3), stride):
-                right = min(left + patch_size, inputs.size(3))
-                left = max(0, right - patch_size)
-                occluded = inputs[sample_index].clone()
-                occluded[:, top:bottom, left:right] = baselines[sample_index, :, top:bottom, left:right]
-                occluded_images.append(occluded)
-                windows.append((top, bottom, left, right))
-
-        drops: list[torch.Tensor] = []
-        for start in range(0, len(occluded_images), batch_size):
-            batch = torch.stack(occluded_images[start : start + batch_size], dim=0)
-            with torch.no_grad():
-                probs = torch.softmax(model(batch), dim=1)[:, targets[sample_index]]
-            drops.append(original_probs[sample_index, 0] - probs)
-        all_drops = torch.cat(drops, dim=0)
-
-        for drop, (top, bottom, left, right) in zip(all_drops, windows):
-            maps[sample_index, 0, top:bottom, left:right] += torch.clamp(drop, min=0.0)
-            counts[sample_index, 0, top:bottom, left:right] += 1.0
-
-    maps = maps / counts.clamp_min(1.0)
-    return normalize_maps(maps)
+    attributions = Occlusion(model).attribute(
+        inputs,
+        sliding_window_shapes=(inputs.size(1), patch_size, patch_size),
+        strides=(inputs.size(1), stride, stride),
+        baselines=baselines,
+        target=targets,
+        perturbations_per_eval=batch_size,
+    )
+    return attributions_to_saliency_map(attributions, positive_only=True).detach()
 
 
 def randomized_copy(model: nn.Module, seed: int = 42) -> nn.Module:
@@ -197,15 +175,3 @@ def save_audit_grid(
     plt.tight_layout()
     fig.savefig(output_path, dpi=160, bbox_inches="tight")
     plt.close(fig)
-
-
-def write_csv(rows: list[dict[str, object]], output_path: str | Path) -> None:
-    """Write rows to CSV using the keys of the first row as fieldnames."""
-    output_path = Path(output_path).expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError(f"No rows to write for {output_path}")
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)

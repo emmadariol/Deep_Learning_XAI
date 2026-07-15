@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import logging
 import sys
 from pathlib import Path
@@ -13,7 +12,7 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_xai import collect_correct_examples, infer_num_classes, load_checkpoint, load_class_names
+from scripts.run_xai import collect_correct_examples
 from src.attribution_audit import (
     class_discriminativeness,
     compute_attribution,
@@ -26,12 +25,11 @@ from src.attribution_audit import (
     save_deletion_insertion_plot,
     sensitivity_to_noise,
     trapezoid_auc,
-    write_csv,
 )
-from src.data import build_dataloaders, infer_class_map_path
+from src.data import build_dataloaders, infer_class_map_path, infer_num_classes, load_class_names
 from src.explainability_audit import rank_correlation, topk_iou
-from src.model import build_resnet50_classifier, get_device
-from src.utils import set_seed, setup_logging
+from src.model import build_resnet50_classifier, get_device, load_checkpoint
+from src.utils import set_seed, setup_logging, write_csv
 
 LOGGER = logging.getLogger("run_advanced_attribution_audit")
 

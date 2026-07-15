@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 import logging
 from pathlib import Path
 
@@ -199,20 +198,6 @@ def save_perturbation_grid(
     fig.savefig(output_path, dpi=160, bbox_inches="tight")
     plt.close(fig)
     LOGGER.info("saved perturbation grid: %s", output_path)
-
-
-def write_stress_report(rows: list[dict[str, object]], output_path: str | Path) -> None:
-    """Write Phase 4 prediction-level stress-test rows to CSV."""
-    output_path = Path(output_path).expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError("No stress-test rows to write.")
-
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-    LOGGER.info("saved stress report: %s", output_path)
 
 
 def log_tensor_stats(name: str, tensor: torch.Tensor) -> None:

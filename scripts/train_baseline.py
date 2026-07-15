@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import logging
 import sys
 from pathlib import Path
@@ -14,7 +13,7 @@ from torch import nn
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data import build_dataloaders
+from src.data import build_dataloaders, infer_num_classes
 from src.model import build_resnet50_classifier, get_device
 from src.train import train_model
 from src.utils import set_seed, setup_logging
@@ -65,20 +64,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
-
-
-def infer_num_classes(manifest_path: Path) -> int:
-    labels: set[int] = set()
-    with manifest_path.open("r", newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        for row in reader:
-            labels.add(int(row["label"]))
-    if not labels:
-        raise ValueError(f"No labels found in manifest: {manifest_path}")
-    expected = set(range(max(labels) + 1))
-    if labels != expected:
-        raise ValueError(f"Labels are not contiguous from 0 to {max(labels)}.")
-    return len(labels)
 
 
 def main() -> None:

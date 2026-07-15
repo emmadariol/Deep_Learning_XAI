@@ -184,6 +184,53 @@ def load_class_mapping(class_map_path: str | Path) -> dict[int, str]:
     return dict(sorted(mapping.items()))
 
 
+def infer_num_classes(manifest_path: str | Path, require_contiguous: bool = True) -> int:
+    """Infer the number of classes from manifest labels."""
+    labels: set[int] = set()
+    path = Path(manifest_path).expanduser().resolve()
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        if "label" not in (reader.fieldnames or []):
+            raise ValueError(f"Manifest is missing column: label")
+        for row in reader:
+            labels.add(int(row["label"]))
+
+    if not labels:
+        raise ValueError(f"No labels found in manifest: {path}")
+    expected = set(range(max(labels) + 1))
+    if require_contiguous and labels != expected:
+        raise ValueError(f"Labels are not contiguous from 0 to {max(labels)}.")
+    return max(labels) + 1
+
+
+def load_class_names(manifest_path: str | Path) -> dict[int, str]:
+    """Load label -> class_name from an image manifest."""
+    names: dict[int, str] = {}
+    path = Path(manifest_path).expanduser().resolve()
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        required = {"label", "class_name"}
+        missing = required.difference(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"Manifest is missing columns: {sorted(missing)}")
+        for row in reader:
+            names[int(row["label"])] = row["class_name"]
+
+    if not names:
+        raise ValueError(f"No class names found in manifest: {path}")
+    return dict(sorted(names.items()))
+
+
+def load_idx_to_class(manifest_path: str | Path) -> dict[int, str]:
+    """Compatibility alias for label -> class_name manifest loading."""
+    return load_class_names(manifest_path)
+
+
+def names_from_labels(labels: torch.Tensor, idx_to_class: dict[int, str]) -> list[str]:
+    """Convert a tensor of integer labels to class names."""
+    return [idx_to_class[int(label.item())] for label in labels.detach().cpu()]
+
+
 def build_resnet_transforms(train: bool = False) -> transforms.Compose:
     """Return standard ImageNet preprocessing for ResNet fine-tuning."""
     _ = train

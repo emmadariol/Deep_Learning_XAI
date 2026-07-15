@@ -8,7 +8,6 @@ class-discriminativeness diagnostics.
 
 from __future__ import annotations
 
-import csv
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,13 +21,13 @@ from src.data import IMAGENET_MEAN, IMAGENET_STD, denormalize_batch
 from src.explainability_audit import rank_correlation, topk_iou
 from src.perturb import make_background_mask
 from src.xai import (
-    GradCAM,
     ScoreCAM,
+    attributions_to_saliency_map,
     blurred_baseline,
     expected_gradients_maps,
+    gradcam_saliency,
     input_gradient_saliency,
     integrated_gradients_maps,
-    normalize_maps,
     overlay_heatmap,
 )
 
@@ -80,11 +79,7 @@ def compute_attribution(
     with shape ``[B, 1, H, W]``.
     """
     if method == "gradcam":
-        gradcam = GradCAM(model, model.layer4[-1])
-        try:
-            return AttributionBundle(maps=gradcam(inputs, targets))
-        finally:
-            gradcam.close()
+        return AttributionBundle(maps=gradcam_saliency(model, inputs, targets, model.layer4[-1]))
     if method == "scorecam":
         scorecam = ScoreCAM(
             model,
@@ -370,7 +365,7 @@ def integrated_gradients_baseline_comparison(
         n_steps=steps,
         internal_batch_size=internal_batch_size,
     )
-    black_maps = normalize_maps(attributions.abs().sum(dim=1, keepdim=True))
+    black_maps = attributions_to_saliency_map(attributions)
     metrics = torch.tensor(
         [
             [topk_iou(blurred_maps[index], black_maps[index], top_fraction), rank_correlation(blurred_maps[index], black_maps[index])]
@@ -438,15 +433,3 @@ def save_class_discriminativeness_grid(
     fig.tight_layout()
     fig.savefig(output_path, dpi=160, bbox_inches="tight")
     plt.close(fig)
-
-
-def write_csv(rows: list[dict[str, object]], output_path: str | Path) -> None:
-    """Write rows to CSV."""
-    output_path = Path(output_path).expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError(f"No rows to write for {output_path}")
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)

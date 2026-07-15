@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
-from captum.attr import IntegratedGradients
+from captum.attr import GradientShap, IntegratedGradients, LayerAttribution, LayerGradCam, Saliency
 from PIL import ImageFilter
 from torch import nn
 from torchvision.transforms import functional as TF
@@ -19,66 +19,57 @@ from src.data import IMAGENET_MEAN, IMAGENET_STD, denormalize_batch
 LOGGER = logging.getLogger(__name__)
 
 
-class GradCAM:
-    """Small explicit Grad-CAM implementation for one convolutional layer."""
+def normalize_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    """Min-max normalize each saliency map independently to [0, 1]."""
+    flat = maps.flatten(start_dim=1)
+    mins = flat.min(dim=1).values.view(-1, 1, 1, 1)
+    maxs = flat.max(dim=1).values.view(-1, 1, 1, 1)
+    return (maps - mins) / (maxs - mins + eps)
 
-    def __init__(self, model: nn.Module, target_layer: nn.Module) -> None:
-        self.model = model
-        self.target_layer = target_layer
-        self.activations: torch.Tensor | None = None
-        self.gradients: torch.Tensor | None = None
-        self._forward_handle = target_layer.register_forward_hook(self._save_activations)
-        self._backward_handle = target_layer.register_full_backward_hook(self._save_gradients)
 
-    def close(self) -> None:
-        self._forward_handle.remove()
-        self._backward_handle.remove()
+def attributions_to_saliency_map(
+    attributions: torch.Tensor,
+    positive_only: bool = False,
+) -> torch.Tensor:
+    """Collapse Captum attributions to normalized single-channel saliency maps."""
+    if attributions.dim() != 4:
+        raise ValueError("Expected attributions with shape [B, C, H, W].")
+    maps = torch.clamp(attributions, min=0.0) if positive_only else attributions.abs()
+    if maps.size(1) != 1:
+        maps = maps.sum(dim=1, keepdim=True)
+    return normalize_maps(maps)
 
-    def _save_activations(
-        self,
-        _module: nn.Module,
-        _inputs: tuple[torch.Tensor, ...],
-        output: torch.Tensor,
-    ) -> None:
-        self.activations = output.detach()
 
-    def _save_gradients(
-        self,
-        _module: nn.Module,
-        _grad_input: tuple[torch.Tensor, ...],
-        grad_output: tuple[torch.Tensor, ...],
-    ) -> None:
-        self.gradients = grad_output[0].detach()
-
-    def __call__(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        """Return normalized Grad-CAM maps with shape [B, 1, H, W]."""
-        self.model.zero_grad(set_to_none=True)
-        logits = self.model(inputs)
-        selected_scores = logits.gather(1, targets.view(-1, 1)).sum()
-        selected_scores.backward()
-
-        if self.activations is None or self.gradients is None:
-            raise RuntimeError("Grad-CAM hooks did not capture activations/gradients.")
-
-        weights = self.gradients.mean(dim=(2, 3), keepdim=True)
-        cam = (weights * self.activations).sum(dim=1, keepdim=True)
-        cam = F.relu(cam)
-        cam = F.interpolate(cam, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
-        cam = normalize_maps(cam)
-
-        log_tensor_stats("gradcam.activations", self.activations)
-        log_tensor_stats("gradcam.gradients", self.gradients)
-        log_tensor_stats("gradcam.weights", weights)
-        log_tensor_stats("gradcam.map", cam)
-        return cam.detach()
+def gradcam_saliency(
+    model: nn.Module,
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    target_layer: nn.Module | None = None,
+) -> torch.Tensor:
+    """Compute Grad-CAM maps through Captum LayerGradCam."""
+    layer = target_layer if target_layer is not None else model.layer4[-1]
+    model.zero_grad(set_to_none=True)
+    gradient_inputs = inputs.detach().clone().requires_grad_(True)
+    attributions = LayerGradCam(model, layer).attribute(
+        gradient_inputs,
+        target=targets,
+        relu_attributions=True,
+    )
+    upsampled = LayerAttribution.interpolate(
+        attributions,
+        inputs.shape[-2:],
+        interpolate_mode="bilinear",
+    )
+    maps = attributions_to_saliency_map(upsampled, positive_only=True)
+    log_tensor_stats("gradcam.map", maps)
+    return maps.detach()
 
 
 class ScoreCAM:
     """Score-CAM implementation for one convolutional layer.
 
-    Score-CAM is gradient-free. It turns each selected activation channel into
-    an input mask, runs the masked image through the model, and uses the target
-    class probability as the channel weight.
+    Captum does not provide Score-CAM, so this remains the one local attribution
+    method kept for parity with the report artifacts.
     """
 
     def __init__(
@@ -177,14 +168,6 @@ class ScoreCAM:
         return scorecam_maps.detach()
 
 
-def normalize_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
-    """Min-max normalize each saliency map independently to [0, 1]."""
-    flat = maps.flatten(start_dim=1)
-    mins = flat.min(dim=1).values.view(-1, 1, 1, 1)
-    maxs = flat.max(dim=1).values.view(-1, 1, 1, 1)
-    return (maps - mins) / (maxs - mins + eps)
-
-
 def blurred_baseline(
     inputs: torch.Tensor,
     blur_radius: float = 18.0,
@@ -229,7 +212,7 @@ def integrated_gradients_maps(
         n_steps=steps,
         internal_batch_size=internal_batch_size,
     )
-    maps = normalize_maps(attributions.abs().sum(dim=1, keepdim=True))
+    maps = attributions_to_saliency_map(attributions)
 
     log_tensor_stats("ig.attributions", attributions)
     log_tensor_stats("ig.map", maps)
@@ -285,58 +268,22 @@ def expected_gradients_maps(
     internal_batch_size: int | None = 8,
     blur_radius: float = 18.0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Compute Expected Gradients with a distributed baseline.
-
-    Expected Gradients estimates an expectation over baseline images and random
-    interpolation coefficients:
-
-        E_{x', alpha} [(x - x') * dS_c(x' + alpha(x - x')) / dx]
-
-    ``baselines`` should contain normalized images from a reference distribution,
-    usually training images. If omitted, the current batch plus blurred baselines
-    is used as a small fallback distribution.
-    """
+    """Compute Expected Gradients with Captum GradientShap."""
     if n_samples < 1:
         raise ValueError("n_samples must be at least 1.")
 
     model.eval()
     baseline_pool = _prepare_expected_gradient_baselines(inputs, baselines, blur_radius)
-    batch_size = inputs.size(0)
-    total = batch_size * n_samples
-    internal_batch_size = internal_batch_size or total
-
-    generator = torch.Generator(device=inputs.device)
-    generator.manual_seed(1729)
-    baseline_indices = torch.randint(
-        low=0,
-        high=baseline_pool.size(0),
-        size=(batch_size, n_samples),
-        device=inputs.device,
-        generator=generator,
+    attributions = GradientShap(model).attribute(
+        inputs,
+        baselines=baseline_pool,
+        target=targets,
+        n_samples=n_samples,
+        stdevs=0.0,
     )
-    alphas = torch.rand(batch_size, n_samples, 1, 1, 1, device=inputs.device, generator=generator)
-
-    sampled_baselines = baseline_pool[baseline_indices].reshape(total, *inputs.shape[1:])
-    expanded_inputs = inputs.unsqueeze(1).expand(-1, n_samples, -1, -1, -1).reshape(total, *inputs.shape[1:])
-    expanded_targets = targets.unsqueeze(1).expand(-1, n_samples).reshape(total)
-    flat_alphas = alphas.reshape(total, 1, 1, 1)
-    path_inputs = sampled_baselines + flat_alphas * (expanded_inputs - sampled_baselines)
-
-    attribution_chunks: list[torch.Tensor] = []
-    for start in range(0, total, internal_batch_size):
-        end = min(start + internal_batch_size, total)
-        chunk = path_inputs[start:end].detach().clone().requires_grad_(True)
-        logits = model(chunk)
-        selected_scores = logits.gather(1, expanded_targets[start:end].view(-1, 1)).sum()
-        gradients = torch.autograd.grad(selected_scores, chunk)[0]
-        attribution_chunks.append((expanded_inputs[start:end] - sampled_baselines[start:end]) * gradients)
-
-    attributions = torch.cat(attribution_chunks, dim=0).view(batch_size, n_samples, *inputs.shape[1:]).mean(dim=1)
-    maps = normalize_maps(attributions.abs().sum(dim=1, keepdim=True))
+    maps = attributions_to_saliency_map(attributions)
 
     log_tensor_stats("expected_gradients.baseline_pool", baseline_pool)
-    log_tensor_stats("expected_gradients.sampled_baselines", sampled_baselines)
-    log_tensor_stats("expected_gradients.alphas", alphas)
     log_tensor_stats("expected_gradients.attributions", attributions)
     log_tensor_stats("expected_gradients.map", maps)
     return maps.detach(), attributions.detach(), baseline_pool.detach()
@@ -369,19 +316,12 @@ def input_gradient_saliency(
     inputs: torch.Tensor,
     targets: torch.Tensor,
 ) -> torch.Tensor:
-    """Compute normalized input-gradient saliency maps with shape [B, 1, H, W]."""
+    """Compute input-gradient saliency maps through Captum Saliency."""
     model.zero_grad(set_to_none=True)
     gradient_inputs = inputs.detach().clone().requires_grad_(True)
-    logits = model(gradient_inputs)
-    selected_scores = logits.gather(1, targets.view(-1, 1)).sum()
-    selected_scores.backward()
-
-    if gradient_inputs.grad is None:
-        raise RuntimeError("Input gradients were not computed.")
-
-    gradients = gradient_inputs.grad.detach()
-    maps = normalize_maps(gradients.abs().sum(dim=1, keepdim=True))
-    log_tensor_stats("vanilla_gradients.raw", gradients)
+    attributions = Saliency(model).attribute(gradient_inputs, target=targets, abs=True)
+    maps = attributions_to_saliency_map(attributions)
+    log_tensor_stats("vanilla_gradients.raw", attributions)
     log_tensor_stats("vanilla_gradients.map", maps)
     return maps.detach()
 

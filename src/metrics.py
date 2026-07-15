@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-from pathlib import Path
-
 import torch
 
 
@@ -46,16 +43,3 @@ def spearman_rank_correlation(
     numerator = (original_ranks * perturbed_ranks).sum(dim=1)
     denominator = original_ranks.norm(dim=1) * perturbed_ranks.norm(dim=1)
     return numerator / denominator.clamp_min(1e-8)
-
-
-def write_metrics_csv(rows: list[dict[str, object]], output_path: str | Path) -> None:
-    """Write metric rows to CSV."""
-    output_path = Path(output_path).expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError("No metric rows to write.")
-
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)

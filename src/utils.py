@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import random
+import csv
 from pathlib import Path
 
 import numpy as np
@@ -37,3 +38,14 @@ def resolve_path(path: str | Path) -> Path:
     """Return an expanded absolute path."""
     return Path(path).expanduser().resolve()
 
+
+def write_csv(rows: list[dict[str, object]], output_path: str | Path) -> None:
+    """Write dictionary rows to CSV using the first row's keys as fieldnames."""
+    path = Path(output_path).expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise ValueError(f"No rows to write for {path}")
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)

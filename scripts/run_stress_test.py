@@ -12,17 +12,15 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_xai import collect_correct_examples, load_checkpoint, load_idx_to_class
-from scripts.train_baseline import infer_num_classes
-from src.data import build_dataloaders
-from src.model import build_resnet50_classifier, get_device
+from scripts.run_xai import collect_correct_examples
+from src.data import build_dataloaders, infer_num_classes, load_idx_to_class, names_from_labels
+from src.model import build_resnet50_classifier, get_device, load_checkpoint
 from src.perturb import (
     apply_perturbation_suite,
     predict_batch,
     save_perturbation_grid,
-    write_stress_report,
 )
-from src.utils import set_seed, setup_logging
+from src.utils import set_seed, setup_logging, write_csv
 
 LOGGER = logging.getLogger("run_stress_test")
 
@@ -74,10 +72,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-level", type=str, default="INFO")
     return parser.parse_args()
-
-
-def names_from_labels(labels: torch.Tensor, idx_to_class: dict[int, str]) -> list[str]:
-    return [idx_to_class[int(label.item())] for label in labels.detach().cpu()]
 
 
 def build_report_rows(
@@ -192,7 +186,7 @@ def main() -> None:
         perturbed_confidences=perturbed_confidences,
         idx_to_class=idx_to_class,
     )
-    write_stress_report(rows, args.csv_output)
+    write_csv(rows, args.csv_output)
 
     save_perturbation_grid(
         original_images=images,
