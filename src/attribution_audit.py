@@ -8,6 +8,7 @@ class-discriminativeness diagnostics.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from torch import nn
 
 from src.data import IMAGENET_MEAN, IMAGENET_STD, denormalize_batch
 from src.explainability_audit import rank_correlation, topk_iou
+from src.metrics import top_fraction_mask
 from src.perturb import make_background_mask
 from src.xai import (
     ScoreCAM,
@@ -38,7 +40,7 @@ class AttributionBundle:
 
     maps: torch.Tensor
     raw_attributions: torch.Tensor | None = None
-    baseline: torch.Tensor | None = None
+    attribution_baseline: torch.Tensor | None = None
 
 
 def predict_with_logits(model: nn.Module, inputs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -70,7 +72,9 @@ def compute_attribution(
     scorecam_max_channels: int | None = 64,
     scorecam_batch_size: int = 16,
     expected_gradients_samples: int = 24,
+    expected_gradients_internal_batch_size: int | None = 8,
     expected_gradients_baselines: torch.Tensor | None = None,
+    expected_gradients_seed: int | None = None,
 ) -> AttributionBundle:
     """Compute one normalized attribution map batch.
 
@@ -101,7 +105,11 @@ def compute_attribution(
             internal_batch_size=ig_internal_batch_size,
             blur_radius=blur_radius,
         )
-        return AttributionBundle(maps=maps, raw_attributions=raw_attributions, baseline=baseline)
+        return AttributionBundle(
+            maps=maps,
+            raw_attributions=raw_attributions,
+            attribution_baseline=baseline,
+        )
     if method == "expected_gradients":
         maps, raw_attributions, baseline_pool = expected_gradients_maps(
             model=model,
@@ -109,10 +117,14 @@ def compute_attribution(
             targets=targets,
             baselines=expected_gradients_baselines,
             n_samples=expected_gradients_samples,
-            internal_batch_size=ig_internal_batch_size,
-            blur_radius=blur_radius,
+            internal_batch_size=expected_gradients_internal_batch_size,
+            seed=expected_gradients_seed,
         )
-        return AttributionBundle(maps=maps, raw_attributions=raw_attributions, baseline=baseline_pool)
+        return AttributionBundle(
+            maps=maps,
+            raw_attributions=raw_attributions,
+            attribution_baseline=baseline_pool,
+        )
     if method == "input_gradients":
         return AttributionBundle(maps=input_gradient_saliency(model, inputs, targets))
     raise ValueError(
@@ -159,14 +171,7 @@ def region_saliency_scores(
 
 
 def _top_fraction_mask(maps: torch.Tensor, fraction: float) -> torch.Tensor:
-    if not 0.0 <= fraction <= 1.0:
-        raise ValueError("fraction must be in [0, 1].")
-    if fraction == 0.0:
-        return torch.zeros_like(maps, dtype=torch.bool)
-    flat = maps.flatten(start_dim=1)
-    k = max(1, int(flat.size(1) * fraction))
-    threshold = torch.topk(flat, k=k, dim=1).values[:, -1].view(-1, 1, 1, 1)
-    return maps >= threshold
+    return top_fraction_mask(maps, fraction)
 
 
 def _replace_by_mask(original: torch.Tensor, replacement: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -204,6 +209,11 @@ def deletion_insertion_curves(
     with the baseline. Insertion starts from the baseline and restores the most
     salient pixels from the original image.
     """
+    if not fractions or any(
+        not math.isfinite(fraction) or not 0.0 <= fraction <= 1.0
+        for fraction in fractions
+    ):
+        raise ValueError("fractions must be a non-empty sequence of finite values in [0, 1].")
     if baseline is None:
         baseline = blurred_baseline(inputs)
     baseline = _match_baseline_to_inputs(inputs, baseline)
@@ -221,6 +231,14 @@ def deletion_insertion_curves(
 
 def trapezoid_auc(x_values: list[float], y_values: torch.Tensor) -> torch.Tensor:
     """Return per-example trapezoidal area under a curve."""
+    if y_values.dim() != 2 or y_values.size(1) != len(x_values):
+        raise ValueError("y_values must have shape [B, len(x_values)].")
+    if len(x_values) < 2 or any(
+        not math.isfinite(value) for value in x_values
+    ):
+        raise ValueError("x_values must contain at least two finite values.")
+    if any(right <= left for left, right in zip(x_values, x_values[1:])):
+        raise ValueError("x_values must be strictly increasing.")
     x = torch.tensor(x_values, device=y_values.device, dtype=y_values.dtype)
     widths = x[1:] - x[:-1]
     heights = 0.5 * (y_values[:, 1:] + y_values[:, :-1])
@@ -239,9 +257,13 @@ def sensitivity_to_noise(
     scorecam_max_channels: int | None = 64,
     scorecam_batch_size: int = 16,
     expected_gradients_samples: int = 12,
+    expected_gradients_internal_batch_size: int | None = 8,
     expected_gradients_baselines: torch.Tensor | None = None,
+    expected_gradients_seed: int | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Compare attribution maps before and after a small input perturbation."""
+    if not math.isfinite(noise_std) or noise_std < 0.0:
+        raise ValueError("noise_std must be a non-negative finite number.")
     reference = compute_attribution(
         model,
         inputs,
@@ -253,7 +275,9 @@ def sensitivity_to_noise(
         scorecam_max_channels=scorecam_max_channels,
         scorecam_batch_size=scorecam_batch_size,
         expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_internal_batch_size=expected_gradients_internal_batch_size,
         expected_gradients_baselines=expected_gradients_baselines,
+        expected_gradients_seed=expected_gradients_seed,
     ).maps
     noisy_inputs = (inputs + torch.randn_like(inputs) * noise_std).detach()
     candidate = compute_attribution(
@@ -267,7 +291,9 @@ def sensitivity_to_noise(
         scorecam_max_channels=scorecam_max_channels,
         scorecam_batch_size=scorecam_batch_size,
         expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_internal_batch_size=expected_gradients_internal_batch_size,
         expected_gradients_baselines=expected_gradients_baselines,
+        expected_gradients_seed=expected_gradients_seed,
     ).maps
     with torch.no_grad():
         reference_predictions = torch.softmax(model(inputs), dim=1).argmax(dim=1)
@@ -287,7 +313,9 @@ def class_discriminativeness(
     scorecam_max_channels: int | None = 64,
     scorecam_batch_size: int = 16,
     expected_gradients_samples: int = 12,
+    expected_gradients_internal_batch_size: int | None = 8,
     expected_gradients_baselines: torch.Tensor | None = None,
+    expected_gradients_seed: int | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Compare maps for top-1 and top-2 predicted classes on the same image."""
     logits, top1, _confidence = predict_with_logits(model, inputs)
@@ -303,7 +331,9 @@ def class_discriminativeness(
         scorecam_max_channels=scorecam_max_channels,
         scorecam_batch_size=scorecam_batch_size,
         expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_internal_batch_size=expected_gradients_internal_batch_size,
         expected_gradients_baselines=expected_gradients_baselines,
+        expected_gradients_seed=expected_gradients_seed,
     ).maps
     top2_maps = compute_attribution(
         model,
@@ -316,7 +346,9 @@ def class_discriminativeness(
         scorecam_max_channels=scorecam_max_channels,
         scorecam_batch_size=scorecam_batch_size,
         expected_gradients_samples=expected_gradients_samples,
+        expected_gradients_internal_batch_size=expected_gradients_internal_batch_size,
         expected_gradients_baselines=expected_gradients_baselines,
+        expected_gradients_seed=expected_gradients_seed,
     ).maps
     ious = torch.tensor(
         [topk_iou(top1_maps[index], top2_maps[index], top_fraction) for index in range(inputs.size(0))],

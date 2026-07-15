@@ -14,7 +14,7 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.experiments.run_xai import collect_correct_examples
+from scripts.experiments.run_xai import collect_correct_examples, collect_reference_images
 from src.data import (
     build_dataloaders,
     denormalize_batch,
@@ -23,12 +23,28 @@ from src.data import (
     names_from_labels,
 )
 from src.metrics import (
+    percentage_token,
     saliency_iou_at_top_percent,
     spearman_rank_correlation,
 )
 from src.model import build_resnet50_classifier, get_device, load_checkpoint
-from src.perturb import apply_perturbation_suite, predict_batch, save_perturbation_grid
+from src.perturb import (
+    apply_perturbation_suite,
+    predict_batch_probabilities,
+    probabilities_for_targets,
+    save_perturbation_grid,
+)
 from src.utils import set_seed, setup_logging, write_csv
+from src.validation import (
+    at_least_two_int,
+    device_spec,
+    log_level,
+    nonnegative_float,
+    nonnegative_int,
+    open_percentage_float,
+    open_unit_float,
+    positive_int,
+)
 from src.xai import (
     ScoreCAM,
     expected_gradients,
@@ -100,25 +116,28 @@ def parse_args() -> argparse.Namespace:
         choices=["input_gradient", "gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
         default=["gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
     )
-    parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--num-workers", type=int, default=0)
-    parser.add_argument("--max-images", type=int, default=4)
-    parser.add_argument("--ig-steps", type=int, default=16)
-    parser.add_argument("--expected-gradient-samples", type=int, default=12)
-    parser.add_argument("--scorecam-max-channels", type=int, default=48)
-    parser.add_argument("--scorecam-batch-size", type=int, default=16)
-    parser.add_argument("--top-percent", type=float, default=20.0)
+    parser.add_argument("--batch-size", type=positive_int, default=8)
+    parser.add_argument("--num-workers", type=nonnegative_int, default=0)
+    parser.add_argument("--max-images", type=positive_int, default=4)
+    parser.add_argument("--ig-steps", type=positive_int, default=16)
+    parser.add_argument("--ig-internal-batch-size", type=positive_int, default=4)
+    parser.add_argument("--expected-gradient-samples", type=positive_int, default=12)
+    parser.add_argument("--expected-gradient-internal-batch-size", type=positive_int, default=8)
+    parser.add_argument("--expected-gradient-baselines", type=at_least_two_int, default=16)
+    parser.add_argument("--scorecam-max-channels", type=positive_int, default=48)
+    parser.add_argument("--scorecam-batch-size", type=positive_int, default=16)
+    parser.add_argument("--top-percent", type=open_percentage_float, default=20.0)
     parser.add_argument("--allow-incorrect", action="store_true")
     parser.add_argument(
         "--mask-strategy",
         choices=["center_ellipse", "center_box", "global"],
         default="center_ellipse",
     )
-    parser.add_argument("--foreground-scale", type=float, default=0.68)
-    parser.add_argument("--noise-std", type=float, default=0.25)
-    parser.add_argument("--device", type=str, default="auto")
+    parser.add_argument("--foreground-scale", type=open_unit_float, default=0.68)
+    parser.add_argument("--noise-std", type=nonnegative_float, default=0.25)
+    parser.add_argument("--device", type=device_spec, default="auto")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--log-level", type=str, default="INFO")
+    parser.add_argument("--log-level", type=log_level, default="INFO")
     return parser.parse_args()
 
 
@@ -128,7 +147,11 @@ def compute_saliency_maps(
     targets: torch.Tensor,
     method: str,
     ig_steps: int,
+    ig_internal_batch_size: int = 4,
     expected_gradient_samples: int = 12,
+    expected_gradient_internal_batch_size: int = 8,
+    expected_gradient_baselines: torch.Tensor | None = None,
+    expected_gradient_seed: int | None = None,
     scorecam_max_channels: int | None = 48,
     scorecam_batch_size: int = 16,
 ) -> torch.Tensor:
@@ -149,14 +172,22 @@ def compute_saliency_maps(
         finally:
             scorecam.close()
     if method == "integrated_gradients":
-        return integrated_gradients(model, images, targets, steps=ig_steps)
+        return integrated_gradients(
+            model,
+            images,
+            targets,
+            steps=ig_steps,
+            internal_batch_size=ig_internal_batch_size,
+        )
     if method == "expected_gradients":
         return expected_gradients(
             model,
             images,
             targets,
+            baselines=expected_gradient_baselines,
             n_samples=expected_gradient_samples,
-            internal_batch_size=4,
+            internal_batch_size=expected_gradient_internal_batch_size,
+            seed=expected_gradient_seed,
         )
     raise ValueError(f"Unsupported XAI method: {method}")
 
@@ -166,15 +197,19 @@ def build_metric_rows(
     target_names: list[str],
     original_prediction_names: list[str],
     original_confidences: torch.Tensor,
+    original_target_probabilities: torch.Tensor,
     perturbed_predictions: dict[str, torch.Tensor],
     perturbed_confidences: dict[str, torch.Tensor],
+    perturbed_target_probabilities: dict[str, torch.Tensor],
     saliency_maps: dict[str, dict[str, torch.Tensor]],
     top_percent: float,
     idx_to_class: dict[int, str],
 ) -> list[dict[str, object]]:
-    """Build per-sample, per-perturbation, per-XAI metric rows."""
+    """Build metrics while comparing the same target class before and after."""
     rows: list[dict[str, object]] = []
     original_confidences_cpu = original_confidences.detach().cpu()
+    original_target_probabilities_cpu = original_target_probabilities.detach().cpu()
+    top_percent_token = percentage_token(top_percent)
 
     for xai_method, method_maps in saliency_maps.items():
         original_maps = method_maps["original"]
@@ -195,7 +230,16 @@ def build_metric_rows(
                 idx_to_class,
             )
             perturbed_conf_cpu = perturbed_confidences[perturbation_name].detach().cpu()
+            perturbed_target_prob_cpu = perturbed_target_probabilities[
+                perturbation_name
+            ].detach().cpu()
             for index, perturbed_name in enumerate(perturbed_names):
+                original_target_probability = float(
+                    original_target_probabilities_cpu[index].item()
+                )
+                perturbed_target_probability = float(
+                    perturbed_target_prob_cpu[index].item()
+                )
                 rows.append(
                     {
                         "index": index,
@@ -208,11 +252,15 @@ def build_metric_rows(
                         "prediction_changed": original_prediction_names[index] != perturbed_name,
                         "original_confidence": float(original_confidences_cpu[index].item()),
                         "perturbed_confidence": float(perturbed_conf_cpu[index].item()),
-                        "confidence_delta": float(
-                            perturbed_conf_cpu[index].item()
-                            - original_confidences_cpu[index].item()
+                        "original_target_probability": original_target_probability,
+                        "perturbed_target_probability": perturbed_target_probability,
+                        "confidence_delta": (
+                            perturbed_target_probability - original_target_probability
                         ),
-                        f"iou_top_{int(top_percent)}pct": float(iou[index].item()),
+                        "confidence_drop": (
+                            original_target_probability - perturbed_target_probability
+                        ),
+                        f"iou_top_{top_percent_token}pct": float(iou[index].item()),
                         "spearman": float(spearman[index].item()),
                     }
                 )
@@ -325,12 +373,19 @@ def main() -> None:
         idx_to_class=idx_to_class,
         max_images=args.max_images,
         allow_incorrect=args.allow_incorrect,
+        seed=args.seed,
     )
 
-    original_predictions, original_confidences = predict_batch(model, images)
+    original_predictions, original_confidences, original_probabilities = (
+        predict_batch_probabilities(model, images)
+    )
     original_prediction_names = names_from_labels(original_predictions, idx_to_class)
     target_labels = original_predictions
     target_names = original_prediction_names
+    original_target_probabilities = probabilities_for_targets(
+        original_probabilities,
+        target_labels,
+    )
 
     background_mask, perturbed_batches = apply_perturbation_suite(
         inputs=images,
@@ -340,12 +395,28 @@ def main() -> None:
         seed=args.seed,
     )
 
+    expected_gradient_baselines = None
+    if "expected_gradients" in args.xai_methods:
+        expected_gradient_baselines = collect_reference_images(
+            loaders["train"],
+            device=device,
+            max_images=args.expected_gradient_baselines,
+        )
+
     perturbed_predictions: dict[str, torch.Tensor] = {}
     perturbed_confidences: dict[str, torch.Tensor] = {}
+    perturbed_target_probabilities: dict[str, torch.Tensor] = {}
     for perturbation_name, perturbed_images in perturbed_batches.items():
-        predictions, confidences = predict_batch(model, perturbed_images)
+        predictions, confidences, probabilities = predict_batch_probabilities(
+            model,
+            perturbed_images,
+        )
         perturbed_predictions[perturbation_name] = predictions
         perturbed_confidences[perturbation_name] = confidences
+        perturbed_target_probabilities[perturbation_name] = probabilities_for_targets(
+            probabilities,
+            target_labels,
+        )
 
     save_perturbation_grid(
         original_images=images,
@@ -370,7 +441,11 @@ def main() -> None:
                 targets=target_labels,
                 method=xai_method,
                 ig_steps=args.ig_steps,
+                ig_internal_batch_size=args.ig_internal_batch_size,
                 expected_gradient_samples=args.expected_gradient_samples,
+                expected_gradient_internal_batch_size=args.expected_gradient_internal_batch_size,
+                expected_gradient_baselines=expected_gradient_baselines,
+                expected_gradient_seed=args.seed,
                 scorecam_max_channels=args.scorecam_max_channels,
                 scorecam_batch_size=args.scorecam_batch_size,
             ).detach().cpu()
@@ -382,7 +457,11 @@ def main() -> None:
                 targets=target_labels,
                 method=xai_method,
                 ig_steps=args.ig_steps,
+                ig_internal_batch_size=args.ig_internal_batch_size,
                 expected_gradient_samples=args.expected_gradient_samples,
+                expected_gradient_internal_batch_size=args.expected_gradient_internal_batch_size,
+                expected_gradient_baselines=expected_gradient_baselines,
+                expected_gradient_seed=args.seed,
                 scorecam_max_channels=args.scorecam_max_channels,
                 scorecam_batch_size=args.scorecam_batch_size,
             ).detach().cpu()
@@ -393,8 +472,10 @@ def main() -> None:
         target_names=target_names,
         original_prediction_names=original_prediction_names,
         original_confidences=original_confidences,
+        original_target_probabilities=original_target_probabilities,
         perturbed_predictions=perturbed_predictions,
         perturbed_confidences=perturbed_confidences,
+        perturbed_target_probabilities=perturbed_target_probabilities,
         saliency_maps=saliency_maps,
         top_percent=args.top_percent,
         idx_to_class=idx_to_class,

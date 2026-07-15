@@ -263,6 +263,10 @@ def build_dataloaders(
     class_map_path: str | Path | None = None,
 ) -> dict[str, DataLoader]:
     """Build train/val/test dataloaders from an image-classification manifest."""
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive.")
+    if num_workers < 0:
+        raise ValueError("num_workers must be non-negative.")
     dataloaders: dict[str, DataLoader] = {}
     for split in ("train", "val", "test"):
         dataset = ImageManifestDataset(

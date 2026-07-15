@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import math
 import sys
 from pathlib import Path
 
@@ -12,7 +13,7 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.experiments.run_xai import collect_correct_examples
+from scripts.experiments.run_xai import collect_correct_examples, collect_reference_images
 from src.attribution_audit import (
     class_discriminativeness,
     compute_attribution,
@@ -29,7 +30,19 @@ from src.attribution_audit import (
 from src.data import build_dataloaders, infer_class_map_path, infer_num_classes, load_class_names
 from src.explainability_audit import rank_correlation, topk_iou
 from src.model import build_resnet50_classifier, get_device, load_checkpoint
+from src.metrics import top_fraction_label
 from src.utils import set_seed, setup_logging, write_csv
+from src.validation import (
+    at_least_two_int,
+    device_spec,
+    log_level,
+    nonnegative_float,
+    nonnegative_int,
+    open_unit_float,
+    positive_float,
+    positive_int,
+)
+from src.xai import blurred_baseline
 
 LOGGER = logging.getLogger("run_advanced_attribution_audit")
 
@@ -59,21 +72,26 @@ def parse_args() -> argparse.Namespace:
         choices=["gradcam", "scorecam", "integrated_gradients", "expected_gradients", "input_gradients"],
         help="Attribution methods to audit.",
     )
-    parser.add_argument("--num-examples", type=int, default=4)
-    parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--num-workers", type=int, default=0)
-    parser.add_argument("--ig-steps", type=int, default=16)
-    parser.add_argument("--ig-internal-batch-size", type=int, default=4)
-    parser.add_argument("--expected-gradient-samples", type=int, default=12)
-    parser.add_argument("--expected-gradient-baselines", type=int, default=16)
-    parser.add_argument("--scorecam-max-channels", type=int, default=48)
-    parser.add_argument("--scorecam-batch-size", type=int, default=16)
-    parser.add_argument("--blur-radius", type=float, default=18.0)
-    parser.add_argument("--mask-strategy", type=str, default="center_ellipse")
-    parser.add_argument("--foreground-scale", type=float, default=0.68)
-    parser.add_argument("--top-fraction", type=float, default=0.2)
-    parser.add_argument("--curve-steps", type=int, default=10)
-    parser.add_argument("--sensitivity-noise-std", type=float, default=0.03)
+    parser.add_argument("--num-examples", type=positive_int, default=4)
+    parser.add_argument("--batch-size", type=positive_int, default=16)
+    parser.add_argument("--num-workers", type=nonnegative_int, default=0)
+    parser.add_argument("--ig-steps", type=positive_int, default=16)
+    parser.add_argument("--ig-internal-batch-size", type=positive_int, default=4)
+    parser.add_argument("--expected-gradient-samples", type=positive_int, default=12)
+    parser.add_argument("--expected-gradient-internal-batch-size", type=positive_int, default=8)
+    parser.add_argument("--expected-gradient-baselines", type=at_least_two_int, default=16)
+    parser.add_argument("--scorecam-max-channels", type=positive_int, default=48)
+    parser.add_argument("--scorecam-batch-size", type=positive_int, default=16)
+    parser.add_argument("--blur-radius", type=nonnegative_float, default=18.0)
+    parser.add_argument(
+        "--mask-strategy",
+        choices=["center_ellipse", "center_box", "global"],
+        default="center_ellipse",
+    )
+    parser.add_argument("--foreground-scale", type=open_unit_float, default=0.68)
+    parser.add_argument("--top-fraction", type=open_unit_float, default=0.2)
+    parser.add_argument("--curve-steps", type=positive_int, default=10)
+    parser.add_argument("--sensitivity-noise-std", type=positive_float, default=0.03)
     parser.add_argument(
         "--report-output",
         type=Path,
@@ -89,9 +107,9 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "advanced_attribution_audit",
     )
-    parser.add_argument("--device", type=str, default="auto")
+    parser.add_argument("--device", type=device_spec, default="auto")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--log-level", type=str, default="INFO")
+    parser.add_argument("--log-level", type=log_level, default="INFO")
     return parser.parse_args()
 
 
@@ -100,15 +118,22 @@ def _name_list(labels: torch.Tensor, idx_to_class: dict[int, str]) -> list[str]:
 
 
 def _mean(values: list[float]) -> float:
-    return float(sum(values) / max(len(values), 1))
+    finite_values = [value for value in values if math.isfinite(value)]
+    if not finite_values:
+        return float("nan")
+    return float(sum(finite_values) / len(finite_values))
 
 
-def _summary_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+def _summary_rows(
+    rows: list[dict[str, object]],
+    top_fraction: float = 0.2,
+) -> list[dict[str, object]]:
     grouped: dict[str, list[dict[str, object]]] = {}
     for row in rows:
         grouped.setdefault(str(row["method"]), []).append(row)
 
     summary: list[dict[str, object]] = []
+    top_label = top_fraction_label(top_fraction)
     numeric_keys = [
         "original_target_probability",
         "deletion_auc",
@@ -117,11 +142,11 @@ def _summary_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
         "animal_saliency_ratio",
         "background_saliency_ratio",
         "saliency_entropy",
-        "sensitivity_iou_top20",
+        f"sensitivity_iou_{top_label}",
         "sensitivity_spearman",
-        "class_discriminativeness_iou_top20",
+        f"class_discriminativeness_iou_{top_label}",
         "class_discriminativeness_spearman",
-        "ig_blur_vs_black_iou_top20",
+        f"ig_blur_vs_black_iou_{top_label}",
         "ig_blur_vs_black_spearman",
     ]
     for method, method_rows in grouped.items():
@@ -172,22 +197,23 @@ def main() -> None:
         class_names_by_label=idx_to_class,
         max_images=args.num_examples,
         max_per_class=1,
+        seed=args.seed,
     )
     images = images.to(device)
     labels = labels.to(device)
     _, top1_labels, _ = predict_with_logits(model, images)
     target_probabilities = torch.tensor(confidences, device=device)
-    expected_gradient_baselines = []
-    for batch in loaders["train"]:
-        for image in batch[0]:
-            expected_gradient_baselines.append(image.detach().cpu())
-            if len(expected_gradient_baselines) >= args.expected_gradient_baselines:
-                break
-        if len(expected_gradient_baselines) >= args.expected_gradient_baselines:
-            break
-    expected_gradient_baseline_tensor = torch.stack(expected_gradient_baselines, dim=0).to(device)
+    expected_gradient_baseline_tensor = None
+    if "expected_gradients" in args.methods:
+        expected_gradient_baseline_tensor = collect_reference_images(
+            loaders["train"],
+            device=device,
+            max_images=args.expected_gradient_baselines,
+        )
 
     fractions = [index / args.curve_steps for index in range(args.curve_steps + 1)]
+    faithfulness_baseline = blurred_baseline(images, blur_radius=args.blur_radius)
+    top_label = top_fraction_label(args.top_fraction)
     rows: list[dict[str, object]] = []
 
     for method in args.methods:
@@ -203,7 +229,9 @@ def main() -> None:
             scorecam_max_channels=args.scorecam_max_channels,
             scorecam_batch_size=args.scorecam_batch_size,
             expected_gradients_samples=args.expected_gradient_samples,
+            expected_gradients_internal_batch_size=args.expected_gradient_internal_batch_size,
             expected_gradients_baselines=expected_gradient_baseline_tensor,
+            expected_gradients_seed=args.seed,
         )
         maps = bundle.maps
         animal_ratio, background_ratio, _background_mask = region_saliency_scores(
@@ -219,7 +247,7 @@ def main() -> None:
             targets=labels,
             maps=maps,
             fractions=fractions,
-            baseline=bundle.baseline,
+            baseline=faithfulness_baseline,
         )
         deletion_auc = trapezoid_auc(fractions, deletion_scores)
         insertion_auc = trapezoid_auc(fractions, insertion_scores)
@@ -236,7 +264,9 @@ def main() -> None:
             scorecam_max_channels=args.scorecam_max_channels,
             scorecam_batch_size=args.scorecam_batch_size,
             expected_gradients_samples=max(4, args.expected_gradient_samples // 2),
+            expected_gradients_internal_batch_size=args.expected_gradient_internal_batch_size,
             expected_gradients_baselines=expected_gradient_baseline_tensor,
+            expected_gradients_seed=args.seed,
         )
         top1, top2, top1_maps, top2_maps, class_metrics = class_discriminativeness(
             model=model,
@@ -249,7 +279,9 @@ def main() -> None:
             scorecam_max_channels=args.scorecam_max_channels,
             scorecam_batch_size=args.scorecam_batch_size,
             expected_gradients_samples=max(4, args.expected_gradient_samples // 2),
+            expected_gradients_internal_batch_size=args.expected_gradient_internal_batch_size,
             expected_gradients_baselines=expected_gradient_baseline_tensor,
+            expected_gradients_seed=args.seed,
         )
 
         ig_baseline_metrics = None
@@ -308,19 +340,19 @@ def main() -> None:
                 "background_saliency_ratio": f"{background_ratio[index].item():.6f}",
                 "saliency_entropy": f"{entropy[index].item():.6f}",
                 "sensitivity_same_prediction": bool(same_prediction[index].item()),
-                "sensitivity_iou_top20": f"{sensitivity_iou:.6f}",
+                f"sensitivity_iou_{top_label}": f"{sensitivity_iou:.6f}",
                 "sensitivity_spearman": f"{sensitivity_spearman:.6f}",
-                "class_discriminativeness_iou_top20": f"{class_metrics[index, 0].item():.6f}",
+                f"class_discriminativeness_iou_{top_label}": f"{class_metrics[index, 0].item():.6f}",
                 "class_discriminativeness_spearman": f"{class_metrics[index, 1].item():.6f}",
-                "ig_blur_vs_black_iou_top20": "",
+                f"ig_blur_vs_black_iou_{top_label}": "",
                 "ig_blur_vs_black_spearman": "",
             }
             if ig_baseline_metrics is not None:
-                row["ig_blur_vs_black_iou_top20"] = f"{ig_baseline_metrics[index, 0].item():.6f}"
+                row[f"ig_blur_vs_black_iou_{top_label}"] = f"{ig_baseline_metrics[index, 0].item():.6f}"
                 row["ig_blur_vs_black_spearman"] = f"{ig_baseline_metrics[index, 1].item():.6f}"
             rows.append(row)
 
-    summary_rows = _summary_rows(rows)
+    summary_rows = _summary_rows(rows, top_fraction=args.top_fraction)
     write_csv(rows, args.report_output)
     write_csv(summary_rows, args.summary_output)
 
