@@ -17,16 +17,20 @@ Deep_Learning_XAI/
     reports/
   sample_data/
   scripts/
+    data/
+    training/
+    experiments/
+    audits/
+    tools/
   src/
   requirements.txt
 ```
 
+The scripts are grouped by responsibility; see [`scripts/README.md`](scripts/README.md) for the map of commands.
+
 AwA2 requires roughly 13 GB of storage. You can either copy `JPEGImages/`
 manually into `data/AWA2/JPEGImages/`, or use the preparation script with
 `--download`.
-
-Do not commit the full dataset. Keep raw images in `data/`, on an external
-drive, or on shared storage; those paths are intentionally ignored by Git.
 
 ## Environment
 
@@ -47,8 +51,7 @@ python -m pip install -r requirements.txt
 ```
 
 `requirements.txt` intentionally lists only the direct, portable project
-dependencies. Do not replace it with a full `pip freeze`: CUDA/NVIDIA runtime
-packages are environment-specific and are not required for the macOS/CPU setup.
+dependencies.
 
 ## Notebook Workflow
 
@@ -68,18 +71,18 @@ or recompute expensive XAI maps. The forward-inspection notebook exports a
 compact trace for the HTML activation simulator, and the blog-figures notebook
 generates lightweight assets for the explanatory report.
 
-## Phase 1
+## Data Preparation
 
 Prepare the full manifest:
 
 ```bash
-python scripts/prepare_awa2.py --data-root data/AWA2
+python scripts/data/prepare_awa2.py --data-root data/AWA2
 ```
 
 Prepare a lightweight debug manifest:
 
 ```bash
-python scripts/prepare_awa2.py \
+python scripts/data/prepare_awa2.py \
   --data-root data/AWA2 \
   --max-classes 10 \
   --max-images-per-class 200 \
@@ -90,7 +93,7 @@ python scripts/prepare_awa2.py \
 Create a full portable AwA2 copy resized to `128x128`:
 
 ```bash
-python scripts/create_awa2_subset.py \
+python scripts/data/prepare_awa2.py --mode subset \
   --source-root /path/to/AwA2 \
   --output-root data/AWA2_resized_128 \
   --preset none \
@@ -110,7 +113,7 @@ the original metadata alongside the resized image folder if needed.
 Create a reduced portable subset resized to `128x128`:
 
 ```bash
-python scripts/create_awa2_subset.py \
+python scripts/data/prepare_awa2.py --mode subset \
   --source-root /path/to/AwA2 \
   --output-root data/AWA2_subset_background20 \
   --preset background20 \
@@ -131,37 +134,29 @@ resolves those paths from the manifest location.
 Optional download:
 
 ```bash
-python scripts/prepare_awa2.py --data-root data/AWA2 --download
+python scripts/data/prepare_awa2.py --data-root data/AWA2 --download
 ```
 
-Run the DataLoader sanity check:
+Run the general data-pipeline smoke tests on any project manifest:
 
 ```bash
-python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest.csv
-```
-
-Run the sanity check on the debug manifest:
-
-```bash
-python scripts/check_dataloader.py --manifest data/AWA2/awa2_manifest_debug.csv
-```
-
-Run the sanity check on a portable subset:
-
-```bash
-python scripts/check_dataloader.py \
+python scripts/data/general_tests.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv
 ```
 
-Phase 1 is data-only. Gradients are intentionally not tracked here; they will
+The checks validate the manifest schema, labels and class mapping, referenced
+image files, one batch from each train/validation/test split, and the image
+normalization round-trip.
+
+Data preparation is data-only. Gradients are intentionally not tracked here; they will
 be enabled explicitly in the later XAI phase.
 
-## Phase 2 Baseline Training
+## Baseline Training
 
 Quick CPU/GPU sanity run without downloading pretrained weights:
 
 ```bash
-python scripts/train_baseline.py \
+python scripts/training/train_baseline.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --batch-size 8 \
   --epochs 1 \
@@ -173,7 +168,7 @@ python scripts/train_baseline.py \
 Baseline training with ImageNet pretrained ResNet50:
 
 ```bash
-python scripts/train_baseline.py \
+python scripts/training/train_baseline.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --batch-size 32 \
   --epochs 5
@@ -186,12 +181,12 @@ outputs/checkpoints/best_resnet50_awa2.pt
 outputs/reports/training_history.csv
 ```
 
-## Phase 3 XAI Extraction
+## XAI Examples
 
 After training, generate a small XAI grid:
 
 ```bash
-python scripts/run_xai.py \
+python scripts/experiments/run_xai.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --output outputs/figures/xai_examples.png \
@@ -202,7 +197,7 @@ python scripts/run_xai.py \
 For a quicker method-comparison run:
 
 ```bash
-python scripts/run_xai.py \
+python scripts/experiments/run_xai.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --output outputs/figures/xai_smoke_test.png \
@@ -224,32 +219,20 @@ Expected Gradients: Captum GradientShap over a distribution of image baselines
 SmoothGrad and Occlusion: Captum NoiseTunnel and Occlusion in the sanity audit
 ```
 
-`scripts/run_xai.py` writes a visual grid for Grad-CAM, Score-CAM, Integrated
+`scripts/experiments/run_xai.py` writes a visual grid for Grad-CAM, Score-CAM, Integrated
 Gradients and Expected Gradients. Most attribution methods are backed by
 Captum; Score-CAM is the exception because Captum does not provide it and the
 blog/report includes Score-CAM results that should remain reproducible.
 
-## Phase 4 Background Stress Test
+## Background Stress and Saliency Metrics
 
-AwA2 does not provide segmentation masks. The Phase 4 implementation therefore
+AwA2 does not provide segmentation masks. This implementation therefore
 uses explicit approximate masks:
 
 ```text
 center_ellipse: preserve the central elliptical region and perturb the outside
 center_box: preserve the central rectangular region and perturb the outside
 global: perturb the whole image as a fallback
-```
-
-Run the default background stress test:
-
-```bash
-python scripts/run_stress_test.py \
-  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
-  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --figure-output outputs/figures/phase4_stress_test.png \
-  --csv-output outputs/reports/phase4_stress_test.csv \
-  --max-images 6 \
-  --mask-strategy center_ellipse
 ```
 
 Implemented perturbations:
@@ -260,30 +243,11 @@ color_shift: invert RGB values only on approximate background pixels
 background_swap: replace approximate background pixels with uniform random noise
 ```
 
-If the approximation is too weak for a specific image, run the fallback global
-test:
-
-```bash
-python scripts/run_stress_test.py \
-  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
-  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --figure-output outputs/figures/phase4_stress_test_global.png \
-  --csv-output outputs/reports/phase4_stress_test_global.csv \
-  --max-images 6 \
-  --mask-strategy global
-```
-
-Outputs:
-
-```text
-outputs/figures/phase4_stress_test.png
-outputs/reports/phase4_stress_test.csv
-```
-
-## Phase 5 Saliency Metrics
-
-Phase 5 recomputes saliency maps on the original and perturbed images from the
-Phase 4 setup, then measures explanation degradation.
+This analysis runs the perturbation suite once: it saves a raw grid with the
+original image, approximate background mask and perturbations, then recomputes
+the saliency maps and measures their degradation. Use `--mask-strategy global`
+as the fallback when the approximate foreground mask is unsuitable for an
+image.
 
 Implemented metrics:
 
@@ -294,13 +258,14 @@ confidence_delta: prediction confidence change after perturbation
 prediction_changed: whether the predicted class changed
 ```
 
-Run Phase 5:
+Run the stress metrics:
 
 ```bash
-python scripts/run_phase5_metrics.py \
+python scripts/experiments/run_background_stress_metrics.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --csv-output outputs/reports/phase5_saliency_metrics.csv \
+  --perturbation-figure-output outputs/figures/phase5_perturbations.png \
   --figure-output outputs/figures/phase5_saliency_comparison.png \
   --max-images 4 \
   --xai-methods gradcam scorecam integrated_gradients expected_gradients \
@@ -312,52 +277,42 @@ python scripts/run_phase5_metrics.py \
 For a faster run:
 
 ```bash
-python scripts/run_phase5_metrics.py \
+python scripts/experiments/run_background_stress_metrics.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --csv-output outputs/reports/phase5_saliency_metrics_fast.csv \
+  --perturbation-figure-output outputs/figures/phase5_perturbations_fast.png \
   --figure-output outputs/figures/phase5_saliency_comparison_fast.png \
   --max-images 2 \
   --xai-methods gradcam \
   --mask-strategy center_ellipse
 ```
 
-Inspect the generated metric CSV in a more intuitive way:
-
-```bash
-python scripts/inspect_phase5_metrics.py \
-  --csv outputs/reports/phase5_saliency_metrics.csv \
-  --output-dir outputs/reports
-```
-
-This creates summary CSVs and plots such as:
+The stress-metrics run produces both visual outputs:
 
 ```text
-outputs/reports/phase5_metric_summary.csv
-outputs/reports/phase5_prediction_transitions.csv
-outputs/reports/phase5_mean_iou_by_method.png
-outputs/reports/phase5_iou_vs_spearman.png
+outputs/figures/phase5_perturbations.png
+outputs/figures/phase5_saliency_comparison.png
+outputs/reports/phase5_saliency_metrics.csv
 ```
 
-## Phase 6 Concept-Level Analysis
+## Concept Profiles and Prediction Transitions
 
-Phase 6 moves from pixel-level saliency to AwA2 semantic concepts. It reads
+This analysis moves from pixel-level saliency to AwA2 semantic concepts. It reads
 AwA2 attributes such as stripes, horns, hooves, furry, aquatic and color
 attributes, then connects prediction flips to concept-level class differences.
 
-Run Phase 6:
+Analyze concept profiles:
 
 ```bash
-python scripts/run_phase6_concepts.py \
+python scripts/experiments/analyze_concept_profiles.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --metadata-root data/AWA2 \
   --stress-csv outputs/reports/phase5_saliency_metrics.csv \
   --class-profile-output outputs/reports/phase6_class_concepts.csv \
   --transition-output outputs/reports/phase6_concept_transitions.csv \
-  --saliency-alignment-output outputs/reports/phase6_concept_saliency_alignment.csv \
   --heatmap-output outputs/figures/phase6_class_concept_heatmap.png \
-  --transition-figure-output outputs/figures/phase6_concept_transition_examples.png \
-  --saliency-alignment-figure-output outputs/figures/phase6_concept_saliency_alignment.png
+  --transition-figure-output outputs/figures/phase6_concept_transition_examples.png
 ```
 
 Outputs:
@@ -365,10 +320,8 @@ Outputs:
 ```text
 outputs/reports/phase6_class_concepts.csv
 outputs/reports/phase6_concept_transitions.csv
-outputs/reports/phase6_concept_saliency_alignment.csv
 outputs/figures/phase6_class_concept_heatmap.png
 outputs/figures/phase6_concept_transition_examples.png
-outputs/figures/phase6_concept_saliency_alignment.png
 ```
 
 Notebook: `notebooks/02_stress_concepts_tcav.ipynb`
@@ -377,18 +330,18 @@ This phase is the bridge toward TCAV: before training Concept Activation
 Vectors, the project now has an explicit concept vocabulary and a way to inspect
 whether saliency failures correspond to semantic class confusions.
 
-## Phase 7 TCAV
+## TCAV
 
-Phase 7 implements Testing with Concept Activation Vectors. It uses the AwA2
-semantic attributes from Phase 6 to select positive and negative concept
+This analysis implements Testing with Concept Activation Vectors. It uses the AwA2
+AwA2 semantic attributes to select positive and negative concept
 examples, extracts pooled internal activations from the ResNet layer, trains a
 linear CAV, and measures whether each concept direction increases a target class
 score.
 
-Run Phase 7:
+Run TCAV:
 
 ```bash
-python scripts/run_phase7_tcav.py \
+python scripts/experiments/run_tcav.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --metadata-root data/AWA2 \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
@@ -423,9 +376,9 @@ followed only by average pooling and the linear classifier, so class-score
 gradients can become nearly constant per class and TCAV scores can collapse to
 0/1.
 
-## Phase 8 Concept Bottleneck Model
+## Concept Bottleneck Model
 
-Phase 8 trains a simple interpretable-by-design model:
+This training command fits a simple interpretable-by-design model:
 
 ```text
 image -> predicted AwA2 concepts -> class
@@ -436,10 +389,10 @@ This means every image from a class receives the same concept vector. It is a
 useful bottleneck baseline, but it should be interpreted as class-level concept
 supervision rather than image-level concept annotation.
 
-Run Phase 8:
+Train the CBM:
 
 ```bash
-python scripts/run_phase8_cbm.py \
+python scripts/experiments/train_cbm.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --metadata-root data/AWA2 \
   --backbone-checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
@@ -492,16 +445,16 @@ high class accuracy   -> the predicted concepts are sufficient for classificatio
 large intervention    -> manually changing a concept strongly affects a class probability
 ```
 
-## Phase 9 Saliency Sanity Audit
+## Saliency Sanity Audit
 
-Phase 9 compares vanilla input gradients with SmoothGrad, occlusion sensitivity
+This audit compares vanilla input gradients with SmoothGrad, occlusion sensitivity
 and gradients from a randomized copy of the model. This checks whether the
 saliency maps are stable, perturbation-consistent and model-dependent.
 
-Run Phase 9:
+Run the saliency sanity audit:
 
 ```bash
-python scripts/run_phase9_explainability_audit.py \
+python scripts/audits/run_saliency_sanity_audit.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --num-examples 4 \
@@ -538,7 +491,7 @@ because it treats each saliency map as a measurable hypothesis.
 Run the audit:
 
 ```bash
-python scripts/run_advanced_attribution_audit.py \
+python scripts/audits/run_advanced_attribution_audit.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --methods gradcam scorecam integrated_gradients expected_gradients \
@@ -590,7 +543,7 @@ by `docs/resnet_activation_simulator.html`.
 Run the inspection:
 
 ```bash
-python scripts/run_forward_inspection.py \
+python scripts/tools/run_forward_inspection.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --output outputs/figures/real_forward_inspection.png \

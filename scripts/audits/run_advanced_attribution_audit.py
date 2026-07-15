@@ -9,10 +9,10 @@ from pathlib import Path
 
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_xai import collect_correct_examples
+from scripts.experiments.run_xai import collect_correct_examples
 from src.attribution_audit import (
     class_discriminativeness,
     compute_attribution,

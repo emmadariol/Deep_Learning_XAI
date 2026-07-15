@@ -9,7 +9,7 @@ from pathlib import Path
 
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data import build_dataloaders, infer_num_classes, load_class_names
@@ -131,77 +131,6 @@ def collect_correct_examples(
 
     if not images_out:
         raise RuntimeError("No selected examples found in the test split.")
-
-    return (
-        torch.stack(images_out, dim=0).to(device),
-        torch.stack(labels_out, dim=0).to(device),
-        true_names,
-        pred_names,
-        confidences,
-        image_paths_out,
-    )
-
-
-def collect_incorrect_examples(
-    model: torch.nn.Module,
-    loader: torch.utils.data.DataLoader,
-    device: torch.device,
-    class_names_by_label: dict[int, str] | None = None,
-    max_images: int = 4,
-    idx_to_class: dict[int, str] | None = None,
-) -> tuple[torch.Tensor, torch.Tensor, list[str], list[str], list[float], list[str]]:
-    """Collect misclassified examples for error-focused XAI inspection."""
-    if class_names_by_label is None:
-        class_names_by_label = idx_to_class
-    if class_names_by_label is None:
-        raise ValueError("class_names_by_label or idx_to_class must be provided.")
-
-    images_out: list[torch.Tensor] = []
-    labels_out: list[torch.Tensor] = []
-    true_names: list[str] = []
-    pred_names: list[str] = []
-    confidences: list[float] = []
-    image_paths_out: list[str] = []
-
-    model.eval()
-    with torch.no_grad():
-        for batch in loader:
-            images = batch[0].to(device, non_blocking=True)
-            labels = batch[1].to(device, non_blocking=True)
-            batch_true_names = list(batch[2])
-            image_paths = list(batch[3])
-
-            logits = model(images)
-            probs = torch.softmax(logits, dim=1)
-            conf, preds = probs.max(dim=1)
-            incorrect = preds != labels
-
-            for idx in incorrect.nonzero(as_tuple=False).flatten().tolist():
-                images_out.append(images[idx].detach().cpu())
-                labels_out.append(labels[idx].detach().cpu())
-                true_names.append(batch_true_names[idx])
-                pred_names.append(class_names_by_label[int(preds[idx].item())])
-                confidences.append(float(conf[idx].detach().cpu().item()))
-                image_paths_out.append(image_paths[idx])
-                LOGGER.info(
-                    "Selected incorrect example true=%s wrong_pred=%s confidence=%.4f image=%s",
-                    true_names[-1],
-                    pred_names[-1],
-                    confidences[-1],
-                    image_paths_out[-1],
-                )
-                if len(images_out) >= max_images:
-                    return (
-                        torch.stack(images_out, dim=0).to(device),
-                        torch.stack(labels_out, dim=0).to(device),
-                        true_names,
-                        pred_names,
-                        confidences,
-                        image_paths_out,
-                    )
-
-    if not images_out:
-        raise RuntimeError("No misclassified examples found in the test split.")
 
     return (
         torch.stack(images_out, dim=0).to(device),

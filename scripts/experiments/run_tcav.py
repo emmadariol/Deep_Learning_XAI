@@ -1,4 +1,4 @@
-"""Run Phase 7 TCAV analysis on AwA2 semantic concepts."""
+"""Run TCAV analysis on AwA2 semantic concepts."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.concepts import (
@@ -34,7 +34,7 @@ from src.tcav import (
 )
 from src.utils import set_seed, setup_logging, write_csv
 
-LOGGER = logging.getLogger("run_phase7_tcav")
+LOGGER = logging.getLogger("run_tcav")
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,7 +185,7 @@ def save_tcav_heatmap(
         figsize=(max(7.0, 1.15 * len(concepts)), max(4.5, 0.45 * len(target_classes)))
     )
     image = ax.imshow(matrix, aspect="auto", cmap="viridis", vmin=0.0, vmax=1.0)
-    ax.set_title("Phase 7 TCAV scores")
+    ax.set_title("TCAV scores")
     ax.set_xlabel("Concept")
     ax.set_ylabel("Target class")
     ax.set_xticks(range(len(concepts)))
@@ -449,7 +449,7 @@ def main() -> None:
     save_tcav_barplot(score_rows, args.bar_output)
 
     LOGGER.info(
-        "Phase 7 complete: scores=%s cavs=%s heatmap=%s barplot=%s",
+        "TCAV complete: scores=%s cavs=%s heatmap=%s barplot=%s",
         args.score_output,
         args.cav_output,
         args.heatmap_output,

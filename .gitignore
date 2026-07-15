@@ -10,6 +10,8 @@ __pycache__/
 
 # Dataset and generated artifacts
 data/
+!scripts/data/
+!scripts/data/*.py
 sample_data/
 outputs/
 notebooks/outputs/

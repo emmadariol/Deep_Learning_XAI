@@ -183,16 +183,6 @@ def trainable_parameters(model: nn.Module):
     return (parameter for parameter in model.parameters() if parameter.requires_grad)
 
 
-def concept_binary_accuracy(
-    concept_probs: torch.Tensor,
-    concept_targets: torch.Tensor,
-    threshold: float = 0.5,
-) -> float:
-    predicted = concept_probs >= threshold
-    target = concept_targets >= threshold
-    return float((predicted == target).float().mean().item())
-
-
 def run_cbm_epoch(
     model: ConceptBottleneckModel,
     dataloader: DataLoader,

@@ -1,4 +1,4 @@
-"""Run Phase 8 Concept Bottleneck Model training and analysis."""
+"""Train and analyze a Concept Bottleneck Model."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.bottleneck import (
@@ -43,7 +43,7 @@ from src.data import build_dataloaders
 from src.model import build_resnet50_classifier, get_device
 from src.utils import set_seed, setup_logging, write_csv
 
-LOGGER = logging.getLogger("run_phase8_cbm")
+LOGGER = logging.getLogger("train_cbm")
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,7 +68,7 @@ def parse_args() -> argparse.Namespace:
         "--backbone-checkpoint",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "checkpoints" / "best_resnet50_awa2.pt",
-        help="Optional Phase 2 classifier checkpoint used to initialize the CBM backbone.",
+        help="Optional baseline classifier checkpoint used to initialize the CBM backbone.",
     )
     parser.add_argument(
         "--checkpoint-output",
@@ -247,7 +247,7 @@ def load_baseline_classifier(
     checkpoint_path: Path,
     device: torch.device,
 ) -> torch.nn.Module | None:
-    """Load the Phase 2 ResNet baseline for direct-vs-bottleneck comparison."""
+    """Load the ResNet baseline for direct-vs-bottleneck comparison."""
     checkpoint_path = checkpoint_path.expanduser().resolve()
     if not checkpoint_path.exists():
         LOGGER.warning("baseline checkpoint not found; skipping baseline comparison: %s", checkpoint_path)
@@ -356,7 +356,7 @@ def save_training_curves(history_path: Path, output_path: Path) -> None:
 
 
 def save_summary_plot(summary_row: dict[str, object], output_path: Path) -> None:
-    """Save the high-level Phase 8 comparison: direct model, CBM and agreement."""
+    """Save the high-level comparison: direct model, CBM and agreement."""
     labels = ["Baseline ResNet", "Concept bottleneck", "Agreement"]
     values = [
         summary_row.get("baseline_accuracy", ""),
@@ -372,7 +372,7 @@ def save_summary_plot(summary_row: dict[str, object], output_path: Path) -> None
     bars = ax.bar(labels, numeric_values, color=colors)
     ax.set_ylim(0.0, 1.0)
     ax.set_ylabel("fraction")
-    ax.set_title("Phase 8: direct classifier vs concept bottleneck")
+    ax.set_title("Direct classifier vs concept bottleneck")
     ax.grid(axis="y", alpha=0.25)
     for bar, value in zip(bars, numeric_values):
         if np.isfinite(value):
@@ -692,7 +692,7 @@ def main() -> None:
     save_intervention_plot(interventions, args.intervention_figure_output)
 
     LOGGER.info(
-        "Phase 8 complete: checkpoint=%s history=%s summary=%s concept_metrics=%s concept_confusion=%s predictions=%s error_analysis=%s interventions=%s",
+        "CBM training complete: checkpoint=%s history=%s summary=%s concept_metrics=%s concept_confusion=%s predictions=%s error_analysis=%s interventions=%s",
         args.checkpoint_output,
         args.history_output,
         args.summary_output,
