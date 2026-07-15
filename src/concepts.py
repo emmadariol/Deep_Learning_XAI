@@ -191,8 +191,12 @@ def concept_transition_summary(
     source = concept_bank.concept_vector(source_class, normalized=True)
     target = concept_bank.concept_vector(target_class, normalized=True)
     delta = target - source
-    gained_indices = np.argsort(delta)[::-1][:top_k]
-    lost_indices = np.argsort(delta)[:top_k]
+    gained_indices = [
+        int(index) for index in np.argsort(delta)[::-1] if delta[index] > 0
+    ][:top_k]
+    lost_indices = [
+        int(index) for index in np.argsort(delta) if delta[index] < 0
+    ][:top_k]
     shared_indices = np.argsort(np.minimum(source, target))[::-1][:top_k]
 
     return {

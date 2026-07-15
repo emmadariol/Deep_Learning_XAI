@@ -204,8 +204,9 @@ def infer_num_classes(manifest_path: str | Path, require_contiguous: bool = True
 
 
 def load_class_names(manifest_path: str | Path) -> dict[int, str]:
-    """Load label -> class_name from an image manifest."""
+    """Load and validate label -> class_name from an image manifest."""
     names: dict[int, str] = {}
+    labels_by_class: dict[str, int] = {}
     path = Path(manifest_path).expanduser().resolve()
     with path.open("r", newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -214,7 +215,19 @@ def load_class_names(manifest_path: str | Path) -> dict[int, str]:
         if missing:
             raise ValueError(f"Manifest is missing columns: {sorted(missing)}")
         for row in reader:
-            names[int(row["label"])] = row["class_name"]
+            label = int(row["label"])
+            class_name = row["class_name"]
+            if label in names and names[label] != class_name:
+                raise ValueError(
+                    f"Label {label} is assigned to both {names[label]!r} and {class_name!r}."
+                )
+            if class_name in labels_by_class and labels_by_class[class_name] != label:
+                raise ValueError(
+                    f"Class {class_name!r} is assigned to both label "
+                    f"{labels_by_class[class_name]} and {label}."
+                )
+            names[label] = class_name
+            labels_by_class[class_name] = label
 
     if not names:
         raise ValueError(f"No class names found in manifest: {path}")
@@ -232,8 +245,16 @@ def names_from_labels(labels: torch.Tensor, idx_to_class: dict[int, str]) -> lis
 
 
 def build_resnet_transforms(train: bool = False) -> transforms.Compose:
-    """Return standard ImageNet preprocessing for ResNet fine-tuning."""
-    _ = train
+    """Return ResNet preprocessing with augmentation only for training."""
+    if train:
+        return transforms.Compose(
+            [
+                transforms.RandomResizedCrop(224, scale=(0.75, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+            ]
+        )
     return transforms.Compose(
         [
             transforms.Resize(256),

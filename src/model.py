@@ -71,6 +71,26 @@ def unfreeze_modules(model: nn.Module, module_names: tuple[str, ...]) -> None:
         for parameter in module.parameters():
             parameter.requires_grad = True
 
+def set_frozen_batchnorm_eval(model: nn.Module) -> None:
+    """Keep frozen BatchNorm modules in eval mode during fine-tuning.
+
+    Calling ``model.train()`` switches every BatchNorm layer back to training
+    mode, even if its affine parameters are frozen. That would still update
+    running mean/variance. This helper restores eval mode only for BatchNorm
+    modules whose own parameters are all frozen.
+    """
+    batchnorm_types = (
+        nn.BatchNorm1d,
+        nn.BatchNorm2d,
+        nn.BatchNorm3d,
+        nn.SyncBatchNorm,
+    )
+    for module in model.modules():
+        if isinstance(module, batchnorm_types):
+            params = list(module.parameters(recurse=False))
+            if params and all(not parameter.requires_grad for parameter in params):
+                module.eval()
+
 
 def summarize_parameters(model: nn.Module) -> ModelSummary:
     total = sum(parameter.numel() for parameter in model.parameters())

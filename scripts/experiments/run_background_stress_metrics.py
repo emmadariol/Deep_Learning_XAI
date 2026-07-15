@@ -14,7 +14,7 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.experiments.run_xai import collect_correct_examples, collect_reference_images
+from scripts.experiments.run_xai import collect_correct_examples
 from src.data import (
     build_dataloaders,
     denormalize_batch,
@@ -36,7 +36,6 @@ from src.perturb import (
 )
 from src.utils import set_seed, setup_logging, write_csv
 from src.validation import (
-    at_least_two_int,
     device_spec,
     log_level,
     nonnegative_float,
@@ -46,10 +45,7 @@ from src.validation import (
     positive_int,
 )
 from src.xai import (
-    ScoreCAM,
-    expected_gradients,
     gradcam_saliency,
-    input_gradient_saliency,
     integrated_gradients,
     overlay_heatmap,
 )
@@ -113,19 +109,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--xai-methods",
         nargs="+",
-        choices=["input_gradient", "gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
-        default=["gradcam", "scorecam", "integrated_gradients", "expected_gradients"],
+        choices=["gradcam", "integrated_gradients"],
+        default=["gradcam", "integrated_gradients"],
     )
     parser.add_argument("--batch-size", type=positive_int, default=8)
     parser.add_argument("--num-workers", type=nonnegative_int, default=0)
     parser.add_argument("--max-images", type=positive_int, default=4)
     parser.add_argument("--ig-steps", type=positive_int, default=16)
     parser.add_argument("--ig-internal-batch-size", type=positive_int, default=4)
-    parser.add_argument("--expected-gradient-samples", type=positive_int, default=12)
-    parser.add_argument("--expected-gradient-internal-batch-size", type=positive_int, default=8)
-    parser.add_argument("--expected-gradient-baselines", type=at_least_two_int, default=16)
-    parser.add_argument("--scorecam-max-channels", type=positive_int, default=48)
-    parser.add_argument("--scorecam-batch-size", type=positive_int, default=16)
     parser.add_argument("--top-percent", type=open_percentage_float, default=20.0)
     parser.add_argument("--allow-incorrect", action="store_true")
     parser.add_argument(
@@ -148,29 +139,10 @@ def compute_saliency_maps(
     method: str,
     ig_steps: int,
     ig_internal_batch_size: int = 4,
-    expected_gradient_samples: int = 12,
-    expected_gradient_internal_batch_size: int = 8,
-    expected_gradient_baselines: torch.Tensor | None = None,
-    expected_gradient_seed: int | None = None,
-    scorecam_max_channels: int | None = 48,
-    scorecam_batch_size: int = 16,
 ) -> torch.Tensor:
-    """Compute one saliency method for a batch."""
-    if method == "input_gradient":
-        return input_gradient_saliency(model, images, targets)
+    """Compute one maintained saliency method for a batch."""
     if method == "gradcam":
         return gradcam_saliency(model, images, targets, model.layer4[-1])
-    if method == "scorecam":
-        scorecam = ScoreCAM(
-            model,
-            model.layer4[-1],
-            max_channels=scorecam_max_channels,
-            batch_size=scorecam_batch_size,
-        )
-        try:
-            return scorecam(images, targets)
-        finally:
-            scorecam.close()
     if method == "integrated_gradients":
         return integrated_gradients(
             model,
@@ -179,18 +151,7 @@ def compute_saliency_maps(
             steps=ig_steps,
             internal_batch_size=ig_internal_batch_size,
         )
-    if method == "expected_gradients":
-        return expected_gradients(
-            model,
-            images,
-            targets,
-            baselines=expected_gradient_baselines,
-            n_samples=expected_gradient_samples,
-            internal_batch_size=expected_gradient_internal_batch_size,
-            seed=expected_gradient_seed,
-        )
     raise ValueError(f"Unsupported XAI method: {method}")
-
 
 def build_metric_rows(
     true_names: list[str],
@@ -395,14 +356,6 @@ def main() -> None:
         seed=args.seed,
     )
 
-    expected_gradient_baselines = None
-    if "expected_gradients" in args.xai_methods:
-        expected_gradient_baselines = collect_reference_images(
-            loaders["train"],
-            device=device,
-            max_images=args.expected_gradient_baselines,
-        )
-
     perturbed_predictions: dict[str, torch.Tensor] = {}
     perturbed_confidences: dict[str, torch.Tensor] = {}
     perturbed_target_probabilities: dict[str, torch.Tensor] = {}
@@ -442,12 +395,6 @@ def main() -> None:
                 method=xai_method,
                 ig_steps=args.ig_steps,
                 ig_internal_batch_size=args.ig_internal_batch_size,
-                expected_gradient_samples=args.expected_gradient_samples,
-                expected_gradient_internal_batch_size=args.expected_gradient_internal_batch_size,
-                expected_gradient_baselines=expected_gradient_baselines,
-                expected_gradient_seed=args.seed,
-                scorecam_max_channels=args.scorecam_max_channels,
-                scorecam_batch_size=args.scorecam_batch_size,
             ).detach().cpu()
         }
         for perturbation_name, perturbed_images in perturbed_batches.items():
@@ -458,12 +405,6 @@ def main() -> None:
                 method=xai_method,
                 ig_steps=args.ig_steps,
                 ig_internal_batch_size=args.ig_internal_batch_size,
-                expected_gradient_samples=args.expected_gradient_samples,
-                expected_gradient_internal_batch_size=args.expected_gradient_internal_batch_size,
-                expected_gradient_baselines=expected_gradient_baselines,
-                expected_gradient_seed=args.seed,
-                scorecam_max_channels=args.scorecam_max_channels,
-                scorecam_batch_size=args.scorecam_batch_size,
             ).detach().cpu()
         saliency_maps[xai_method] = method_maps
 

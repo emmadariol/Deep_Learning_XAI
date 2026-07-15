@@ -15,9 +15,9 @@ import torch
 def setup_logging(level: str = "INFO") -> None:
     """Configure a compact, timestamped logger."""
     normalized_level = level.upper()
-    if normalized_level not in logging.getLevelNamesMapping():
+    numeric_level = getattr(logging, normalized_level, None)
+    if not isinstance(numeric_level, int):
         raise ValueError(f"Unknown logging level: {level!r}")
-    numeric_level = logging.getLevelNamesMapping()[normalized_level]
     logging.basicConfig(
         level=numeric_level,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

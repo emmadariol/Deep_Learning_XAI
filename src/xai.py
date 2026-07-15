@@ -1,4 +1,13 @@
-"""Attribution utilities for the AwA2 explainability audit."""
+"""Attribution utilities for the AwA2 explainability audit.
+
+Maintained local attribution methods:
+
+- Grad-CAM
+- Integrated Gradients with a blurred-image baseline
+
+The project intentionally excludes older exploratory attribution methods from
+this module so scripts, notebooks and reports expose one coherent method set.
+"""
 
 from __future__ import annotations
 
@@ -9,8 +18,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn.functional as F
-from captum.attr import GradientShap, IntegratedGradients, LayerAttribution, LayerGradCam, Saliency
+from captum.attr import IntegratedGradients, LayerAttribution, LayerGradCam, Saliency
 from PIL import ImageFilter
 from torch import nn
 from torchvision.transforms import functional as TF
@@ -25,21 +33,6 @@ def normalize_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
     flat = maps.flatten(start_dim=1)
     mins = flat.min(dim=1).values.view(-1, 1, 1, 1)
     maxs = flat.max(dim=1).values.view(-1, 1, 1, 1)
-    return (maps - mins) / (maxs - mins + eps)
-
-
-def normalize_channel_maps(maps: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
-    """Min-max normalize every channel of every map independently.
-
-    Score-CAM uses each activation channel as a separate input mask. Sharing
-    one min/max range across channels would suppress low-amplitude channels
-    before their masked class scores are measured.
-    """
-    if maps.dim() != 4:
-        raise ValueError("Expected channel maps with shape [B, C, H, W].")
-    flat = maps.flatten(start_dim=2)
-    mins = flat.min(dim=2).values.unsqueeze(-1).unsqueeze(-1)
-    maxs = flat.max(dim=2).values.unsqueeze(-1).unsqueeze(-1)
     return (maps - mins) / (maxs - mins + eps)
 
 
@@ -81,115 +74,6 @@ def gradcam_saliency(
     return maps.detach()
 
 
-class ScoreCAM:
-    """Score-CAM implementation for one convolutional layer.
-
-    Captum does not provide Score-CAM, so this remains the one local attribution
-    method kept for parity with the report artifacts.
-    """
-
-    def __init__(
-        self,
-        model: nn.Module,
-        target_layer: nn.Module,
-        max_channels: int | None = 64,
-        batch_size: int = 16,
-        blur_radius: float = 18.0,
-    ) -> None:
-        if max_channels is not None and max_channels < 1:
-            raise ValueError("max_channels must be positive or None.")
-        if batch_size < 1:
-            raise ValueError("batch_size must be positive.")
-        if not math.isfinite(blur_radius) or blur_radius < 0.0:
-            raise ValueError("blur_radius must be a non-negative finite number.")
-        self.model = model
-        self.target_layer = target_layer
-        self.max_channels = max_channels
-        self.batch_size = batch_size
-        self.blur_radius = blur_radius
-        self.activations: torch.Tensor | None = None
-        self._forward_handle = target_layer.register_forward_hook(self._save_activations)
-
-    def close(self) -> None:
-        self._forward_handle.remove()
-
-    def _save_activations(
-        self,
-        _module: nn.Module,
-        _inputs: tuple[torch.Tensor, ...],
-        output: torch.Tensor,
-    ) -> None:
-        self.activations = output.detach()
-
-    def __call__(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        """Return normalized Score-CAM maps with shape [B, 1, H, W]."""
-        self.model.eval()
-        with torch.no_grad():
-            _ = self.model(inputs)
-
-        if self.activations is None:
-            raise RuntimeError("Score-CAM hook did not capture activations.")
-
-        activations = F.relu(self.activations)
-        baseline = blurred_baseline(inputs, blur_radius=self.blur_radius)
-        maps: list[torch.Tensor] = []
-        selected_weights: list[torch.Tensor] = []
-
-        for index in range(inputs.size(0)):
-            sample_activations = activations[index : index + 1]
-            channel_scores = sample_activations.flatten(start_dim=2).amax(dim=2).squeeze(0)
-            if self.max_channels is not None and self.max_channels < channel_scores.numel():
-                channel_indices = torch.topk(channel_scores, k=self.max_channels).indices
-                sample_activations = sample_activations[:, channel_indices]
-            else:
-                channel_indices = torch.arange(channel_scores.numel(), device=inputs.device)
-
-            masks = F.interpolate(
-                sample_activations,
-                size=inputs.shape[-2:],
-                mode="bilinear",
-                align_corners=False,
-            )
-            masks = normalize_channel_maps(masks)
-            masked_inputs = baseline[index : index + 1] + masks.transpose(0, 1) * (
-                inputs[index : index + 1] - baseline[index : index + 1]
-            )
-
-            weights: list[torch.Tensor] = []
-            for start in range(0, masked_inputs.size(0), self.batch_size):
-                batch = masked_inputs[start : start + self.batch_size]
-                probabilities = torch.softmax(self.model(batch), dim=1)
-                target = int(targets[index].item())
-                weights.append(probabilities[:, target].detach())
-            channel_weights = torch.cat(weights, dim=0).view(1, -1, 1, 1)
-
-            cam = (channel_weights * sample_activations).sum(dim=1, keepdim=True)
-            cam = F.relu(cam)
-            cam = F.interpolate(cam, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
-            maps.append(cam)
-            selected_weights.append(channel_weights.flatten())
-
-            LOGGER.info(
-                "scorecam.sample index=%d target=%d selected_channels=%d first_channel=%d",
-                index,
-                int(targets[index].item()),
-                int(sample_activations.size(1)),
-                int(channel_indices[0].item()) if channel_indices.numel() else -1,
-            )
-
-        scorecam_maps = normalize_maps(torch.cat(maps, dim=0))
-        weights_for_log = torch.nn.utils.rnn.pad_sequence(
-            [weights.detach().cpu() for weights in selected_weights],
-            batch_first=True,
-            padding_value=0.0,
-        )
-
-        log_tensor_stats("scorecam.activations", activations)
-        log_tensor_stats("scorecam.weights", weights_for_log)
-        log_tensor_stats("scorecam.map", scorecam_maps)
-        return scorecam_maps.detach()
-
-
 def blurred_baseline(
     inputs: torch.Tensor,
     blur_radius: float = 18.0,
@@ -228,7 +112,7 @@ def integrated_gradients_maps(
     internal_batch_size: int | None = 4,
     blur_radius: float = 18.0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Compute IG attribution maps using the blurred-image baseline."""
+    """Compute Integrated Gradients using a blurred-image baseline."""
     if steps < 1:
         raise ValueError("steps must be positive.")
     if internal_batch_size is not None and internal_batch_size < 1:
@@ -269,158 +153,18 @@ def integrated_gradients(
     return maps
 
 
-def _prepare_expected_gradient_baselines(
-    inputs: torch.Tensor,
-    baselines: torch.Tensor | None,
-) -> torch.Tensor:
-    if baselines is None:
-        raise ValueError(
-            "Expected Gradients requires an explicit reference pool, such as "
-            "normalized images collected from the training split."
-        )
-    baselines = baselines.detach().to(device=inputs.device, dtype=inputs.dtype)
-    if baselines.dim() != 4 or baselines.size(1) != inputs.size(1):
-        raise ValueError("Expected baselines with shape [N, C, H, W].")
-    if baselines.size(0) < 2:
-        raise ValueError("Expected Gradients requires at least two reference baselines.")
-    if not torch.isfinite(baselines).all():
-        raise ValueError("Expected Gradients baselines must contain only finite values.")
-    if baselines.shape[-2:] != inputs.shape[-2:]:
-        baselines = F.interpolate(baselines, size=inputs.shape[-2:], mode="bilinear", align_corners=False)
-    return baselines
-
-
-def _batched_gradient_shap_attribute(
-    model: nn.Module,
-    inputs: torch.Tensor,
-    targets: torch.Tensor,
-    baseline_pool: torch.Tensor,
-    n_samples: int,
-    internal_batch_size: int | None,
-) -> torch.Tensor:
-    """Run GradientShap while bounding expanded samples per forward pass."""
-    if inputs.size(0) == 0:
-        raise ValueError("Expected Gradients inputs must not be empty.")
-    if targets.dim() != 1 or targets.size(0) != inputs.size(0):
-        raise ValueError("targets must have shape [B] matching the inputs batch.")
-
-    gradient_shap = GradientShap(model)
-    if internal_batch_size is None:
-        return gradient_shap.attribute(
-            inputs,
-            baselines=baseline_pool,
-            target=targets,
-            n_samples=n_samples,
-            stdevs=0.0,
-        )
-    if internal_batch_size < 1:
-        raise ValueError("internal_batch_size must be positive or None.")
-
-    attribution_chunks: list[torch.Tensor] = []
-    input_chunk_size = min(inputs.size(0), internal_batch_size)
-    for start in range(0, inputs.size(0), input_chunk_size):
-        input_chunk = inputs[start : start + input_chunk_size]
-        target_chunk = targets[start : start + input_chunk_size]
-        samples_per_call = max(1, internal_batch_size // input_chunk.size(0))
-        weighted_attributions = torch.zeros_like(input_chunk)
-        completed_samples = 0
-
-        while completed_samples < n_samples:
-            call_samples = min(samples_per_call, n_samples - completed_samples)
-            call_attributions = gradient_shap.attribute(
-                input_chunk,
-                baselines=baseline_pool,
-                target=target_chunk,
-                n_samples=call_samples,
-                stdevs=0.0,
-            )
-            weighted_attributions += call_attributions * call_samples
-            completed_samples += call_samples
-
-        attribution_chunks.append(weighted_attributions / n_samples)
-
-    return torch.cat(attribution_chunks, dim=0)
-
-
-def expected_gradients_maps(
-    model: nn.Module,
-    inputs: torch.Tensor,
-    targets: torch.Tensor,
-    baselines: torch.Tensor | None = None,
-    n_samples: int = 24,
-    internal_batch_size: int | None = 8,
-    seed: int | None = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Compute Expected Gradients from an explicit reference distribution."""
-    if n_samples < 1:
-        raise ValueError("n_samples must be at least 1.")
-
-    model.eval()
-    baseline_pool = _prepare_expected_gradient_baselines(inputs, baselines)
-    rng_devices = [inputs.device.index or 0] if inputs.device.type == "cuda" else []
-    numpy_rng_state = np.random.get_state() if seed is not None else None
-    try:
-        with torch.random.fork_rng(devices=rng_devices, enabled=seed is not None):
-            if seed is not None:
-                # Captum draws both reference indices and interpolation factors
-                # through NumPy, while NoiseTunnel samples through PyTorch.
-                np.random.seed(seed)
-                torch.manual_seed(seed)
-                if inputs.device.type == "cuda":
-                    torch.cuda.manual_seed_all(seed)
-            attributions = _batched_gradient_shap_attribute(
-                model=model,
-                inputs=inputs,
-                targets=targets,
-                baseline_pool=baseline_pool,
-                n_samples=n_samples,
-                internal_batch_size=internal_batch_size,
-            )
-    finally:
-        if numpy_rng_state is not None:
-            np.random.set_state(numpy_rng_state)
-    maps = attributions_to_saliency_map(attributions)
-
-    log_tensor_stats("expected_gradients.baseline_pool", baseline_pool)
-    log_tensor_stats("expected_gradients.attributions", attributions)
-    log_tensor_stats("expected_gradients.map", maps)
-    return maps.detach(), attributions.detach(), baseline_pool.detach()
-
-
-def expected_gradients(
-    model: nn.Module,
-    inputs: torch.Tensor,
-    targets: torch.Tensor,
-    baselines: torch.Tensor | None = None,
-    n_samples: int = 24,
-    internal_batch_size: int | None = 8,
-    seed: int | None = None,
-) -> torch.Tensor:
-    """Return only normalized Expected Gradients maps for metric pipelines."""
-    maps, _attributions, _baseline_pool = expected_gradients_maps(
-        model=model,
-        inputs=inputs,
-        targets=targets,
-        baselines=baselines,
-        n_samples=n_samples,
-        internal_batch_size=internal_batch_size,
-        seed=seed,
-    )
-    return maps
-
-
 def input_gradient_saliency(
     model: nn.Module,
     inputs: torch.Tensor,
     targets: torch.Tensor,
 ) -> torch.Tensor:
-    """Compute input-gradient saliency maps through Captum Saliency."""
+    """Compute plain input-gradient saliency maps for debugging only."""
     model.zero_grad(set_to_none=True)
     gradient_inputs = inputs.detach().clone().requires_grad_(True)
     attributions = Saliency(model).attribute(gradient_inputs, target=targets, abs=True)
     maps = attributions_to_saliency_map(attributions)
-    log_tensor_stats("vanilla_gradients.raw", attributions)
-    log_tensor_stats("vanilla_gradients.map", maps)
+    log_tensor_stats("input_gradients.raw", attributions)
+    log_tensor_stats("input_gradients.map", maps)
     return maps.detach()
 
 
@@ -438,16 +182,9 @@ def save_xai_grid(
     pred_names: list[str] | None = None,
     confidences: list[float] | None = None,
     output_path: str | Path | None = None,
-    input_gradient_maps: torch.Tensor | None = None,
     predicted_names: list[str] | None = None,
-    scorecam_maps: torch.Tensor | None = None,
-    expected_gradients_maps: torch.Tensor | None = None,
 ) -> None:
-    """Save image and XAI overlays.
-
-    Supports both the older 3-column API and the richer notebook API that also
-    passes input-gradient saliency maps and ``predicted_names``.
-    """
+    """Save original images with Grad-CAM and Integrated Gradients overlays."""
     if pred_names is None:
         pred_names = predicted_names
     if pred_names is None:
@@ -461,15 +198,10 @@ def save_xai_grid(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     denorm = denormalize_batch(images.detach().cpu()).clamp(0, 1)
     n_images = images.shape[0]
-    method_columns: list[tuple[str, torch.Tensor]] = []
-    if input_gradient_maps is not None:
-        method_columns.append(("Input gradients", input_gradient_maps))
-    method_columns.append(("Grad-CAM", gradcam_maps))
-    if scorecam_maps is not None:
-        method_columns.append(("Score-CAM", scorecam_maps))
-    method_columns.append(("Integrated Gradients\nblurred baseline", ig_maps))
-    if expected_gradients_maps is not None:
-        method_columns.append(("Expected Gradients\nbaseline distribution", expected_gradients_maps))
+    method_columns: list[tuple[str, torch.Tensor]] = [
+        ("Grad-CAM", gradcam_maps),
+        ("Integrated Gradients\nblurred baseline", ig_maps),
+    ]
 
     n_columns = 1 + len(method_columns)
     fig, axes = plt.subplots(n_images, n_columns, figsize=(3.4 * n_columns, 3.2 * n_images))

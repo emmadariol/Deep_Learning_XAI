@@ -18,7 +18,6 @@ from src.data import build_dataloaders, infer_num_classes, load_class_names
 from src.model import build_resnet50_classifier, get_device, load_checkpoint
 from src.utils import set_seed, setup_logging
 from src.validation import (
-    at_least_two_int,
     device_spec,
     log_level,
     nonnegative_float,
@@ -26,8 +25,6 @@ from src.validation import (
     positive_int,
 )
 from src.xai import (
-    ScoreCAM,
-    expected_gradients_maps,
     gradcam_saliency,
     integrated_gradients_maps,
     log_tensor_stats,
@@ -60,11 +57,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-per-class", type=positive_int, default=1)
     parser.add_argument("--ig-steps", type=positive_int, default=50)
     parser.add_argument("--ig-internal-batch-size", type=positive_int, default=4)
-    parser.add_argument("--expected-gradient-samples", type=positive_int, default=24)
-    parser.add_argument("--expected-gradient-internal-batch-size", type=positive_int, default=8)
-    parser.add_argument("--expected-gradient-baselines", type=at_least_two_int, default=16)
-    parser.add_argument("--scorecam-max-channels", type=positive_int, default=64)
-    parser.add_argument("--scorecam-batch-size", type=positive_int, default=16)
     parser.add_argument("--blur-radius", type=nonnegative_float, default=18.0)
     parser.add_argument("--device", type=device_spec, default="auto")
     parser.add_argument("--seed", type=int, default=42)
@@ -250,31 +242,6 @@ def collect_correct_examples(
     )
 
 
-def collect_reference_images(
-    loader: torch.utils.data.DataLoader,
-    device: torch.device,
-    max_images: int = 16,
-) -> torch.Tensor:
-    """Collect normalized images from a loader for Expected Gradients baselines."""
-    if max_images < 2:
-        raise ValueError("Expected Gradients requires at least two reference images.")
-    images_out: list[torch.Tensor] = []
-    for batch in loader:
-        images = batch[0]
-        for image in images:
-            images_out.append(image.detach().cpu())
-            if len(images_out) >= max_images:
-                reference = torch.stack(images_out, dim=0).to(device)
-                log_tensor_stats("expected_gradients.reference_images", reference)
-                return reference
-    if not images_out:
-        raise RuntimeError("Could not collect reference images for Expected Gradients.")
-    if len(images_out) < 2:
-        raise RuntimeError("The reference loader yielded fewer than two images.")
-    reference = torch.stack(images_out, dim=0).to(device)
-    log_tensor_stats("expected_gradients.reference_images", reference)
-    return reference
-
 
 def main() -> None:
     args = parse_args()
@@ -299,11 +266,16 @@ def main() -> None:
         pin_memory=device.type == "cuda",
     )
 
-    model = build_resnet50_classifier(num_classes=num_classes, pretrained=False).to(device)
+    model = build_resnet50_classifier(
+        num_classes=num_classes,
+        pretrained=False,
+        trainable_modules=("layer4", "fc"),
+    )
     load_checkpoint(model, checkpoint, device)
+    model.to(device)
     model.eval()
 
-    images, labels, true_names, pred_names, confidences, _image_paths = collect_correct_examples(
+    images, labels, true_names, pred_names, confidences, _paths = collect_correct_examples(
         model=model,
         loader=loaders["test"],
         device=device,
@@ -313,23 +285,15 @@ def main() -> None:
         seed=args.seed,
     )
 
-    log_tensor_stats("xai.inputs", images)
-    LOGGER.info("Selected target labels: %s", [int(label.item()) for label in labels])
+    logits = model(images)
+    log_tensor_stats("logits", logits)
 
-    gradcam_maps = gradcam_saliency(model, images, labels, model.layer4[-1])
-    scorecam = ScoreCAM(
-        model=model,
-        target_layer=model.layer4[-1],
-        max_channels=args.scorecam_max_channels,
-        batch_size=args.scorecam_batch_size,
-        blur_radius=args.blur_radius,
-    )
-    try:
-        scorecam_maps = scorecam(images, labels)
-    finally:
-        scorecam.close()
+    target_layer = model.layer4[-1]
+    LOGGER.info("Computing Grad-CAM on layer: %s", target_layer.__class__.__name__)
+    gradcam_maps = gradcam_saliency(model, images, labels, target_layer)
 
-    ig_maps, _ig_attributions, _ig_baseline = integrated_gradients_maps(
+    LOGGER.info("Computing Integrated Gradients with blurred image baselines")
+    ig_maps, ig_attributions, ig_baselines = integrated_gradients_maps(
         model=model,
         inputs=images,
         targets=labels,
@@ -337,32 +301,22 @@ def main() -> None:
         internal_batch_size=args.ig_internal_batch_size,
         blur_radius=args.blur_radius,
     )
-    expected_baselines = collect_reference_images(
-        loaders["train"],
-        device=device,
-        max_images=args.expected_gradient_baselines,
-    )
-    expected_maps, _expected_attributions, _expected_baseline_pool = expected_gradients_maps(
-        model=model,
-        inputs=images,
-        targets=labels,
-        baselines=expected_baselines,
-        n_samples=args.expected_gradient_samples,
-        internal_batch_size=args.expected_gradient_internal_batch_size,
-        seed=args.seed,
-    )
+
+    log_tensor_stats("gradcam.maps", gradcam_maps)
+    log_tensor_stats("ig.attributions", ig_attributions)
+    log_tensor_stats("ig.baselines", ig_baselines)
+    log_tensor_stats("ig.maps", ig_maps)
 
     save_xai_grid(
         images=images,
         gradcam_maps=gradcam_maps,
         ig_maps=ig_maps,
-        scorecam_maps=scorecam_maps,
-        expected_gradients_maps=expected_maps,
         true_names=true_names,
-        pred_names=pred_names,
+        predicted_names=pred_names,
         confidences=confidences,
         output_path=args.output,
     )
+    LOGGER.info("Saved attribution grid to %s", args.output)
 
 
 if __name__ == "__main__":
