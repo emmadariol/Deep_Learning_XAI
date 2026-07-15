@@ -135,7 +135,7 @@ def save_audit_grid(
     confidences: list[float],
     output_path: str | Path,
 ) -> None:
-    """Save visual comparison for Phase 9 explanation audits."""
+    """Save visual comparison for saliency sanity audits."""
     output_path = Path(output_path).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     denorm = denormalize_batch(images.detach().cpu()).clamp(0, 1)

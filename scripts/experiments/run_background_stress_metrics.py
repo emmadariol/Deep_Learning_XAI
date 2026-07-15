@@ -1,4 +1,4 @@
-"""Run Phase 5 saliency degradation metrics after background perturbations."""
+"""Measure saliency degradation after background perturbations."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_xai import collect_correct_examples
+from scripts.experiments.run_xai import collect_correct_examples
 from src.data import (
     build_dataloaders,
     denormalize_batch,
@@ -27,7 +27,7 @@ from src.metrics import (
     spearman_rank_correlation,
 )
 from src.model import build_resnet50_classifier, get_device, load_checkpoint
-from src.perturb import apply_perturbation_suite, predict_batch
+from src.perturb import apply_perturbation_suite, predict_batch, save_perturbation_grid
 from src.utils import set_seed, setup_logging, write_csv
 from src.xai import (
     ScoreCAM,
@@ -38,7 +38,7 @@ from src.xai import (
     overlay_heatmap,
 )
 
-LOGGER = logging.getLogger("run_phase5_metrics")
+LOGGER = logging.getLogger("run_background_stress_metrics")
 
 
 def draw_panel_label(axis: plt.Axes, text: str) -> None:
@@ -63,7 +63,7 @@ def draw_panel_label(axis: plt.Axes, text: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare saliency maps before and after Phase 4 perturbations."
+        description="Compare saliency maps before and after background perturbations."
     )
     parser.add_argument(
         "--manifest",
@@ -84,6 +84,15 @@ def parse_args() -> argparse.Namespace:
         "--figure-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase5_saliency_comparison.png",
+    )
+    parser.add_argument(
+        "--perturbation-figure-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase5_perturbations.png",
+        help=(
+            "Output grid with the original image, approximate background mask, and "
+            "raw perturbations."
+        ),
     )
     parser.add_argument(
         "--xai-methods",
@@ -323,7 +332,7 @@ def main() -> None:
     target_labels = original_predictions
     target_names = original_prediction_names
 
-    _background_mask, perturbed_batches = apply_perturbation_suite(
+    background_mask, perturbed_batches = apply_perturbation_suite(
         inputs=images,
         mask_strategy=args.mask_strategy,
         foreground_scale=args.foreground_scale,
@@ -337,6 +346,19 @@ def main() -> None:
         predictions, confidences = predict_batch(model, perturbed_images)
         perturbed_predictions[perturbation_name] = predictions
         perturbed_confidences[perturbation_name] = confidences
+
+    save_perturbation_grid(
+        original_images=images,
+        background_mask=background_mask,
+        perturbed_batches=perturbed_batches,
+        true_names=true_names,
+        original_pred_names=original_prediction_names,
+        perturbed_pred_names={
+            name: names_from_labels(predictions, idx_to_class)
+            for name, predictions in perturbed_predictions.items()
+        },
+        output_path=args.perturbation_figure_output,
+    )
 
     saliency_maps: dict[str, dict[str, torch.Tensor]] = {}
     for xai_method in args.xai_methods:
@@ -407,7 +429,12 @@ def main() -> None:
             preferred_method=xai_method,
         )
 
-    LOGGER.info("Phase 5 complete: figure=%s csv=%s", args.figure_output, args.csv_output)
+    LOGGER.info(
+        "Background stress metrics complete: perturbations=%s saliency=%s csv=%s",
+        args.perturbation_figure_output,
+        args.figure_output,
+        args.csv_output,
+    )
 
 
 if __name__ == "__main__":

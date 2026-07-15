@@ -23,11 +23,6 @@ class EpochMetrics:
     val_acc: float
 
 
-def accuracy(logits: torch.Tensor, labels: torch.Tensor) -> float:
-    predictions = logits.argmax(dim=1)
-    return (predictions == labels).float().mean().item()
-
-
 def run_epoch(
     model: nn.Module,
     dataloader: DataLoader,

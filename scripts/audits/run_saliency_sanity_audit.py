@@ -1,4 +1,4 @@
-"""Run Phase 9 explanation robustness and sanity checks."""
+"""Run explanation robustness and saliency sanity checks."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data import build_dataloaders, infer_class_map_path, infer_num_classes
@@ -26,7 +26,7 @@ from src.model import build_resnet50_classifier, get_device, load_checkpoint
 from src.utils import set_seed, setup_logging, write_csv
 from src.xai import input_gradient_saliency
 
-LOGGER = logging.getLogger("run_phase9_explainability_audit")
+LOGGER = logging.getLogger("run_saliency_sanity_audit")
 
 
 def parse_args() -> argparse.Namespace:
@@ -260,7 +260,7 @@ def main() -> None:
         confidences=confidences,
         output_path=args.figure_output,
     )
-    LOGGER.info("Phase 9 complete: metrics=%s figure=%s", args.metrics_output, args.figure_output)
+    LOGGER.info("Saliency sanity audit complete: metrics=%s figure=%s", args.metrics_output, args.figure_output)
 
 
 if __name__ == "__main__":
