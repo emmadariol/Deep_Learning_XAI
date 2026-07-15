@@ -1058,6 +1058,42 @@
       font-size: 0.92rem;
     }
 
+    .blog-wide-figure {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      margin: 22px 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .blog-wide-figure img {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      background: #ffffff;
+      object-fit: contain;
+    }
+
+    .blog-wide-figure.compact-chart img {
+      width: auto;
+      max-width: 100%;
+      max-height: 720px;
+      margin: 0 auto;
+    }
+
+    .blog-wide-figure figcaption {
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+
     .figure-flashcards {
       margin-top: 18px;
       border: 1px solid var(--line);
@@ -1722,7 +1758,7 @@
       <a href="#metrics">Metrics</a>
       <a href="#results">Results</a>
       <a href="#concepts">Concepts</a>
-      <a href="#reading">Interpretation</a>
+      <a href="#reading">Final conclusions</a>
     </div>
   </nav>
 
@@ -1783,6 +1819,15 @@
             </div>
           </article>
         </div>
+
+
+
+        <figure class="blog-wide-figure">
+          <img src="blog_project_pipeline.svg"
+            alt="Diagram of the full explainability audit pipeline from image input to ResNet50, attribution maps, stress tests, metrics and concept-level analysis." />
+          <figcaption>The full audit flow: the model is explained locally, challenged with controlled background
+            changes, measured quantitatively, and then checked against concept-level evidence.</figcaption>
+        </figure>
 
         <div class="metric-flashcards" aria-label="Explainability principles flashcards">
           <div class="metric-flashcard-top">
@@ -2087,6 +2132,15 @@
           </p>
         </div>
 
+
+
+        <figure class="blog-wide-figure">
+          <img src="blog_method_taxonomy.svg"
+            alt="Taxonomy diagram grouping attribution methods into activation localization, gradient path attribution, denoising and sanity checks, interventions, and concept-level explanations." />
+          <figcaption>The methods are not interchangeable: each family answers a different question about model
+            behavior.</figcaption>
+        </figure>
+
         <div class="figure-flashcards" aria-label="Attribution method flashcards">
           <div class="figure-flashcard-top">
             <div>
@@ -2252,7 +2306,7 @@
                 </div>
                 <div class="method-results">
                   <h4>Notebook results</h4>
-                  <p>Phase 9 compares vanilla gradients with SmoothGrad on correctly predicted examples.</p>
+                  <p>The sanity audit compares vanilla gradients with SmoothGrad on correctly predicted examples.</p>
                   <div class="method-result-grid">
                     <div class="method-result"><strong>Vanilla vs SmoothGrad IoU</strong><span>0.253</span></div>
                     <div class="method-result"><strong>Vanilla vs SmoothGrad Spearman</strong><span>0.366</span></div>
@@ -2283,7 +2337,8 @@
                 </div>
                 <div class="method-results">
                   <h4>Notebook results</h4>
-                  <p>Phase 9 shows that vanilla gradients and occlusion do not rank evidence in the same way.</p>
+                  <p>The sanity audit shows that vanilla gradients and occlusion do not rank evidence in the same way.
+                  </p>
                   <div class="method-result-grid">
                     <div class="method-result"><strong>Vanilla vs Occlusion IoU</strong><span>0.201</span></div>
                     <div class="method-result"><strong>Vanilla vs Occlusion Spearman</strong><span>0.158</span></div>
@@ -2509,7 +2564,7 @@
           <div>
             <h3>How to read the numbers</h3>
             <p>
-              The questions is if the same evidence
+              The question is whether the same evidence
               remains important when the image is perturbed, and whether removing or inserting that
               evidence changes the model score in the expected direction.
             </p>
@@ -2531,6 +2586,16 @@
             </div>
           </div>
         </div>
+
+
+
+        <figure class="blog-wide-figure compact-chart">
+          <img src="../outputs/figures/blog_metric_summary.png"
+            alt="Four-panel quantitative summary comparing attribution methods by saliency location, sensitivity stability, faithfulness curves and background-swap behavior." />
+          <figcaption>Compact quantitative summary of the audit: CAM methods are more object-concentrated here, while
+            background perturbations and faithfulness curves show why visual inspection alone is insufficient.
+          </figcaption>
+        </figure>
 
         <div class="metric-flashcards" aria-label="Metric flashcards">
           <div class="metric-flashcard-top">
@@ -2735,6 +2800,15 @@
           </article>
         </div>
 
+
+
+        <figure class="blog-wide-figure compact-chart">
+          <img src="../outputs/figures/blog_case_study_summary.png"
+            alt="Case-study summary showing an antelope prediction changing to walrus after a background swap, with confidence and explanation stability metrics." />
+          <figcaption>A single unstable example makes the failure mode concrete: a background change can switch the
+            predicted class and reduce explanation stability.</figcaption>
+        </figure>
+
         <div class="result-grid">
           <article class="result-card">
             <h3>Local attribution comparison</h3>
@@ -2812,7 +2886,7 @@
                   0.113</span></div>
             </div>
             <div class="result-note">
-              Phase 9 confirms that vanilla gradients are not interchangeable with perturbation-based
+              The sanity audit confirms that vanilla gradients are not interchangeable with perturbation-based
               evidence: mean vanilla-vs-occlusion Spearman is 0.158.
             </div>
           </article>
@@ -3449,6 +3523,15 @@
             </div>
           </article>
         </div>
+
+
+
+        <figure class="blog-wide-figure">
+          <img src="blog_evidence_ladder.svg"
+            alt="Evidence ladder from visual plausibility to spatial stability, behavioral faithfulness, sanity checks and concept alignment." />
+          <figcaption>The final conclusion follows an evidence ladder: a heatmap becomes more credible only after
+            stability, faithfulness, sanity and concept checks agree.</figcaption>
+        </figure>
 
         <div class="final-position">
           <h3>Final conclusion</h3>

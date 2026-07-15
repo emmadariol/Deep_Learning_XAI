@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="380" viewBox="0 0 1320 380" role="img">
+  <rect width="100%" height="100%" rx="22" fill="#f7faf9"/>
+  <text x="660" y="50" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="700" fill="#18324a" text-anchor="middle">Taxonomy of explanation methods used in the project</text>
+  <rect x="45" y="105" width="220" height="220" rx="18" fill="#e8f4f2" stroke="#cfd8dc" stroke-width="2"/>
+  <text x="155.0" y="143" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Activation</text>
+<text x="155.0" y="169" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">localization</text>
+  <text x="155.0" y="187" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Grad-CAM Score-CAM</text>
+<text x="155" y="252" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">Where do final feature</text>
+<text x="155" y="272" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">maps support the class?</text>
+  <rect x="295" y="105" width="220" height="220" rx="18" fill="#eef3fb" stroke="#cfd8dc" stroke-width="2"/>
+  <text x="405.0" y="143" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Gradient path</text>
+  <text x="405.0" y="187" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Integrated</text>
+<text x="405.0" y="207" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Gradients Expected</text>
+<text x="405.0" y="227" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Gradients</text>
+<text x="405" y="252" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">How does the score</text>
+<text x="405" y="272" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">change from baseline to</text>
+<text x="405" y="292" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">image?</text>
+  <rect x="545" y="105" width="220" height="220" rx="18" fill="#fff6e5" stroke="#cfd8dc" stroke-width="2"/>
+  <text x="655.0" y="143" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Denoising and</text>
+<text x="655.0" y="169" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">sanity</text>
+  <text x="655.0" y="187" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">SmoothGrad</text>
+<text x="655.0" y="207" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">randomized</text>
+<text x="655.0" y="227" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">controls</text>
+<text x="655" y="252" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">Are gradients stable or</text>
+<text x="655" y="272" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">visually misleading?</text>
+  <rect x="795" y="105" width="220" height="220" rx="18" fill="#fbeeee" stroke="#cfd8dc" stroke-width="2"/>
+  <text x="905.0" y="143" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Intervention</text>
+  <text x="905.0" y="187" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Occlusion deletion</text>
+<text x="905.0" y="207" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">insertion</text>
+<text x="905" y="252" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">Does removing</text>
+<text x="905" y="272" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">highlighted evidence</text>
+<text x="905" y="292" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">change behavior?</text>
+  <rect x="1045" y="105" width="220" height="220" rx="18" fill="#eef7ed" stroke="#cfd8dc" stroke-width="2"/>
+  <text x="1155.0" y="143" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Concept level</text>
+  <text x="1155.0" y="187" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">TCAV Concept</text>
+<text x="1155.0" y="207" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Bottleneck</text>
+<text x="1155" y="252" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">Do features align with</text>
+<text x="1155" y="272" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">human-readable</text>
+<text x="1155" y="292" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#263238" text-anchor="middle">attributes?</text>
+</svg>
