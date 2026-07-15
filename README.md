@@ -183,7 +183,7 @@ outputs/reports/training_history.csv
 
 ## XAI Examples
 
-After training, generate a small XAI grid:
+After training, generate a small local-attribution grid:
 
 ```bash
 python scripts/experiments/run_xai.py \
@@ -197,35 +197,20 @@ python scripts/experiments/run_xai.py \
 Audit examples are selected reproducibly with class-balanced reservoir sampling,
 so ordered manifests do not concentrate the analysis on the first class.
 
-For a quicker method-comparison run:
-
-```bash
-python scripts/experiments/run_xai.py \
-  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
-  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --output outputs/figures/xai_smoke_test.png \
-  --max-images 2 \
-  --ig-steps 4 \
-  --expected-gradient-samples 4 \
-  --expected-gradient-baselines 4 \
-  --scorecam-max-channels 16
-```
-
-Project attribution methods:
+Project explainability methods:
 
 ```text
-Input gradients: Captum Saliency
-Grad-CAM: Captum LayerGradCam at model.layer4[-1]
-Score-CAM: local implementation kept for report parity
-Integrated Gradients: Captum IntegratedGradients from a blurred image baseline
-Expected Gradients: Captum GradientShap over a distribution of image baselines
-SmoothGrad and Occlusion: Captum NoiseTunnel and Occlusion in the sanity audit
+Pixel-level local attribution:
+  Grad-CAM: Captum LayerGradCam at model.layer4[-1]
+  Integrated Gradients: Captum IntegratedGradients from a blurred image baseline
+
+Concept-level explanation:
+  TCAV: concept directions in activation space with validation and random-concept baselines
+  Concept Bottleneck Model: class prediction mediated by AwA2 semantic attributes
 ```
 
-`scripts/experiments/run_xai.py` writes a visual grid for Grad-CAM, Score-CAM, Integrated
-Gradients and Expected Gradients. Most attribution methods are backed by
-Captum; Score-CAM is the exception because Captum does not provide it and the
-blog/report includes Score-CAM results that should remain reproducible.
+`scripts/experiments/run_xai.py` writes a visual grid for Grad-CAM and Integrated
+Gradients. The concept-level analyses are produced by the TCAV and CBM scripts.
 
 ## Background Stress and Saliency Metrics
 
@@ -273,9 +258,8 @@ python scripts/experiments/run_background_stress_metrics.py \
   --perturbation-figure-output outputs/figures/phase5_perturbations.png \
   --figure-output outputs/figures/phase5_saliency_comparison.png \
   --max-images 4 \
-  --xai-methods gradcam scorecam integrated_gradients expected_gradients \
+  --xai-methods gradcam integrated_gradients \
   --ig-steps 16 \
-  --scorecam-max-channels 48 \
   --mask-strategy center_ellipse
 ```
 
@@ -450,43 +434,6 @@ high class accuracy   -> the predicted concepts are sufficient for classificatio
 large intervention    -> manually changing a concept strongly affects a class probability
 ```
 
-## Saliency Sanity Audit
-
-This audit compares vanilla input gradients with SmoothGrad, occlusion sensitivity
-and gradients from a randomized copy of the model. This checks whether the
-saliency maps are stable, perturbation-consistent and model-dependent.
-
-Run the saliency sanity audit:
-
-```bash
-python scripts/audits/run_saliency_sanity_audit.py \
-  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
-  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --num-examples 4 \
-  --smoothgrad-samples 12 \
-  --occlusion-patch-size 32 \
-  --occlusion-stride 16 \
-  --metrics-output outputs/reports/phase9_explainability_audit.csv \
-  --figure-output outputs/figures/phase9_explainability_audit.png
-```
-
-Outputs:
-
-```text
-outputs/reports/phase9_explainability_audit.csv
-outputs/figures/phase9_explainability_audit.png
-```
-
-Notebook: `notebooks/03_bottleneck_sanity_report.ipynb`
-
-Interpretation:
-
-```text
-vanilla vs SmoothGrad       -> local noise stability
-vanilla vs occlusion        -> agreement with perturbation-based evidence
-vanilla vs randomized model -> model-dependence sanity check
-```
-
 ## Advanced Attribution Audit
 
 This audit evaluates whether attribution maps are faithful, stable,
@@ -499,10 +446,9 @@ Run the audit:
 python scripts/audits/run_advanced_attribution_audit.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --methods gradcam scorecam integrated_gradients expected_gradients \
+  --methods gradcam integrated_gradients \
   --num-examples 4 \
   --ig-steps 12 \
-  --scorecam-max-channels 48 \
   --report-output outputs/reports/advanced_attribution_audit.csv \
   --summary-output outputs/reports/advanced_attribution_audit_summary.csv \
   --figure-dir outputs/figures/advanced_attribution_audit

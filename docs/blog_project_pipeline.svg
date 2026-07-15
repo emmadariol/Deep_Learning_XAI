@@ -17,7 +17,7 @@
   <rect x="480" y="120" width="185" height="150" rx="18" fill="#ffffff" stroke="#cfd8dc" stroke-width="2"/>
   <text x="572.5" y="158" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Attribution</text>
   <text x="572.5" y="202" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Grad-CAM, IG,</text>
-<text x="572.5" y="222" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Score-CAM, EG</text>
+<text x="572.5" y="222" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">TCAV, CBM</text>
 
   <rect x="700" y="120" width="185" height="150" rx="18" fill="#ffffff" stroke="#cfd8dc" stroke-width="2"/>
   <text x="792.5" y="158" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Stress test</text>

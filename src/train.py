@@ -11,6 +11,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from src.model import set_frozen_batchnorm_eval
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -34,6 +36,8 @@ def run_epoch(
     """Run one epoch. Passing an optimizer enables training."""
     training = optimizer is not None
     model.train(mode=training)
+    if training:
+        set_frozen_batchnorm_eval(model)
 
     total_loss = 0.0
     total_correct = 0

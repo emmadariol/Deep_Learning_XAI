@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explainability Audit for Visual Classifiers</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #5f6b76;
+      --line: #d8e0e6;
+      --bg: #f7f9fb;
+      --panel: #fff;
+      --blue: #24496d;
+      --teal: #277f78;
+      --amber: #b97817
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55
+    }
+
+    .shell {
+      width: 100%;
+      max-width: none;
+      min-height: 100vh;
+      margin: 0;
+      padding: 32px clamp(24px, 4vw, 72px) 64px
+    }
+
+    header {
+      min-height: 18vh;
+      padding: 34px 0 22px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 5vw, 5.4rem);
+      line-height: 1.03;
+      letter-spacing: 0;
+      max-width: 1400px
+    }
+
+    .lead {
+      margin: 18px 0 0;
+      max-width: 1400px;
+      font-size: clamp(1.05rem, 1.25vw, 1.35rem);
+      color: var(--muted)
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 26px 0;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(247, 249, 251, .96);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .nav button,
+    .flashnav button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 13px;
+      border-radius: 8px;
+      font-weight: 650;
+      cursor: pointer
+    }
+
+    .nav button.active {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue)
+    }
+
+    section {
+      display: none;
+      min-height: calc(100vh - 190px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: clamp(26px, 3vw, 48px);
+      box-shadow: 0 18px 35px rgba(26, 43, 61, .06);
+      margin-bottom: 24px
+    }
+
+    section.active {
+      display: block
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.7rem
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 1.05rem
+    }
+
+    p {
+      margin: 10px 0
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(16px, 2vw, 28px)
+    }
+
+    .card,
+    .method {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 16px
+    }
+
+    .method {
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .method img,
+    figure img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      display: block
+    }
+
+    figure {
+      margin: 16px 0 0
+    }
+
+    figcaption {
+      color: var(--muted);
+      font-size: .92rem;
+      margin-top: 8px
+    }
+
+    code,
+    .formula {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #eef3f6;
+      padding: .14rem .32rem;
+      border-radius: 5px
+    }
+
+    .formula {
+      display: block;
+      overflow-x: auto;
+      padding: 12px;
+      margin: 10px 0
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: stretch;
+      margin: 18px 0
+    }
+
+    .step {
+      background: #f2f7f7;
+      border: 1px solid #cfe1df;
+      border-radius: 10px;
+      padding: 13px;
+      min-height: 92px
+    }
+
+    .step strong {
+      display: block;
+      color: var(--teal);
+      margin-bottom: 5px
+    }
+
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 16px 0
+    }
+
+    .kpi div {
+      background: #f8fbfc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px
+    }
+
+    .kpi strong {
+      display: block;
+      font-size: 1.5rem;
+      color: var(--blue)
+    }
+
+    .flash {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+      align-items: start
+    }
+
+    .flashnav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .flashnav button {
+      text-align: left
+    }
+
+    .flashnav button.active {
+      border-color: var(--teal);
+      background: #edf8f6
+    }
+
+    .flashpanel {
+      min-height: 220px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px;
+      background: #fff
+    }
+
+    .warning {
+      border-left: 4px solid var(--amber);
+      padding-left: 12px;
+      color: #4d3a1c
+    }
+
+    .conclusion {
+      border-left: 4px solid var(--blue);
+      padding-left: 14px
+    }
+
+    @media(max-width:900px) {
+
+      .grid,
+      .flow,
+      .kpi,
+      .flash {
+        grid-template-columns: 1fr
+      }
+
+      .shell {
+        padding: 22px 14px 46px
+      }
+
+      section {
+        min-height: auto
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="shell">
+    <header>
+      <h1>Explainability Audit for Visual Classifiers</h1>
+      <p class="lead">A structured study of whether local saliency maps and concept-level explanations provide reliable
+        evidence for a ResNet50 animal classifier trained on AwA2.</p>
+    </header>
+    <nav class="nav"><button class="active" data-section="overview">Overview</button><button
+        data-section="model">Model</button><button data-section="local">Local attribution</button><button
+        data-section="errors">Network errors</button><button data-section="stress">Stress test</button><button
+        data-section="concepts">Concepts</button><button data-section="metrics">Metrics</button><button
+        data-section="results">Results</button><button data-section="conclusion">Conclusion</button></nav>
+    <section id="overview" class="active">
+      <h2>What explainability means here</h2>
+      <p>Explainability connects a model output to interpretable evidence. Here, the output is an animal class
+        probability and the evidence can be either image regions or human-readable concepts.</p>
+      <div class="flow">
+        <div class="step"><strong>Image</strong>RGB pixels are resized, cropped and normalized.</div>
+        <div class="step"><strong>Classifier</strong>ResNet50 produces logits and softmax probabilities.</div>
+        <div class="step"><strong>Local maps</strong>Grad-CAM and Integrated Gradients produce heatmaps.</div>
+        <div class="step"><strong>Stress tests</strong>Background changes test map stability.</div>
+        <div class="step"><strong>Concepts</strong>TCAV and CBM test semantic evidence.</div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Saliency map</h3>
+          <p>A saliency map assigns an importance value to spatial locations. It is usually displayed as a heatmap.</p>
+        </div>
+        <div class="card">
+          <h3>Local explanation</h3>
+          <p>A local explanation is computed for one image and one target class.</p>
+        </div>
+        <div class="card">
+          <h3>Faithfulness</h3>
+          <p>A faithful explanation should identify evidence that actually affects the target score.</p>
+        </div>
+        <div class="card">
+          <h3>Concept explanation</h3>
+          <p>A concept explanation uses semantic attributes such as stripes, horns, paws or color.</p>
+        </div>
+      </div>
+    </section>
+    <section id="model">
+      <h2>Classifier and training</h2>
+      <p>The explained model is a ResNet50 image classifier. Most architectural choices are standard defaults from
+        <code>torchvision.models.resnet50</code>: the convolutional stem, residual bottleneck blocks, kernel sizes,
+        skip connections and downsampling pattern are not manually redefined in this project. The project-specific
+        choices are the input preprocessing, the replacement of the final classifier, the fine-tuning policy and the
+        training objective.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Default backbone</h3>
+          <p>The backbone is the canonical ResNet50 architecture. Unless <code>--no-pretrained</code> is passed, it
+            starts
+            from ImageNet pretrained weights. This is a transfer-learning setup: early visual filters already detect
+            generic patterns such as edges, textures and object parts.</p>
+        </div>
+        <div class="card">
+          <h3>Input tensor</h3>
+          <p>Each RGB image is resized/cropped to <code>224 x 224</code>, converted to a tensor with shape
+            <code>3 x 224 x 224</code> and normalized with ImageNet mean/std. The model therefore receives normalized
+            channels, not raw pixel values.
+          </p>
+        </div>
+        <div class="card">
+          <h3>First convolution</h3>
+          <p>ResNet50 starts with a <code>7 x 7</code> convolution with stride <code>2</code>, followed by batch
+            normalization, ReLU and max pooling. This quickly reduces spatial resolution while increasing feature
+            abstraction.</p>
+        </div>
+        <div class="card">
+          <h3>Residual bottlenecks</h3>
+          <p>Each bottleneck block uses <code>1 x 1</code>, <code>3 x 3</code> and <code>1 x 1</code> convolutions. The
+            residual skip connection adds the block input to the transformed representation, making optimization easier
+            in a deep network.</p>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Downsampling and Grad-CAM layer</h3>
+          <p>Spatial resolution is reduced by the initial stride and by strided residual stages. The last convolutional
+            representation is approximately <code>2048 x 7 x 7</code>. Grad-CAM is computed at <code>layer4[-1]</code>,
+            so its native heatmap is coarse and must be upsampled for visualization.</p>
+        </div>
+        <div class="card">
+          <h3>Classifier head</h3>
+          <p>The original ImageNet fully connected layer is replaced by a new linear layer with one output per AwA2
+            class
+            in the manifest. The network outputs logits <code>z</code>. Softmax is used after the logits to obtain class
+            probabilities for interpretation.</p>
+        </div>
+        <div class="card">
+          <h3>Fine-tuning policy</h3>
+          <p>The current baseline fine-tunes <code>layer4</code> and <code>fc</code>. Earlier layers are frozen to
+            preserve
+            generic ImageNet features and reduce training cost. Frozen BatchNorm layers are forced to evaluation mode so
+            their running statistics do not change during training.</p>
+        </div>
+        <div class="card">
+          <h3>Regularization</h3>
+          <p>There is no additional dropout layer in the standard ResNet50 classifier used here. Regularization comes
+            from
+            transfer learning, frozen early layers, data augmentation on the training split, AdamW weight decay and
+            validation-based checkpoint selection.</p>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Loss function</h3>
+          <p>The baseline is optimized with PyTorch <code>nn.CrossEntropyLoss()</code>, which combines log-softmax and
+            negative log-likelihood for multiclass classification.</p>
+          <span class="formula">L(x, y) = - log( exp(z_y) / sum_j exp(z_j) )</span>
+          <p>The loss penalizes the model when the logit assigned to the true animal class is not sufficiently larger
+            than
+            the logits assigned to the other classes.</p>
+        </div>
+        <div class="card">
+          <h3>Optimizer</h3>
+          <p>The script uses <code>torch.optim.AdamW</code> over trainable parameters only. The default command-line
+            values are
+            <code>lr = 1e-4</code> and <code>weight_decay = 1e-4</code>. Weight decay discourages unnecessarily large
+            weights in the fine-tuned layers.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Training schedule</h3>
+          <p>The default script runs for <code>5</code> epochs with batch size <code>32</code>. During training, the
+            project
+            records train/validation loss and accuracy. The saved checkpoint is the model with the best validation
+            accuracy observed during the run.</p>
+        </div>
+        <div class="card">
+          <h3>Preprocessing policy</h3>
+          <p>Training uses stochastic augmentation: random resized crop and horizontal flip. Validation and test use
+            deterministic resize plus center crop. This separation avoids measuring validation performance on randomly
+            augmented evaluation images.</p>
+        </div>
+      </div>
+      <figure><img src="resnet50_visual.svg" alt="Schematic representation of the ResNet50 architecture.">
+        <figcaption>ResNet50 architecture overview: RGB input, early convolution and pooling, residual bottleneck
+          stages, global average pooling and final class logits.</figcaption>
+      </figure>
+      <figure><img src="assets/xai-report/resnet-forward.png" alt="Real forward inspection through ResNet50.">
+        <figcaption>Forward inspection shows how the image representation changes through the network.</figcaption>
+      </figure>
+    </section>
+    <section id="local">
+      <h2>Local attribution methods</h2>
+      <div class="grid">
+        <article class="method">
+          <h3>Grad-CAM</h3>
+          <p>Grad-CAM explains a target logit through the last convolutional feature maps.</p><span
+            class="formula">alpha_k^c = mean( dS_c / dA_k )<br>M_c = ReLU( sum_k alpha_k^c A_k )</span>
+          <p>The heatmap is semantically rich but spatially coarse.</p><img src="assets/xai-report/gradcam-theory.png"
+            alt="Grad-CAM theory diagram.">
+        </article>
+        <article class="method">
+          <h3>Integrated Gradients</h3>
+          <p>Integrated Gradients attributes the score difference between a blurred baseline and the input.</p><span
+            class="formula">IG_i(x) = (x_i - x'_i) integral_0^1 dF(x' + a(x-x')) / dx_i da</span>
+          <p>The blurred baseline preserves global brightness while removing detailed morphology.</p><img
+            src="assets/xai-report/integrated-gradients-theory.png" alt="Integrated Gradients theory diagram.">
+        </article>
+      </div>
+      <div class="grid">
+        <figure><img src="assets/xai-report/correct-attributions.png" alt="Correct predictions with attribution maps.">
+          <figcaption>Correct predictions are useful only if the highlighted evidence is consistent with the animal.
+          </figcaption>
+        </figure>
+        <figure><img src="assets/xai-report/incorrect-attributions.png"
+            alt="Incorrect predictions with attribution maps.">
+          <figcaption>Incorrect predictions reveal which visual evidence supported the wrong class.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section id="errors">
+      <h2>When the network is wrong</h2>
+      <p>A misclassification is the most informative case for explainability. The model has produced a high-dimensional
+        representation, assigned logits to all classes, and selected the class with the largest softmax probability. If
+        the selected class is not the ground truth, the explanation should clarify what evidence supported the wrong
+        decision.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>Predicted-class explanation</h3>
+          <p>For an incorrect prediction, Grad-CAM and Integrated Gradients are usually computed with respect to the
+            predicted class. This answers the question: which regions increased the score of the class the model
+            actually
+            chose?</p>
+        </div>
+        <div class="card">
+          <h3>True-class explanation</h3>
+          <p>The same methods can also target the true class. This answers a different question: which regions would
+            need
+            to support the correct class more strongly? Comparing predicted-class and true-class maps is useful when two
+            animals share morphology.</p>
+        </div>
+        <div class="card">
+          <h3>Confidence is not correctness</h3>
+          <p>A wrong prediction can still have high confidence. Softmax only normalizes logits; it does not verify
+            whether
+            the model used the right visual evidence. A confident error is therefore a strong candidate for shortcut or
+            class-prototype analysis.</p>
+        </div>
+        <div class="card">
+          <h3>What the heatmap can reveal</h3>
+          <p>If saliency is on the animal, the error may come from morphological similarity. If saliency is on the
+            background, the model may be using context. If saliency is diffuse, the image may not contain a clean visual
+            signal for the selected class.</p>
+        </div>
+      </div>
+      <figure><img src="assets/xai-report/incorrect-attributions.png"
+          alt="Incorrect predictions explained with Grad-CAM and Integrated Gradients.">
+        <figcaption>Misclassified examples should be read with the predicted label, true label and confidence together.
+          The heatmap explains the target score used for attribution, not the semantic truth of the image.</figcaption>
+      </figure>
+      <div class="grid">
+        <div class="card">
+          <h3>Grad-CAM on an error</h3>
+          <p>Grad-CAM localizes late convolutional evidence for the wrong class. If the highlighted region is the head,
+            body shape or texture of the animal, the error is likely related to class similarity. If the highlighted
+            region is scenery, the prediction may be relying on contextual correlation.</p>
+        </div>
+        <div class="card">
+          <h3>Integrated Gradients on an error</h3>
+          <p>Integrated Gradients shows which input pixels accumulated attribution from the blurred baseline to the real
+            image. On errors, scattered or background-heavy attribution warns that the wrong class score may be
+            sensitive
+            to low-level texture rather than robust morphology.</p>
+        </div>
+      </div>
+      <p class="warning">Conservative interpretation: an error heatmap does not prove why the model failed. It provides
+        a
+        hypothesis. The hypothesis becomes stronger only if it is consistent with perturbation stability, class-specific
+        attribution and concept-level evidence.</p>
+    </section>
+    <section id="stress">
+      <h2>Background stress test</h2>
+      <p>The central question is whether explanations remain stable when the animal region is preserved but the
+        background is changed.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>Gaussian noise</h3>
+          <p>Add random noise to the approximate background.</p>
+        </div>
+        <div class="card">
+          <h3>Color shift</h3>
+          <p>Shift RGB channels only in the approximate background.</p>
+        </div>
+        <div class="card">
+          <h3>Background replacement</h3>
+          <p>Replace the approximate background with uniform random texture.</p>
+        </div>
+        <div class="card">
+          <h3>Interpretation</h3>
+          <p>If the predicted class or heatmap moves substantially, the explanation is sensitive to context.</p>
+        </div>
+      </div>
+      <figure><img src="assets/xai-report/background-perturbations.png" alt="Background perturbation examples.">
+        <figcaption>The perturbation grid makes the intervention explicit.</figcaption>
+      </figure>
+      <div class="grid">
+        <figure><img src="assets/xai-report/stress-gradcam.png" alt="Grad-CAM under background stress.">
+          <figcaption>Grad-CAM checks late feature localization stability.</figcaption>
+        </figure>
+        <figure><img src="assets/xai-report/stress-integrated-gradients.png"
+            alt="Integrated Gradients under background stress.">
+          <figcaption>Integrated Gradients checks path-attribution stability.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section id="concepts">
+      <h2>Concept-level explanations</h2>
+      <p>Concept-level methods complement heatmaps by asking whether the representation aligns with human-readable
+        attributes.</p>
+      <div class="grid">
+        <article class="method">
+          <h3>TCAV</h3>
+          <p>TCAV learns a concept direction in activation space from positive concept images and negative references.
+          </p><span class="formula">TCAV(c,k,l) = mean_x 1[ grad h_l,k(x) dot v_c^l &gt; 0 ]</span>
+          <p>A high score means moving in the concept direction tends to increase the target class score.</p><img
+            src="assets/xai-report/tcav-theory.png" alt="TCAV theory diagram.">
+        </article>
+        <article class="method">
+          <h3>Concept Bottleneck Model</h3>
+          <p>A CBM changes the prediction path: image to predicted concepts, then concepts to class.</p><span
+            class="formula">L = CE(y, y_hat) + lambda BCE(c, c_hat)<br>p(y|x) = softmax(g(c_hat))</span>
+          <p>Concepts become an explicit interface for inspecting and intervening on predictions.</p><img
+            src="assets/xai-report/concept-bottleneck-theory.png" alt="Concept Bottleneck Model theory diagram.">
+        </article>
+      </div>
+      <div class="grid">
+        <figure><img src="assets/xai-report/tcav-heatmap.png" alt="TCAV class concept heatmap.">
+          <figcaption>TCAV summarizes which semantic attributes are directionally relevant.</figcaption>
+        </figure>
+        <figure><img src="assets/xai-report/cbm-summary.png" alt="Concept Bottleneck summary.">
+          <figcaption>The bottleneck report connects concept quality with class prediction quality.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section id="metrics">
+      <h2>Quantitative checks</h2>
+      <div class="flash">
+        <div class="flashnav"><button class="active" data-card="iou">Top-k IoU</button><button
+            data-card="spearman">Spearman rank</button><button data-card="faithfulness">Deletion /
+            insertion</button><button data-card="region">Region allocation</button><button data-card="concept">Concept
+            accuracy</button></div>
+        <div class="flashpanel" id="metricPanel"></div>
+      </div>
+      <figure><img src="assets/xai-report/metric-summary.png" alt="Metric summary.">
+        <figcaption>Metric summaries should be read as consistency checks.</figcaption>
+      </figure>
+    </section>
+    <section id="results">
+      <h2>Project evidence</h2>
+      <div class="kpi">
+        <div><strong>2</strong>local attribution methods</div>
+        <div><strong>2</strong>concept-level methods</div>
+        <div><strong>3</strong>background interventions</div>
+      </div>
+      <div class="grid">
+        <figure><img src="assets/xai-report/saliency-stress-comparison.png" alt="Saliency stress comparison.">
+          <figcaption>Stress-test visual comparisons show whether attribution moves when background context changes.
+          </figcaption>
+        </figure>
+        <figure><img src="assets/xai-report/case-summary.png" alt="Case-level explanation summary.">
+          <figcaption>Case summaries link prediction, confidence and attribution behavior.</figcaption>
+        </figure>
+        <figure><img src="assets/xai-report/tcav-top-scores.png" alt="Top TCAV scores.">
+          <figcaption>TCAV scores move from isolated heatmaps to class-level semantic trends.</figcaption>
+        </figure>
+        <figure><img src="assets/xai-report/concept-interventions.png" alt="Concept intervention results.">
+          <figcaption>CBM interventions make concept-mediated changes explicit.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section id="conclusion">
+      <h2>Final interpretation</h2>
+      <p class="conclusion">The project should be presented as an audit pipeline. Grad-CAM and Integrated Gradients
+        provide local hypotheses about image evidence. Background stress tests check whether those hypotheses remain
+        stable. TCAV and the Concept Bottleneck Model add semantic structure.</p>
+      <p class="warning">A heatmap is not proof. It becomes more credible only when visual inspection, perturbation
+        stability, faithfulness curves, class specificity and concept evidence agree.</p>
+      <p>The strongest conclusion is conservative: post-hoc saliency maps are useful diagnostic tools, but they should
+        not be presented alone as faithful explanations of a deep visual classifier.</p>
+    </section>
+  </main>
+  <script>
+    const nav = [...document.querySelectorAll('.nav button')], sections = [...document.querySelectorAll('main section')]; nav.forEach(b => b.addEventListener('click', () => { nav.forEach(x => x.classList.remove('active')); sections.forEach(s => s.classList.remove('active')); b.classList.add('active'); document.getElementById(b.dataset.section).classList.add('active') }));
+    const metricText = { iou: ['Top-k IoU', 'Question: does the highlighted spatial support remain in the same region?', 'Formula: |S_original intersection S_perturbed| / |S_original union S_perturbed|', 'Desired direction: higher values indicate stable localization.', 'Warning: low values mean the heatmap moved after the intervention.'], spearman: ['Spearman rank', 'Question: does the full saliency ordering remain similar?', 'Computation: flatten both maps and correlate their pixel ranks.', 'Desired direction: higher values indicate rank stability.', 'Warning: low values mean the importance ordering changed.'], faithfulness: ['Deletion / insertion', 'Question: do the most salient pixels actually affect the target score?', 'Deletion removes salient pixels first; insertion restores salient pixels first.', 'Desired direction: deletion should reduce the target score and insertion should recover it quickly.', 'Warning: weak curves indicate that the map may be visually plausible but not score-faithful.'], region: ['Region allocation', 'Question: how much saliency lies on approximate animal versus background?', 'Computation: sum normalized saliency inside and outside the approximate foreground mask.', 'Desired direction: animal morphology should receive substantial attribution.', 'Warning: high background attribution supports the shortcut-sensitivity concern.'], concept: ['Concept accuracy', 'Question: can semantic attributes be predicted and used for classification?', 'Computation: compare predicted concepts with AwA2 class-level concept targets.', 'Desired direction: high concept quality and high class accuracy.', 'Warning: concept errors reveal where the semantic interface can mislead the final prediction.'] };
+    const panel = document.getElementById('metricPanel'), mb = [...document.querySelectorAll('.flashnav button')]; function renderMetric(k) { const [t, ...l] = metricText[k]; panel.innerHTML = `<h3>${t}</h3>${l.map(x => `<p>${x}</p>`).join('')}`; mb.forEach(b => b.classList.toggle('active', b.dataset.card === k)) } mb.forEach(b => b.addEventListener('click', () => renderMetric(b.dataset.card))); renderMetric('iou');
+  </script>
+</body>
+
+</html>

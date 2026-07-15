@@ -148,7 +148,7 @@
   <g transform="translate(996 522)">
     <rect class="note" x="0" y="0" width="360" height="108"/>
     <text class="label" x="18" y="32">Upsampling for XAI</text>
-    <text class="small" x="18" y="58">Grad-CAM and Score-CAM start at layer4.</text>
+    <text class="small" x="18" y="58">Grad-CAM starts at layer4; IG starts at input.</text>
     <text class="small" x="18" y="80">The 7 x 7 map is resized to 224 x 224.</text>
     <text class="small" x="18" y="100">This is visualization, not segmentation.</text>
   </g>
