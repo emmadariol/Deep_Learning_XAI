@@ -9,6 +9,26 @@ from pathlib import Path
 import numpy as np
 
 
+CONCEPT_GROUPS: dict[str, tuple[str, ...]] = {
+    "morphology": (
+        "stripes",
+        "horns",
+        "hooves",
+        "flippers",
+        "furry",
+        "paws",
+        "tail",
+    ),
+    "context_or_behavior": (
+        "ocean",
+        "water",
+        "vegetation",
+        "swims",
+        "hunter",
+    ),
+}
+
+
 @dataclass(frozen=True)
 class AwA2ConceptBank:
     """Class-level AwA2 semantic attributes."""
@@ -215,3 +235,84 @@ def concept_transition_summary(
             for index in shared_indices
         ),
     }
+
+
+def concept_class_partitions(
+    concept_bank: AwA2ConceptBank,
+    concept_name: str,
+    positive_threshold: float = 0.75,
+    negative_threshold: float = 0.25,
+    excluded_classes: set[str] | None = None,
+) -> tuple[list[int], list[int]]:
+    """Return positive and negative class indices for one semantic concept."""
+    if positive_threshold <= negative_threshold:
+        raise ValueError("positive_threshold must be greater than negative_threshold.")
+    normalized_concepts = {
+        normalize_class_name(name): index
+        for index, name in enumerate(concept_bank.concept_names)
+    }
+    key = normalize_class_name(concept_name)
+    if key not in normalized_concepts:
+        raise ValueError(f"Unknown concept: {concept_name!r}")
+
+    excluded = {
+        normalize_class_name(name) for name in (excluded_classes or set())
+    }
+    concept_index = normalized_concepts[key]
+    strengths = concept_bank.normalized_matrix()[:, concept_index]
+    positive: list[int] = []
+    negative: list[int] = []
+    for class_index, class_name in enumerate(concept_bank.class_names):
+        if normalize_class_name(class_name) in excluded:
+            continue
+        strength = float(strengths[class_index])
+        if strength >= positive_threshold:
+            positive.append(class_index)
+        elif strength <= negative_threshold:
+            negative.append(class_index)
+    return positive, negative
+
+
+def concept_group(concept_name: str) -> str:
+    """Return the maintained semantic group for a concept, if known."""
+    key = normalize_class_name(concept_name)
+    for group_name, names in CONCEPT_GROUPS.items():
+        if key in {normalize_class_name(name) for name in names}:
+            return group_name
+    return "other"
+
+
+def concept_coverage_rows(
+    concept_bank: AwA2ConceptBank,
+    concept_names: list[str],
+    positive_threshold: float = 0.75,
+    negative_threshold: float = 0.25,
+    minimum_classes_per_side: int = 2,
+) -> list[dict[str, object]]:
+    """Summarize whether concepts support class-disjoint CAV validation."""
+    rows: list[dict[str, object]] = []
+    for concept_name in concept_names:
+        positive, negative = concept_class_partitions(
+            concept_bank,
+            concept_name,
+            positive_threshold=positive_threshold,
+            negative_threshold=negative_threshold,
+        )
+        positive_names = [concept_bank.class_names[index] for index in positive]
+        negative_names = [concept_bank.class_names[index] for index in negative]
+        class_disjoint_ready = (
+            len(positive) >= minimum_classes_per_side
+            and len(negative) >= minimum_classes_per_side
+        )
+        rows.append(
+            {
+                "concept": concept_name,
+                "concept_group": concept_group(concept_name),
+                "positive_class_count": len(positive),
+                "negative_class_count": len(negative),
+                "class_disjoint_ready": class_disjoint_ready,
+                "positive_classes": "; ".join(positive_names),
+                "negative_classes": "; ".join(negative_names),
+            }
+        )
+    return rows

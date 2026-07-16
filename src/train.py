@@ -6,6 +6,7 @@ import csv
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import torch
 from torch import nn
@@ -82,15 +83,24 @@ def train_model(
     history_path: str | Path,
     max_train_batches: int | None = None,
     max_val_batches: int | None = None,
+    early_stopping_patience: int | None = 3,
+    early_stopping_min_delta: float = 0.0,
+    checkpoint_metadata: dict[str, Any] | None = None,
 ) -> list[EpochMetrics]:
-    """Train and save the checkpoint with best validation accuracy."""
+    """Train, save the best checkpoint and stop after sustained validation stagnation."""
     checkpoint_path = Path(checkpoint_path).expanduser().resolve()
     history_path = Path(history_path).expanduser().resolve()
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     history_path.parent.mkdir(parents=True, exist_ok=True)
+    if early_stopping_patience is not None and early_stopping_patience <= 0:
+        raise ValueError("early_stopping_patience must be positive or None.")
+    if early_stopping_min_delta < 0.0:
+        raise ValueError("early_stopping_min_delta must be non-negative.")
 
     history: list[EpochMetrics] = []
     best_val_acc = -1.0
+    stopping_reference = -1.0
+    epochs_without_improvement = 0
 
     for epoch in range(1, epochs + 1):
         train_loss, train_acc = run_epoch(
@@ -135,10 +145,29 @@ def train_model(
                     "epoch": epoch,
                     "val_acc": val_acc,
                     "val_loss": val_loss,
+                    "metadata": checkpoint_metadata or {},
                 },
                 checkpoint_path,
             )
             LOGGER.info("saved checkpoint: %s", checkpoint_path)
+
+        if val_acc > stopping_reference + early_stopping_min_delta:
+            stopping_reference = val_acc
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+            LOGGER.info(
+                "early_stopping counter=%d/%s best_reference=%.4f",
+                epochs_without_improvement,
+                early_stopping_patience,
+                stopping_reference,
+            )
+            if (
+                early_stopping_patience is not None
+                and epochs_without_improvement >= early_stopping_patience
+            ):
+                LOGGER.info("early stopping at epoch %d", epoch)
+                break
 
     write_history(history, history_path)
     return history

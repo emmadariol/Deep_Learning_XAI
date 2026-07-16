@@ -66,14 +66,29 @@ class ImageManifestDataset(Dataset):
             raise ValueError(f"No samples found for split='{split}' in {self.manifest_path}")
 
         self.visible_classes = sorted({sample.class_name for sample in self.samples})
+        manifest_mapping = load_class_names(self.manifest_path)
         if self.class_map_path is not None:
-            self.idx_to_class = load_class_mapping(self.class_map_path)
-            self.classes = [self.idx_to_class[index] for index in sorted(self.idx_to_class)]
-        else:
-            self.idx_to_class = {
-                index: class_name for index, class_name in enumerate(self.visible_classes)
-            }
-            self.classes = list(self.visible_classes)
+            file_mapping = load_class_mapping(self.class_map_path)
+            if file_mapping != manifest_mapping:
+                raise ValueError(
+                    "Class mapping file is inconsistent with the manifest: "
+                    f"{self.class_map_path}"
+                )
+        self.idx_to_class = manifest_mapping
+        expected_labels = list(range(len(self.idx_to_class)))
+        if sorted(self.idx_to_class) != expected_labels:
+            raise ValueError(
+                "Manifest labels must be contiguous from zero; got "
+                f"{sorted(self.idx_to_class)}"
+            )
+        self.classes = [self.idx_to_class[index] for index in expected_labels]
+        for sample in self.samples:
+            expected_name = self.idx_to_class.get(sample.label)
+            if expected_name != sample.class_name:
+                raise ValueError(
+                    f"Sample mapping mismatch for {sample.filepath}: label={sample.label} "
+                    f"class={sample.class_name!r}, expected={expected_name!r}"
+                )
 
         LOGGER.info(
             "Loaded manifest split=%s with %d samples, %d visible classes, %d mapped classes from %s",
@@ -169,6 +184,7 @@ def load_class_mapping(class_map_path: str | Path) -> dict[int, str]:
         raise FileNotFoundError(path)
 
     mapping: dict[int, str] = {}
+    labels_by_class: dict[str, int] = {}
     with path.open("r", newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         required = {"class_name", "label"}
@@ -177,10 +193,24 @@ def load_class_mapping(class_map_path: str | Path) -> dict[int, str]:
             raise ValueError(f"Class map is missing columns: {sorted(missing)}")
 
         for row in reader:
-            mapping[int(row["label"])] = row["class_name"]
+            label = int(row["label"])
+            class_name = row["class_name"]
+            if label in mapping and mapping[label] != class_name:
+                raise ValueError(
+                    f"Label {label} maps to both {mapping[label]!r} and {class_name!r}."
+                )
+            if class_name in labels_by_class and labels_by_class[class_name] != label:
+                raise ValueError(
+                    f"Class {class_name!r} maps to labels "
+                    f"{labels_by_class[class_name]} and {label}."
+                )
+            mapping[label] = class_name
+            labels_by_class[class_name] = label
 
     if not mapping:
         raise ValueError(f"No class mappings found in {path}")
+    if sorted(mapping) != list(range(len(mapping))):
+        raise ValueError(f"Class-map labels must be contiguous from zero: {path}")
     return dict(sorted(mapping.items()))
 
 

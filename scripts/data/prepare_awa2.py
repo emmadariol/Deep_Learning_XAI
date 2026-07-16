@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import filecmp
 import json
 import logging
 import random
@@ -321,28 +322,44 @@ def split_images(
     rng: random.Random,
     ensure_eval_splits: bool = False,
 ) -> dict[str, list[Path]]:
-    """Split one class deterministically, optionally keeping val/test non-empty."""
+    """Split one class deterministically while respecting explicit zero ratios."""
     shuffled = list(images)
     rng.shuffle(shuffled)
     total = len(shuffled)
-    if ensure_eval_splits and total == 1:
-        return {"train": shuffled, "val": [], "test": []}
-    if ensure_eval_splits and total == 2:
-        return {"train": shuffled[:1], "val": [], "test": shuffled[1:]}
-    train_count = int(total * train_ratio)
-    val_count = int(total * val_ratio)
-    test_count = total - train_count - val_count
+    ratios = {"train": train_ratio, "val": val_ratio, "test": test_ratio}
+    raw_counts = {split: total * ratio for split, ratio in ratios.items()}
+    counts = {split: int(raw_counts[split]) for split in ratios}
+    remaining = total - sum(counts.values())
+    remainder_order = sorted(
+        ratios,
+        key=lambda split: (raw_counts[split] - counts[split], ratios[split]),
+        reverse=True,
+    )
+    for split in remainder_order:
+        if remaining <= 0:
+            break
+        if ratios[split] > 0.0:
+            counts[split] += 1
+            remaining -= 1
 
-    if ensure_eval_splits and total >= 3:
-        val_count = max(1, round(total * val_ratio))
-        test_count = max(1, round(total * test_ratio))
-        train_count = total - val_count - test_count
-        while train_count < 1:
-            if val_count >= test_count and val_count > 1:
-                val_count -= 1
-            elif test_count > 1:
-                test_count -= 1
-            train_count = total - val_count - test_count
+    active_splits = [split for split, ratio in ratios.items() if ratio > 0.0]
+    if ensure_eval_splits and total >= len(active_splits):
+        for split in active_splits:
+            if counts[split] > 0:
+                continue
+            donors = [
+                candidate
+                for candidate in active_splits
+                if counts[candidate] > 1
+            ]
+            if not donors:
+                break
+            donor = max(donors, key=lambda candidate: counts[candidate])
+            counts[donor] -= 1
+            counts[split] += 1
+
+    train_count = counts["train"]
+    val_count = counts["val"]
 
     return {
         "train": shuffled[:train_count],
@@ -359,6 +376,19 @@ def write_class_map(class_to_idx: dict[str, int], path: Path) -> Path:
         for class_name, label in class_to_idx.items():
             writer.writerow({"class_name": class_name, "label": label})
     return path
+
+
+def validate_image_file(path: Path) -> None:
+    """Decode an image once so incompatible files fail during preparation."""
+    from PIL import Image
+
+    try:
+        with Image.open(path) as image:
+            image.load()
+            if image.width <= 0 or image.height <= 0:
+                raise ValueError("image has invalid dimensions")
+    except Exception as error:
+        raise ValueError(f"Unreadable or incompatible image: {path}") from error
 
 
 def write_manifest(samples: list[ManifestSample], path: Path) -> Path:
@@ -405,6 +435,8 @@ def run_manifest_mode(args: argparse.Namespace) -> None:
             args.test_ratio,
             rng,
         ).items():
+            for image_path in split_images_for_class:
+                validate_image_file(image_path)
             split_counts[split] += len(split_images_for_class)
             samples.extend(
                 ManifestSample(
@@ -424,13 +456,67 @@ def run_manifest_mode(args: argparse.Namespace) -> None:
     LOGGER.info("Split counts: %s", split_counts)
 
 
-def prepare_output_root(output_root: Path, allow_existing: bool) -> Path:
-    output_root = resolve_path(output_root)
-    if output_root.exists() and any(output_root.iterdir()) and not allow_existing:
+def subset_configuration(
+    args: argparse.Namespace,
+    jpeg_dir: Path,
+    selected_classes: list[str],
+    max_images_per_class: int,
+) -> dict[str, object]:
+    """Return the generation settings that determine subset file contents."""
+    return {
+        "source_jpeg_dir": str(jpeg_dir.resolve()),
+        "seed": args.seed,
+        "copy_mode": args.copy_mode,
+        "resize_size": args.resize_size,
+        "resize_method": args.resize_method if args.resize_size is not None else None,
+        "jpeg_quality": args.jpeg_quality if args.resize_size is not None else None,
+        "max_images_per_class": max_images_per_class,
+        "ratios": {
+            "train": args.train_ratio,
+            "val": args.val_ratio,
+            "test": args.test_ratio,
+        },
+        "classes": selected_classes,
+    }
+
+
+def validate_existing_subset_configuration(
+    output_root: Path,
+    expected: dict[str, object],
+) -> None:
+    summary_path = output_root / "subset_summary.json"
+    if not summary_path.exists():
         raise FileExistsError(
-            f"Output folder already exists and is not empty: {output_root}. "
-            "Use a new folder or pass --allow-existing."
+            f"Cannot validate existing subset without {summary_path}. "
+            "Use a new output directory."
         )
+    with summary_path.open("r", encoding="utf-8") as handle:
+        stored = json.load(handle)
+    mismatches = {
+        key: {"stored": stored.get(key), "requested": value}
+        for key, value in expected.items()
+        if stored.get(key) != value
+    }
+    if mismatches:
+        raise ValueError(
+            "--allow-existing configuration differs from subset_summary.json: "
+            f"{json.dumps(mismatches, sort_keys=True)}"
+        )
+
+
+def prepare_output_root(
+    output_root: Path,
+    allow_existing: bool,
+    expected_configuration: dict[str, object],
+) -> Path:
+    output_root = resolve_path(output_root)
+    if output_root.exists() and any(output_root.iterdir()):
+        if not allow_existing:
+            raise FileExistsError(
+                f"Output folder already exists and is not empty: {output_root}. "
+                "Use a new folder or pass --allow-existing."
+            )
+        validate_existing_subset_configuration(output_root, expected_configuration)
     (output_root / "JPEGImages").mkdir(parents=True, exist_ok=True)
     return output_root
 
@@ -478,8 +564,31 @@ def copy_image(
     resize_method: str,
     jpeg_quality: int,
 ) -> None:
+    validate_image_file(source)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.exists():
+    if destination.exists() or destination.is_symlink():
+        if resize_size is not None:
+            from PIL import Image
+
+            try:
+                with Image.open(destination) as image:
+                    image.verify()
+                with Image.open(destination) as image:
+                    if image.size != (resize_size, resize_size) or image.mode != "RGB":
+                        raise ValueError(
+                            f"Existing resized image has size/mode {image.size}/{image.mode}, "
+                            f"expected {(resize_size, resize_size)}/RGB: {destination}"
+                        )
+            except Exception as error:
+                raise ValueError(f"Existing resized image is incompatible: {destination}") from error
+        elif copy_mode == "symlink":
+            if not destination.is_symlink() or destination.resolve() != source.resolve():
+                raise ValueError(f"Existing symlink does not reference source: {destination}")
+        elif copy_mode == "hardlink":
+            if not destination.samefile(source):
+                raise ValueError(f"Existing file is not the requested hardlink: {destination}")
+        elif not filecmp.cmp(source, destination, shallow=False):
+            raise ValueError(f"Existing copied image differs from source: {destination}")
         return
     if resize_size is not None:
         resize_image(source, destination, resize_size, resize_method, jpeg_quality)
@@ -600,7 +709,17 @@ def run_subset_mode(args: argparse.Namespace) -> None:
         LOGGER.info("Dry run complete. No files copied.")
         return
 
-    output_root = prepare_output_root(args.output_root, args.allow_existing)
+    expected_configuration = subset_configuration(
+        args,
+        jpeg_dir,
+        selected_classes,
+        max_images_per_class,
+    )
+    output_root = prepare_output_root(
+        args.output_root,
+        args.allow_existing,
+        expected_configuration,
+    )
     class_to_idx = {class_name: index for index, class_name in enumerate(selected_classes)}
     rng = random.Random(args.seed)
     samples: list[ManifestSample] = []

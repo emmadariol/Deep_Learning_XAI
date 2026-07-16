@@ -131,6 +131,12 @@ images are saved as `128x128` JPEGs using aspect-ratio preserving padding. The
 manifest uses paths relative to the subset folder, and the project DataLoader
 resolves those paths from the manifest location.
 
+Subset preparation is idempotent only when the request is identical. Passing
+`--allow-existing` compares source, classes, seed, ratios, copy/resize mode,
+size and JPEG settings with `subset_summary.json`, then validates every reused
+destination image. A mismatch fails clearly instead of silently mixing dataset
+configurations. Ratios equal to zero are preserved exactly.
+
 Optional download:
 
 ```bash
@@ -171,7 +177,8 @@ Baseline training with ImageNet pretrained ResNet50:
 python scripts/training/train_baseline.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --batch-size 32 \
-  --epochs 5
+  --epochs 20 \
+  --early-stopping-patience 3
 ```
 
 Outputs:
@@ -180,6 +187,13 @@ Outputs:
 outputs/checkpoints/best_resnet50_awa2.pt
 outputs/reports/training_history.csv
 ```
+
+Training uses augmentation only for the training split and deterministic
+Resize/CenterCrop preprocessing for validation and test. The best checkpoint
+stores the class mapping, model and optimizer configuration, seed and transform
+description. Frozen BatchNorm statistics remain fixed. Checkpoints are loaded
+with PyTorch tensor-only safe loading; legacy checkpoints without metadata are
+accepted with an explicit warning and shape validation.
 
 ## XAI Examples
 
@@ -321,11 +335,15 @@ whether saliency failures correspond to semantic class confusions.
 
 ## TCAV
 
-This analysis implements Testing with Concept Activation Vectors. It uses the AwA2
-AwA2 semantic attributes to select positive and negative concept
-examples, extracts pooled internal activations from the ResNet layer, trains a
-linear CAV, and measures whether each concept direction increases a target class
-score.
+This analysis implements a repeated and validated Testing with Concept
+Activation Vectors protocol. AwA2 attributes define concept-positive and
+concept-negative classes. The evaluated target class is excluded from CAV
+training, deterministic layer activations are cached once, and class-disjoint
+CAV train/validation splits are used whenever the concept has enough classes.
+Every concept-target pair is fitted over multiple seeds and compared with
+matched random CAV controls. The report includes held-out accuracy, run-to-run
+variability, confidence intervals, paired permutation tests and corrected
+p-values.
 
 Run TCAV:
 
@@ -336,8 +354,13 @@ python scripts/experiments/run_tcav.py \
   --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
   --concepts stripes furry hooves horns flippers \
   --layer layer3 \
+  --num-cav-runs 20 \
+  --min-valid-runs 5 \
   --score-output outputs/reports/phase7_tcav_scores.csv \
+  --run-output outputs/reports/phase7_tcav_runs.csv \
   --cav-output outputs/reports/phase7_cav_summary.csv \
+  --coverage-output outputs/reports/phase7_concept_coverage.csv \
+  --cav-artifact-output outputs/reports/phase7_cav_vectors.npz \
   --heatmap-output outputs/figures/phase7_tcav_heatmap.png \
   --bar-output outputs/figures/phase7_tcav_top_scores.png
 ```
@@ -346,7 +369,11 @@ Outputs:
 
 ```text
 outputs/reports/phase7_tcav_scores.csv
+outputs/reports/phase7_tcav_runs.csv
 outputs/reports/phase7_cav_summary.csv
+outputs/reports/phase7_concept_coverage.csv
+outputs/reports/phase7_cav_vectors.npz
+outputs/reports/phase7_cav_vectors.json
 outputs/figures/phase7_tcav_heatmap.png
 outputs/figures/phase7_tcav_top_scores.png
 ```
@@ -356,14 +383,33 @@ Notebook: `notebooks/02_stress_concepts_tcav.ipynb`
 Interpretation:
 
 ```text
-high TCAV score -> moving along the concept direction tends to increase the target class score
-low TCAV score  -> the class score is not consistently sensitive to that concept direction
+high TCAV score        -> the target logit often increases along the learned direction
+positive effect size   -> real CAV sensitivity exceeds the matched random-CAV baseline
+low corrected p-value  -> the repeated effect is distinguishable from random controls
+high held-out accuracy -> the concept direction generalizes beyond its CAV training rows
 ```
 
 Use `layer3` by default for TCAV. The final `layer4` output in ResNet50 is
 followed only by average pooling and the linear classifier, so class-score
 gradients can become nearly constant per class and TCAV scores can collapse to
 0/1.
+
+After generating the CAV artifact, audit concept sensitivity under the same
+background interventions used for saliency maps:
+
+```bash
+python scripts/experiments/run_tcav_stress.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --cav-artifact outputs/reports/phase7_cav_vectors.npz \
+  --run-output outputs/reports/tcav_stress_runs.csv \
+  --summary-output outputs/reports/tcav_stress_summary.csv \
+  --figure-output outputs/figures/tcav_stress_effects.png
+```
+
+The stress audit reuses each fitted CAV and recomputes only target-logit
+gradients. Therefore a score change reflects changed model sensitivity in a
+fixed concept direction, not a redefinition of the direction itself.
 
 ## Concept Bottleneck Model
 
@@ -385,7 +431,7 @@ python scripts/experiments/train_cbm.py \
   --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
   --metadata-root data/AWA2 \
   --backbone-checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
-  --checkpoint-output outputs/checkpoints/phase8_cbm.pt \
+  --checkpoint-path outputs/checkpoints/phase8_cbm.pt \
   --history-output outputs/reports/phase8_cbm_history.csv \
   --summary-output outputs/reports/phase8_cbm_summary.csv \
   --concept-metrics-output outputs/reports/phase8_concept_metrics.csv \
@@ -393,12 +439,14 @@ python scripts/experiments/train_cbm.py \
   --predictions-output outputs/reports/phase8_cbm_predictions.csv \
   --error-analysis-output outputs/reports/phase8_cbm_error_analysis.csv \
   --error-summary-output outputs/reports/phase8_cbm_error_summary.csv \
-  --intervention-output outputs/reports/phase8_concept_interventions.csv \
+  --intervention-output outputs/reports/phase8_oracle_prototype_interventions.csv \
+  --image-intervention-output outputs/reports/phase8_image_concept_interventions.csv \
   --training-figure-output outputs/figures/phase8_cbm_training.png \
   --summary-figure-output outputs/figures/phase8_cbm_summary.png \
   --concept-figure-output outputs/figures/phase8_concept_prediction_metrics.png \
   --concept-confusion-figure-output outputs/figures/phase8_concept_confusion_matrix.png \
-  --intervention-figure-output outputs/figures/phase8_concept_interventions.png \
+  --intervention-figure-output outputs/figures/phase8_oracle_prototype_interventions.png \
+  --image-intervention-figure-output outputs/figures/phase8_image_concept_interventions.png \
   --error-figure-output outputs/figures/phase8_cbm_error_analysis.png \
   --top-concepts 20 \
   --epochs 5
@@ -415,12 +463,14 @@ outputs/reports/phase8_concept_confusion_matrix.csv
 outputs/reports/phase8_cbm_predictions.csv
 outputs/reports/phase8_cbm_error_analysis.csv
 outputs/reports/phase8_cbm_error_summary.csv
-outputs/reports/phase8_concept_interventions.csv
+outputs/reports/phase8_oracle_prototype_interventions.csv
+outputs/reports/phase8_image_concept_interventions.csv
 outputs/figures/phase8_cbm_training.png
 outputs/figures/phase8_cbm_summary.png
 outputs/figures/phase8_concept_prediction_metrics.png
 outputs/figures/phase8_concept_confusion_matrix.png
-outputs/figures/phase8_concept_interventions.png
+outputs/figures/phase8_oracle_prototype_interventions.png
+outputs/figures/phase8_image_concept_interventions.png
 outputs/figures/phase8_cbm_error_analysis.png
 ```
 
@@ -431,8 +481,15 @@ Interpretation:
 ```text
 high concept accuracy -> the image encoder can recover the selected semantic attributes
 high class accuracy   -> the predicted concepts are sufficient for classification
-large intervention    -> manually changing a concept strongly affects a class probability
+large image-specific intervention -> correcting one predicted concept changes the true-class probability
+large prototype intervention      -> the concept-to-class head is sensitive around an AwA2 class prototype
 ```
+
+The CBM refuses to continue with a missing backbone checkpoint unless
+`--use-imagenet-pretrained` is explicitly selected. Its best checkpoint embeds
+the class mapping, ordered concept names and indices, architecture settings,
+seed and preprocessing description. The training loop also keeps every frozen
+BatchNorm module in evaluation mode so its running statistics do not drift.
 
 ## Advanced Attribution Audit
 

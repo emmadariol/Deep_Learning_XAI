@@ -23,6 +23,8 @@ from src.bottleneck import (
     collect_prediction_rows,
     concept_names_from_indices,
     concept_confusion_rows,
+    evaluate_oracle_concept_accuracy,
+    image_specific_intervention_rows,
     intervention_rows,
     load_backbone_checkpoint,
     per_concept_metrics,
@@ -68,10 +70,15 @@ def parse_args() -> argparse.Namespace:
         "--backbone-checkpoint",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "checkpoints" / "best_resnet50_awa2.pt",
-        help="Optional baseline classifier checkpoint used to initialize the CBM backbone.",
+        help=(
+            "Baseline classifier checkpoint used to initialize the CBM backbone. "
+            "If it is missing, --use-imagenet-pretrained is required."
+        ),
     )
     parser.add_argument(
+        "--checkpoint-path",
         "--checkpoint-output",
+        dest="checkpoint_path",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "checkpoints" / "phase8_cbm.pt",
     )
@@ -113,7 +120,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--intervention-output",
         type=Path,
-        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_concept_interventions.csv",
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_oracle_prototype_interventions.csv",
+        help="Concept-head sensitivity around AwA2 class-level oracle prototypes.",
+    )
+    parser.add_argument(
+        "--image-intervention-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "reports" / "phase8_image_concept_interventions.csv",
+        help="Per-image corrections from predicted concepts to AwA2 oracle values.",
     )
     parser.add_argument(
         "--training-figure-output",
@@ -138,7 +152,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--intervention-figure-output",
         type=Path,
-        default=PROJECT_ROOT / "outputs" / "figures" / "phase8_concept_interventions.png",
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase8_oracle_prototype_interventions.png",
+    )
+    parser.add_argument(
+        "--image-intervention-figure-output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "figures" / "phase8_image_concept_interventions.png",
     )
     parser.add_argument(
         "--error-figure-output",
@@ -167,6 +186,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-prediction-batches", type=int, default=4)
     parser.add_argument("--max-intervention-classes", type=int, default=10)
     parser.add_argument("--top-interventions-per-class", type=int, default=6)
+    parser.add_argument("--top-image-interventions", type=int, default=3)
+    parser.add_argument("--max-intervention-images", type=int, default=100)
     parser.add_argument(
         "--use-imagenet-pretrained",
         action="store_true",
@@ -235,8 +256,29 @@ def choose_intervention_classes(concept_bank, concept_indices: list[int], max_cl
     return selected
 
 
-def load_best_checkpoint(model: ConceptBottleneckModel, checkpoint_path: Path, device: torch.device) -> None:
-    checkpoint = torch.load(checkpoint_path.expanduser().resolve(), map_location=device)
+def load_best_checkpoint(
+    model: ConceptBottleneckModel,
+    checkpoint_path: Path,
+    device: torch.device,
+    expected_class_mapping: dict[int, str],
+    expected_concept_names: list[str],
+) -> None:
+    checkpoint = torch.load(
+        checkpoint_path.expanduser().resolve(),
+        map_location=device,
+        weights_only=True,
+    )
+    metadata = checkpoint.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise TypeError("CBM checkpoint metadata must be a dictionary.")
+    stored_mapping = {
+        int(index): str(name)
+        for index, name in metadata.get("idx_to_class", {}).items()
+    }
+    if stored_mapping != expected_class_mapping:
+        raise ValueError("CBM checkpoint class mapping does not match the current manifest.")
+    if list(metadata.get("concept_names", [])) != expected_concept_names:
+        raise ValueError("CBM checkpoint concept order does not match the current concept bank.")
     state_dict = checkpoint.get("model_state_dict", checkpoint)
     model.load_state_dict(state_dict)
     LOGGER.info("loaded best CBM checkpoint: %s", checkpoint_path)
@@ -254,7 +296,7 @@ def load_baseline_classifier(
         return None
 
     baseline = build_resnet50_classifier(num_classes=num_classes, pretrained=False)
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     state_dict = checkpoint.get("model_state_dict", checkpoint)
     baseline.load_state_dict(state_dict)
     baseline.to(device)
@@ -473,8 +515,40 @@ def save_intervention_plot(rows: list[dict[str, object]], output_path: Path, top
     fig, ax = plt.subplots(figsize=(10.5, max(5.2, 0.38 * len(selected))))
     ax.barh(labels[::-1], values[::-1], color=colors[::-1])
     ax.axvline(0.0, color="black", linewidth=0.9)
-    ax.set_title("Largest concept intervention effects")
+    ax.set_title("Oracle-prototype concept-head sensitivity")
     ax.set_xlabel("class probability change when concept is set 0 -> 1")
+    ax.grid(axis="x", alpha=0.25)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info("saved %s", output_path)
+
+
+def save_image_intervention_plot(
+    rows: list[dict[str, object]],
+    output_path: Path,
+    top_n: int = 20,
+) -> None:
+    """Visualize the strongest beneficial per-image concept corrections."""
+    if not rows:
+        LOGGER.warning("No image-specific concept interventions to plot.")
+        return
+    selected = sorted(
+        rows,
+        key=lambda row: float(row["true_class_probability_delta"]),
+        reverse=True,
+    )[:top_n]
+    labels = [f"{row['true_class']} | {row['concept']}" for row in selected]
+    values = [float(row["true_class_probability_delta"]) for row in selected]
+    colors = ["#0f766e" if bool(row["intervened_correct"]) else "#b45309" for row in selected]
+
+    output_path = output_path.expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(10.5, max(5.2, 0.38 * len(selected))))
+    ax.barh(labels[::-1], values[::-1], color=colors[::-1])
+    ax.axvline(0.0, color="black", linewidth=0.9)
+    ax.set_title("Image-specific oracle concept corrections")
+    ax.set_xlabel("change in true-class probability")
     ax.grid(axis="x", alpha=0.25)
     plt.tight_layout()
     fig.savefig(output_path, dpi=170, bbox_inches="tight")
@@ -565,7 +639,13 @@ def main() -> None:
         trainable_backbone_layers=tuple(args.trainable_backbone_layers),
         dropout=args.dropout,
     )
-    load_backbone_checkpoint(model, args.backbone_checkpoint, device)
+    backbone_initialization = load_backbone_checkpoint(
+        model,
+        args.backbone_checkpoint,
+        device,
+        allow_imagenet_fallback=args.use_imagenet_pretrained,
+        expected_class_mapping=idx_to_class,
+    )
     model.to(device)
 
     optimizer = torch.optim.AdamW(
@@ -579,16 +659,36 @@ def main() -> None:
         device=device,
         epochs=args.epochs,
         optimizer=optimizer,
-        checkpoint_path=args.checkpoint_output,
+        checkpoint_path=args.checkpoint_path,
         concept_loss_weight=args.concept_loss_weight,
         class_loss_weight=args.class_loss_weight,
         max_train_batches=args.max_train_batches,
         max_val_batches=args.max_val_batches,
+        checkpoint_metadata={
+            "class_to_idx": {name: index for index, name in enumerate(manifest_classes)},
+            "idx_to_class": idx_to_class,
+            "concept_names": concept_names,
+            "concept_indices": concept_indices,
+            "seed": args.seed,
+            "manifest": str(manifest),
+            "matrix_kind": args.matrix_kind,
+            "backbone_source": backbone_initialization,
+            "transforms": {
+                "train": "ImageNet normalization with RandomResizedCrop(224) and horizontal flip",
+                "validation_test": "Resize(256), CenterCrop(224), ImageNet normalization",
+            },
+        },
     )
     write_history_csv(history, args.history_output)
     save_training_curves(args.history_output, args.training_figure_output)
 
-    load_best_checkpoint(model, args.checkpoint_output, device)
+    load_best_checkpoint(
+        model,
+        args.checkpoint_path,
+        device,
+        expected_class_mapping=idx_to_class,
+        expected_concept_names=concept_names,
+    )
     test_epoch_metrics = run_cbm_epoch(
         model=model,
         dataloader=loaders["test"],
@@ -610,6 +710,12 @@ def main() -> None:
         device=device,
         max_batches=args.max_test_batches,
     )
+    oracle_comparison = evaluate_oracle_concept_accuracy(
+        model=model,
+        dataloader=loaders["test"],
+        device=device,
+        max_batches=args.max_test_batches,
+    )
     summary_row = {
         "num_classes": num_classes,
         "num_concepts": len(concept_names),
@@ -622,8 +728,14 @@ def main() -> None:
         "test_class_acc": test_epoch_metrics.class_acc,
         "test_concept_mae": test_epoch_metrics.concept_mae,
         "test_concept_binary_acc": test_epoch_metrics.concept_binary_acc,
+        "backbone_source": backbone_initialization,
         **baseline_comparison,
+        **oracle_comparison,
     }
+    summary_row["oracle_minus_predicted_cbm_accuracy"] = (
+        float(summary_row["oracle_concept_class_accuracy"])
+        - float(summary_row["test_class_acc"])
+    )
     write_csv([summary_row], args.summary_output)
     save_summary_plot(summary_row, args.summary_figure_output)
 
@@ -691,9 +803,25 @@ def main() -> None:
     write_csv(interventions, args.intervention_output)
     save_intervention_plot(interventions, args.intervention_figure_output)
 
+    image_interventions = image_specific_intervention_rows(
+        model=model,
+        dataloader=loaders["test"],
+        idx_to_class=idx_to_class,
+        concept_names=concept_names,
+        device=device,
+        max_batches=args.max_test_batches,
+        top_k_per_image=args.top_image_interventions,
+        max_images=args.max_intervention_images,
+    )
+    write_csv(image_interventions, args.image_intervention_output)
+    save_image_intervention_plot(
+        image_interventions,
+        args.image_intervention_figure_output,
+    )
+
     LOGGER.info(
-        "CBM training complete: checkpoint=%s history=%s summary=%s concept_metrics=%s concept_confusion=%s predictions=%s error_analysis=%s interventions=%s",
-        args.checkpoint_output,
+        "CBM training complete: checkpoint=%s history=%s summary=%s concept_metrics=%s concept_confusion=%s predictions=%s error_analysis=%s prototype_interventions=%s image_interventions=%s",
+        args.checkpoint_path,
         args.history_output,
         args.summary_output,
         args.concept_metrics_output,
@@ -701,6 +829,7 @@ def main() -> None:
         args.predictions_output,
         args.error_analysis_output,
         args.intervention_output,
+        args.image_intervention_output,
     )
 
 

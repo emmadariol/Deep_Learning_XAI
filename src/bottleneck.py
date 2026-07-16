@@ -6,7 +6,7 @@ import csv
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 import numpy as np
 import torch
@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.models import ResNet50_Weights, resnet50
 
 from src.concepts import AwA2ConceptBank, normalize_class_name
-from src.model import freeze_all, unfreeze_modules
+from src.model import freeze_all, set_frozen_batchnorm_eval, unfreeze_modules
 
 LOGGER = logging.getLogger(__name__)
 
@@ -89,6 +89,11 @@ class ConceptBottleneckModel(nn.Module):
         unfreeze_modules(backbone, trainable_backbone_layers)
 
         self.backbone = backbone
+        self.num_classes = num_classes
+        self.num_concepts = num_concepts
+        self.backbone_initialization = "imagenet" if pretrained else "random"
+        self.trainable_backbone_layers = tuple(trainable_backbone_layers)
+        self.dropout = float(dropout)
         self.concept_head = nn.Sequential(
             nn.Dropout(p=dropout),
             nn.Linear(feature_dim, num_concepts),
@@ -156,20 +161,56 @@ def load_backbone_checkpoint(
     model: ConceptBottleneckModel,
     checkpoint_path: str | Path,
     device: torch.device,
-) -> None:
-    """Load a baseline ResNet checkpoint into the CBM backbone when available."""
+    allow_imagenet_fallback: bool = True,
+    expected_class_mapping: dict[int, str] | None = None,
+) -> str:
+    """Load a trained ResNet backbone without permitting frozen random features.
+
+    If the requested checkpoint is missing, continuing is only valid when the
+    model was explicitly initialized with ImageNet weights and that fallback is
+    allowed. A randomly initialized, mostly frozen backbone is always rejected.
+    """
     path = Path(checkpoint_path).expanduser().resolve()
     if not path.exists():
-        LOGGER.warning("Backbone checkpoint not found; training CBM backbone from initialization: %s", path)
-        return
+        if model.backbone_initialization == "imagenet" and allow_imagenet_fallback:
+            LOGGER.warning(
+                "Backbone checkpoint not found; using explicit ImageNet initialization: %s",
+                path,
+            )
+            return "imagenet"
+        raise FileNotFoundError(
+            "CBM backbone checkpoint not found. Supply a trained baseline checkpoint "
+            "or pass --use-imagenet-pretrained to use a valid ImageNet fallback. "
+            f"Missing path: {path}"
+        )
 
-    checkpoint = torch.load(path, map_location="cpu")
+    checkpoint = torch.load(path, map_location="cpu", weights_only=True)
     state_dict = checkpoint.get("model_state_dict", checkpoint)
+    if not isinstance(state_dict, dict):
+        raise TypeError(f"Checkpoint does not contain a state dictionary: {path}")
+    metadata = checkpoint.get("metadata", {})
+    if expected_class_mapping is not None and isinstance(metadata, dict):
+        stored_mapping = metadata.get("idx_to_class")
+        if stored_mapping is None:
+            LOGGER.warning(
+                "Legacy backbone checkpoint has no class mapping; validating tensor shapes only: %s",
+                path,
+            )
+        else:
+            normalized_mapping = {
+                int(index): str(name) for index, name in stored_mapping.items()
+            }
+            if normalized_mapping != expected_class_mapping:
+                raise ValueError(
+                    "Backbone checkpoint class mapping does not match the CBM dataset."
+                )
     remapped = {
-        f"backbone.{name}": value
+        f"backbone.{name.removeprefix('module.')}": value
         for name, value in state_dict.items()
-        if not name.startswith("fc.")
+        if not name.removeprefix("module.").startswith("fc.")
     }
+    if not remapped:
+        raise ValueError(f"No ResNet backbone tensors were found in checkpoint: {path}")
     missing, unexpected = model.load_state_dict(remapped, strict=False)
     LOGGER.info(
         "Loaded CBM backbone from %s with %d missing and %d unexpected keys",
@@ -177,6 +218,7 @@ def load_backbone_checkpoint(
         len(missing),
         len(unexpected),
     )
+    return "awa2_checkpoint"
 
 
 def trainable_parameters(model: nn.Module):
@@ -195,6 +237,8 @@ def run_cbm_epoch(
     """Run one train/eval pass over a concept-target dataloader."""
     training = optimizer is not None
     model.train(mode=training)
+    if training:
+        set_frozen_batchnorm_eval(model.backbone)
 
     total_loss = 0.0
     total_class_loss = 0.0
@@ -272,6 +316,7 @@ def train_cbm(
     class_loss_weight: float = 1.0,
     max_train_batches: int | None = None,
     max_val_batches: int | None = None,
+    checkpoint_metadata: dict[str, Any] | None = None,
 ) -> list[CBMEpochMetrics]:
     """Train CBM and save the checkpoint with the best validation class accuracy."""
     checkpoint_path = Path(checkpoint_path).expanduser().resolve()
@@ -323,6 +368,15 @@ def train_cbm(
                     "epoch": epoch,
                     "val_class_acc": val_metrics.class_acc,
                     "val_concept_mae": val_metrics.concept_mae,
+                    "model_config": {
+                        "architecture": "resnet50_concept_bottleneck",
+                        "num_classes": model.num_classes,
+                        "num_concepts": model.num_concepts,
+                        "trainable_backbone_layers": list(model.trainable_backbone_layers),
+                        "dropout": model.dropout,
+                        "backbone_initialization": model.backbone_initialization,
+                    },
+                    "metadata": checkpoint_metadata or {},
                 },
                 checkpoint_path,
             )
@@ -714,7 +768,12 @@ def intervention_rows(
     device: torch.device,
     top_k_per_class: int = 6,
 ) -> list[dict[str, object]]:
-    """Measure class probability changes when setting one concept to 0 or 1."""
+    """Measure interventions around an AwA2 oracle class prototype.
+
+    These rows do not begin from an image prediction. They answer how the
+    learned class head reacts when one coordinate of the class-level attribute
+    prototype is toggled, so reports must label them as oracle-prototype tests.
+    """
     model.eval()
     concept_names = concept_names_from_indices(concept_bank, concept_indices)
     label_by_class = {
@@ -748,6 +807,7 @@ def intervention_rows(
                 candidates.append(
                     {
                         "target_class": class_name,
+                        "intervention_source": "awa2_oracle_class_prototype",
                         "concept": concept_name,
                         "base_class_probability": base_class_prob,
                         "probability_when_concept_zero": zero_prob,
@@ -758,4 +818,120 @@ def intervention_rows(
 
             candidates.sort(key=lambda row: abs(float(row["intervention_delta"])), reverse=True)
             rows.extend(candidates[:top_k_per_class])
+    return rows
+
+
+def evaluate_oracle_concept_accuracy(
+    model: ConceptBottleneckModel,
+    dataloader: DataLoader,
+    device: torch.device,
+    max_batches: int | None = None,
+) -> dict[str, float | int]:
+    """Evaluate the class head with ground-truth AwA2 concepts.
+
+    Comparing this oracle accuracy with image-to-concept CBM accuracy separates
+    errors in concept prediction from limitations of the concept-to-class head.
+    """
+    model.eval()
+    total = 0
+    correct = 0
+    with torch.no_grad():
+        for batch_index, batch in enumerate(dataloader):
+            if max_batches is not None and batch_index >= max_batches:
+                break
+            concept_targets = batch[1].to(device, non_blocking=True)
+            labels = batch[2].to(device, non_blocking=True)
+            predictions = model.classify_concepts(concept_targets).argmax(dim=1)
+            total += labels.numel()
+            correct += int((predictions == labels).sum().item())
+    if total == 0:
+        raise RuntimeError("No samples processed for oracle concept evaluation.")
+    return {
+        "oracle_concept_class_accuracy": correct / total,
+        "oracle_concept_evaluated_samples": total,
+    }
+
+
+def image_specific_intervention_rows(
+    model: ConceptBottleneckModel,
+    dataloader: DataLoader,
+    idx_to_class: dict[int, str],
+    concept_names: list[str],
+    device: torch.device,
+    max_batches: int | None = None,
+    top_k_per_image: int = 3,
+    max_images: int | None = 100,
+) -> list[dict[str, object]]:
+    """Correct predicted concepts to oracle values for individual images.
+
+    Each intervention starts from the image-specific concept vector produced by
+    the CBM. One concept is replaced by its AwA2 target value, and the resulting
+    change in the true-class probability and final prediction is recorded.
+    """
+    if top_k_per_image <= 0:
+        raise ValueError("top_k_per_image must be positive.")
+    model.eval()
+    rows: list[dict[str, object]] = []
+    processed_images = 0
+
+    with torch.no_grad():
+        for batch_index, batch in enumerate(dataloader):
+            if max_batches is not None and batch_index >= max_batches:
+                break
+            images = batch[0].to(device, non_blocking=True)
+            concept_targets = batch[1].to(device, non_blocking=True)
+            labels = batch[2].to(device, non_blocking=True)
+            class_names = list(batch[3])
+            filepaths = list(batch[4])
+            outputs = model(images)
+            original_probs = torch.softmax(outputs.class_logits, dim=1)
+            original_predictions = original_probs.argmax(dim=1)
+
+            for image_index in range(images.size(0)):
+                if max_images is not None and processed_images >= max_images:
+                    return rows
+                label = int(labels[image_index].item())
+                base_concepts = outputs.concept_probs[image_index : image_index + 1]
+                target_concepts = concept_targets[image_index]
+                base_true_prob = float(original_probs[image_index, label].item())
+                base_prediction = int(original_predictions[image_index].item())
+                candidates: list[dict[str, object]] = []
+
+                for concept_index, concept_name in enumerate(concept_names):
+                    corrected = base_concepts.clone()
+                    corrected[0, concept_index] = target_concepts[concept_index]
+                    corrected_probs = torch.softmax(model.classify_concepts(corrected), dim=1)[0]
+                    corrected_prediction = int(corrected_probs.argmax().item())
+                    corrected_true_prob = float(corrected_probs[label].item())
+                    candidates.append(
+                        {
+                            "filepath": filepaths[image_index],
+                            "true_class": class_names[image_index],
+                            "concept": concept_name,
+                            "intervention_source": "image_prediction_to_awa2_oracle_value",
+                            "predicted_concept_value": float(base_concepts[0, concept_index].item()),
+                            "oracle_concept_value": float(target_concepts[concept_index].item()),
+                            "absolute_concept_error": float(
+                                abs(base_concepts[0, concept_index] - target_concepts[concept_index]).item()
+                            ),
+                            "original_predicted_class": idx_to_class[base_prediction],
+                            "original_correct": base_prediction == label,
+                            "original_true_class_probability": base_true_prob,
+                            "intervened_predicted_class": idx_to_class[corrected_prediction],
+                            "intervened_correct": corrected_prediction == label,
+                            "intervened_true_class_probability": corrected_true_prob,
+                            "true_class_probability_delta": corrected_true_prob - base_true_prob,
+                        }
+                    )
+
+                candidates.sort(
+                    key=lambda row: (
+                        float(row["true_class_probability_delta"]),
+                        float(row["absolute_concept_error"]),
+                    ),
+                    reverse=True,
+                )
+                rows.extend(candidates[:top_k_per_image])
+                processed_images += 1
+
     return rows
