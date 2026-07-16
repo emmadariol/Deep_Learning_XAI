@@ -19,6 +19,7 @@
       --accent-soft: #e3eeee;
       --warning: #9a5a2b;
       --warning-soft: #f4e9dc;
+      --page-width: clamp(1180px, 82vw, 1600px);
       --display: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
       --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -80,7 +81,7 @@
     .toc-inner,
     .report,
     .site-footer-inner {
-      width: min(100%, 1180px);
+      width: min(100%, var(--page-width));
       margin-inline: auto;
     }
 
@@ -104,7 +105,7 @@
 
     .hero-art img {
       display: block;
-      width: min(100%, 410px);
+      width: min(100%, clamp(410px, 27vw, 560px));
       height: auto;
     }
 
@@ -1065,23 +1066,40 @@
 
         <div class="figure-grid">
           <figure>
+            <img src="assets/xai-report/advanced-gradcam-deletion.png"
+              alt="Deletion and insertion faithfulness curves for Grad-CAM." loading="lazy" decoding="async">
+            <figcaption><strong>Figure 16</strong> — Grad-CAM’s target score falls as its most salient pixels are
+              deleted and rises as they are restored.
+            </figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/advanced-ig-deletion.png"
+              alt="Deletion and insertion faithfulness curves for Integrated Gradients." loading="lazy" decoding="async">
+            <figcaption><strong>Figure 17</strong> — The same deletion–insertion check tests whether Integrated
+              Gradients ranks evidence that affects the target score.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="figure-grid">
+          <figure>
             <img src="assets/xai-report/saliency-stress-comparison.png"
               alt="Comparison of saliency stability under several background perturbations." loading="lazy"
               decoding="async">
-            <figcaption><strong>Figure 16</strong> — Stress comparisons show whether attribution moves with context.
+            <figcaption><strong>Figure 18</strong> — Stress comparisons show whether attribution moves with context.
             </figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/case-summary.png"
               alt="Case study linking a prediction transition, confidence change and saliency stability." loading="lazy"
               decoding="async">
-            <figcaption><strong>Figure 17</strong> — A case study links prediction behaviour with explanation behaviour.
+            <figcaption><strong>Figure 19</strong> — A case study links prediction behaviour with explanation behaviour.
             </figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/tcav-top-scores.png" alt="Highest TCAV concept scores by animal class."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 18</strong> — The current TCAV chart is exploratory; validated CAV outputs would
+            <figcaption><strong>Figure 20</strong> — The current TCAV chart is exploratory; validated CAV outputs would
               add held-out accuracy, random controls and corrected significance.
             </figcaption>
           </figure>
@@ -1089,7 +1107,7 @@
             <img src="assets/xai-report/concept-interventions.png"
               alt="Changes in class predictions after interventions on bottleneck concepts." loading="lazy"
               decoding="async">
-            <figcaption><strong>Figure 19</strong> — Concept interventions expose changes mediated by the bottleneck.
+            <figcaption><strong>Figure 21</strong> — Concept interventions expose changes mediated by the bottleneck.
             </figcaption>
           </figure>
         </div>
