@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import torch
 from torch import nn
@@ -116,15 +117,42 @@ def log_trainable_modules(model: nn.Module) -> None:
         )
 
 
-def load_checkpoint(model: nn.Module, checkpoint_path: str | Path, device: torch.device) -> None:
-    """Load a model checkpoint saved either as a raw state dict or training bundle."""
+def load_checkpoint(
+    model: nn.Module,
+    checkpoint_path: str | Path,
+    device: torch.device,
+    expected_class_mapping: dict[int, str] | None = None,
+) -> dict[str, Any]:
+    """Safely load a state dict and validate class semantics when available."""
     path = Path(checkpoint_path).expanduser().resolve()
     if not path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {path}")
-    checkpoint = torch.load(path, map_location=device)
+    checkpoint = torch.load(path, map_location=device, weights_only=True)
+    if not isinstance(checkpoint, dict):
+        raise TypeError(f"Checkpoint must be a state dictionary or dictionary bundle: {path}")
     state_dict = checkpoint.get("model_state_dict", checkpoint)
+    if not isinstance(state_dict, dict):
+        raise TypeError(f"Checkpoint does not contain a model state dictionary: {path}")
+
+    metadata = checkpoint.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise TypeError(f"Checkpoint metadata must be a dictionary: {path}")
+    stored_mapping = metadata.get("idx_to_class")
+    if expected_class_mapping is not None and stored_mapping is not None:
+        normalized_mapping = {int(index): str(name) for index, name in stored_mapping.items()}
+        if normalized_mapping != expected_class_mapping:
+            raise ValueError(
+                "Checkpoint class mapping does not match the requested dataset. "
+                f"checkpoint={normalized_mapping} dataset={expected_class_mapping}"
+            )
+    elif expected_class_mapping is not None:
+        LOGGER.warning(
+            "Legacy checkpoint has no embedded class mapping; validating only tensor shapes: %s",
+            path,
+        )
     model.load_state_dict(state_dict)
     LOGGER.info("Loaded checkpoint: %s", path)
+    return metadata
 
 
 def get_device(requested_device: str = "auto") -> torch.device:

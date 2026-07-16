@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import argparse
-import logging
 import math
 
 import torch
+
+
+STANDARD_LOG_LEVELS = frozenset(
+    {"CRITICAL", "FATAL", "ERROR", "WARNING", "WARN", "INFO", "DEBUG", "NOTSET"}
+)
 
 
 def _integer(value: str | int, *, minimum: int, expectation: str) -> int:
@@ -77,7 +81,7 @@ def open_percentage_float(value: str | float) -> float:
 
 def log_level(value: str) -> str:
     normalized = value.upper()
-    if normalized not in logging.getLevelNamesMapping():
+    if normalized not in STANDARD_LOG_LEVELS:
         raise argparse.ArgumentTypeError(f"unknown logging level: {value!r}")
     return normalized
 

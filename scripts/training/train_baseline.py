@@ -13,7 +13,7 @@ from torch import nn
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data import build_dataloaders, infer_num_classes
+from src.data import build_dataloaders, infer_num_classes, load_class_names
 from src.model import build_resnet50_classifier, get_device
 from src.train import train_model
 from src.utils import set_seed, setup_logging
@@ -41,6 +41,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument(
+        "--early-stopping-patience",
+        type=int,
+        default=3,
+        help="Stop after this many non-improving validation epochs; use 0 to disable.",
+    )
+    parser.add_argument("--early-stopping-min-delta", type=float, default=0.0)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--device", type=str, default="auto")
@@ -73,6 +80,7 @@ def main() -> None:
 
     manifest = args.manifest.expanduser().resolve()
     num_classes = infer_num_classes(manifest)
+    idx_to_class = load_class_names(manifest)
     device = get_device(args.device)
     LOGGER.info("manifest=%s", manifest)
     LOGGER.info("num_classes=%d device=%s", num_classes, device)
@@ -109,6 +117,36 @@ def main() -> None:
         history_path=args.history_path,
         max_train_batches=args.max_train_batches,
         max_val_batches=args.max_val_batches,
+        early_stopping_patience=(
+            None if args.early_stopping_patience == 0 else args.early_stopping_patience
+        ),
+        early_stopping_min_delta=args.early_stopping_min_delta,
+        checkpoint_metadata={
+            "schema": "resnet50-awa2-checkpoint-v1",
+            "manifest": str(manifest),
+            "idx_to_class": idx_to_class,
+            "class_to_idx": {name: index for index, name in idx_to_class.items()},
+            "seed": args.seed,
+            "model_config": {
+                "architecture": "resnet50",
+                "num_classes": num_classes,
+                "pretrained": not args.no_pretrained,
+                "trainable_modules": ["layer4", "fc"],
+            },
+            "training_config": {
+                "loss": "CrossEntropyLoss",
+                "optimizer": "AdamW",
+                "learning_rate": args.lr,
+                "weight_decay": args.weight_decay,
+                "batch_size": args.batch_size,
+                "early_stopping_patience": args.early_stopping_patience,
+                "early_stopping_min_delta": args.early_stopping_min_delta,
+            },
+            "transforms": {
+                "train": "RandomResizedCrop(224, scale=(0.75, 1.0)); RandomHorizontalFlip(0.5); ImageNet normalization",
+                "validation_test": "Resize(256); CenterCrop(224); ImageNet normalization",
+            },
+        },
     )
 
 

@@ -23,10 +23,10 @@
 <text x="709.5" y="278" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">score?</text>
 <path d="M785 206 C 805.0 206, 805.0 224, 825 224" fill="none" stroke="#e9a23b" stroke-width="4" marker-end="url(#arrow)"/><circle cx="830" cy="209" r="34" fill="#2a9d8f"/><text x="830" y="218" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
   <rect x="877" y="174" width="155" height="100" rx="18" fill="#ffffff" stroke="#cfd8dc" stroke-width="2"/>
-  <text x="954.5" y="212" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Sanity checks</text>
-  <text x="954.5" y="256" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Does it agree with</text>
-<text x="954.5" y="276" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">perturbation</text>
-<text x="954.5" y="296" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">controls?</text>
+  <text x="954.5" y="212" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Concept checks</text>
+  <text x="954.5" y="256" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">Do concepts align</text>
+<text x="954.5" y="276" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">with the</text>
+<text x="954.5" y="296" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500" fill="#61717a" text-anchor="middle">prediction?</text>
 <path d="M1030 224 C 1050.0 224, 1050.0 242, 1070 242" fill="none" stroke="#e9a23b" stroke-width="4" marker-end="url(#arrow)"/><circle cx="1075" cy="227" r="34" fill="#2a9d8f"/><text x="1075" y="236" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
   <rect x="1122" y="192" width="155" height="100" rx="18" fill="#ffffff" stroke="#cfd8dc" stroke-width="2"/>
   <text x="1199.5" y="230" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#18324a" text-anchor="middle">Concept alignment</text>
