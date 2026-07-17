@@ -44,7 +44,7 @@ def parse_args() -> argparse.Namespace:
         "--trace-json",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "reports" / "real_forward_trace.json",
-        help="Compact JSON trace that can be loaded by docs/resnet_activation_simulator.html.",
+        help="Compact JSON trace for auditing and reproducing the inspected forward pass.",
     )
     parser.add_argument("--image-path", type=Path, default=None, help="Optional specific image to inspect.")
     parser.add_argument("--split", type=str, default="test", choices=["train", "val", "test"])
