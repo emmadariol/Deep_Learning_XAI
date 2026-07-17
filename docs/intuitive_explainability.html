@@ -73,8 +73,12 @@
 
     .masthead {
       padding: clamp(68px, 10vw, 126px) 24px clamp(24px, 4vw, 42px);
-      background: var(--canvas);
-      border-bottom: 1px solid var(--line);
+      color: #f8fbff;
+      background:
+        linear-gradient(135deg, rgba(14, 27, 50, .97), rgba(24, 76, 91, .95)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, .06) 0 1px, transparent 1px 82px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, .04) 0 1px, transparent 1px 82px);
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
     }
 
     .masthead-inner,
@@ -112,7 +116,7 @@
     .hero-credits {
       grid-column: 1 / -1;
       margin: 0;
-      color: var(--muted);
+      color: rgba(235, 244, 248, .72);
       font-size: .78rem;
       letter-spacing: .015em;
       line-height: 1.5;
@@ -136,7 +140,7 @@
     .lead {
       max-width: 780px;
       margin: 28px 0 0;
-      color: #455156;
+      color: #dce8f2;
       font-family: var(--body);
       font-weight: 400;
       letter-spacing: -.012em;
@@ -488,6 +492,50 @@
       padding-left: 0;
     }
 
+    .interactive-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-top: 22px;
+      padding: 20px 22px;
+      color: var(--ink);
+      background: var(--accent-soft);
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+
+    .interactive-link:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .interactive-link strong,
+    .interactive-link span {
+      display: block;
+    }
+
+    .interactive-link strong {
+      font-family: var(--display);
+      font-size: 1.08rem;
+    }
+
+    .interactive-link span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .interactive-link::after {
+      flex: 0 0 auto;
+      color: var(--accent);
+      content: "Open interactive view →";
+      font-size: .82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
     .closing-statement {
       max-width: 850px;
       margin: 0 0 32px;
@@ -595,6 +643,12 @@
 
       .comparison {
         min-width: 680px;
+      }
+
+      .interactive-link {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
       }
     }
 
@@ -730,6 +784,13 @@
           <figcaption><strong>Figure 02</strong> — A forward inspection makes the progressive loss of spatial resolution
             visible.</figcaption>
         </figure>
+        <a class="interactive-link" href="resnet_activation_simulator.html">
+          <span>
+            <strong>Explore the real forward inspection</strong>
+            <span>Move through the ResNet50 stages, inspect activation maps and compare the final prediction with
+              Grad-CAM.</span>
+          </span>
+        </a>
       </div>
     </section>
 

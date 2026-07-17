@@ -58,6 +58,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ig-steps", type=positive_int, default=50)
     parser.add_argument("--ig-internal-batch-size", type=positive_int, default=4)
     parser.add_argument("--blur-radius", type=nonnegative_float, default=18.0)
+    parser.add_argument(
+        "--selection",
+        choices=("correct", "incorrect", "all"),
+        default="correct",
+        help="Choose correctly classified, misclassified, or all test examples.",
+    )
     parser.add_argument("--device", type=device_spec, default="auto")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-level", type=log_level, default="INFO")
@@ -73,6 +79,7 @@ def collect_correct_examples(
     max_per_class: int | None = None,
     idx_to_class: dict[int, str] | None = None,
     allow_incorrect: bool = False,
+    only_incorrect: bool = False,
     seed: int = 42,
 ) -> tuple[torch.Tensor, torch.Tensor, list[str], list[str], list[float], list[str]]:
     """Select a reproducible, class-balanced sample from eligible examples."""
@@ -137,7 +144,12 @@ def collect_correct_examples(
             logits = model(images)
             probs = torch.softmax(logits, dim=1)
             conf, preds = probs.max(dim=1)
-            selected = torch.ones_like(labels, dtype=torch.bool) if allow_incorrect else preds == labels
+            if only_incorrect:
+                selected = preds != labels
+            elif allow_incorrect:
+                selected = torch.ones_like(labels, dtype=torch.bool)
+            else:
+                selected = preds == labels
 
             for idx in selected.nonzero(as_tuple=False).flatten().tolist():
                 label_value = int(labels[idx].item())
@@ -282,7 +294,15 @@ def main() -> None:
         class_names_by_label=class_names_by_label,
         max_images=args.max_images,
         max_per_class=args.max_per_class,
+        allow_incorrect=args.selection == "all",
+        only_incorrect=args.selection == "incorrect",
         seed=args.seed,
+    )
+    class_labels_by_name = {name: label for label, name in class_names_by_label.items()}
+    attribution_targets = torch.tensor(
+        [class_labels_by_name[name] for name in pred_names],
+        device=device,
+        dtype=labels.dtype,
     )
 
     logits = model(images)
@@ -290,13 +310,13 @@ def main() -> None:
 
     target_layer = model.layer4[-1]
     LOGGER.info("Computing Grad-CAM on layer: %s", target_layer.__class__.__name__)
-    gradcam_maps = gradcam_saliency(model, images, labels, target_layer)
+    gradcam_maps = gradcam_saliency(model, images, attribution_targets, target_layer)
 
     LOGGER.info("Computing Integrated Gradients with blurred image baselines")
     ig_maps, ig_attributions, ig_baselines = integrated_gradients_maps(
         model=model,
         inputs=images,
-        targets=labels,
+        targets=attribution_targets,
         steps=args.ig_steps,
         internal_batch_size=args.ig_internal_batch_size,
         blur_radius=args.blur_radius,
