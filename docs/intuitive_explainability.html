@@ -217,6 +217,11 @@
       line-height: 1.35;
     }
 
+    .subsection-title {
+      margin: 52px 0 14px;
+      font-size: 1.24rem;
+    }
+
     p {
       margin: 0 0 1em;
     }
@@ -708,9 +713,9 @@
         <ol class="pipeline" aria-label="Explainability audit pipeline">
           <li><strong>Image</strong><span>Resize, crop and normalize RGB pixels.</span></li>
           <li><strong>Classifier</strong><span>ResNet50 produces logits and class probabilities.</span></li>
-          <li><strong>Attribution</strong><span>Two local methods produce saliency maps.</span></li>
-          <li><strong>Stress tests</strong><span>Controlled changes test stability and faithfulness.</span></li>
-          <li><strong>Concepts</strong><span>TCAV and a CBM add semantic evidence.</span></li>
+          <li><strong>Target contrast</strong><span>Local maps compare the selected class with the true class.</span></li>
+          <li><strong>Interventions</strong><span>Background changes and deletion test score response.</span></li>
+          <li><strong>Concepts</strong><span>TCAV and a CBM add semantic evidence with different scopes.</span></li>
         </ol>
 
         <div class="note">
@@ -906,10 +911,114 @@
             confidence and attribution target together.</figcaption>
         </figure>
 
+        <h3 class="subsection-title">Contrastive error audit</h3>
+        <div class="prose">
+          <p>The original error grid targets only the class selected by the network. The contrastive audit fixes two
+            targets on the same image: the original wrong prediction and the ground-truth class. It then measures
+            whether controlled interventions weaken the wrong class relative to the true class.</p>
+        </div>
+
+        <div class="formula" role="math"
+          aria-label="m of x equals z wrong of x minus z true of x">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+            <mrow>
+              <mi>m</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>
+              <msub><mi>z</mi><mtext>wrong</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo>
+              <mo>−</mo>
+              <msub><mi>z</mi><mtext>true</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo>
+            </mrow>
+          </math>
+        </div>
+
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>Target contrast</h3>
+            <p>Grad-CAM and Integrated Gradients are computed twice on each error: once for the fixed wrong class and
+              once for the true class. Similar maps for different targets indicate weak class discrimination.</p>
+          </article>
+          <article class="fact">
+            <h3>Decision margin</h3>
+            <p>The original error has <code>m(x) &gt; 0</code>. A positive margin reduction after perturbation means the
+              intervention made the true class more competitive.</p>
+          </article>
+          <article class="fact">
+            <h3>Deletion faithfulness</h3>
+            <p>Pixels ranked by each target map are progressively replaced with a blurred baseline. A faithful
+              wrong-target map should produce a substantial fall in the wrong-class score.</p>
+          </article>
+          <article class="fact">
+            <h3>Semantic comparator</h3>
+            <p>The CBM decomposes its own linear wrong-versus-true margin into concept contributions. This explains the
+              CBM pathway and is not presented as causal evidence for the separate ResNet.</p>
+          </article>
+        </div>
+
+        <div class="figure-grid">
+          <figure>
+            <img src="assets/xai-report/error-target-contrast-gradcam.png"
+              alt="Misclassified images with Grad-CAM maps for the wrong and true target classes and a difference map."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 06a</strong> — Grad-CAM target contrast distinguishes evidence localized for the
+              selected wrong class from evidence localized for the true class.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/error-target-contrast-ig.png"
+              alt="Misclassified images with Integrated Gradients maps for the wrong and true target classes and a difference map."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 06b</strong> — Integrated Gradients repeats the comparison at input resolution
+              along the blurred-baseline path.</figcaption>
+          </figure>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/error-perturbation-margins.png"
+            alt="Wrong-class and true-class probabilities and their logit margin before and after background perturbations."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 06c</strong> — Probabilities alone can move together; the fixed
+            <code>wrong − true</code> logit margin shows which class gained relative evidence.</figcaption>
+        </figure>
+
+        <div class="figure-grid">
+          <figure>
+            <img src="assets/xai-report/error-deletion-curves.png"
+              alt="Deletion curves comparing wrong-class and true-class probabilities as salient pixels are removed."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 06d</strong> — Deletion tests whether highlighted pixels actually control the
+              corresponding score rather than merely producing a plausible visualization.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/error-cbm-concepts.png"
+              alt="Concept bottleneck contributions to the wrong-versus-true class margin on baseline errors."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 06e</strong> — Positive bars support the fixed wrong class in the CBM; negative
+              bars support the true class. This is a parallel semantic diagnosis.</figcaption>
+          </figure>
+        </div>
+
+        <div class="note">
+          <strong>Current audit snapshot: two selected errors</strong>
+          <p>All three background interventions changed the top-1 prediction in both examples, but none corrected the
+            image to its true class. Background replacement produced the largest mean reduction of the fixed
+            wrong-versus-true margin (<code>0.638</code>). This supports contextual sensitivity, but not successful
+            recovery of the correct decision.</p>
+          <p>For <code>wolf → antelope</code>, replacement reduced the margin from <code>+0.691</code> to
+            <code>+0.119</code> and the model moved to <code>walrus</code>. For
+            <code>polar bear → tiger</code>, the margin crossed zero from <code>+0.509</code> to
+            <code>−0.194</code>, so polar bear outranked tiger, yet <code>walrus</code> remained the global top-1 class.
+            Removing the top 20% wrong-target pixels reduced the margin by about <code>0.36</code> on average for both
+            Grad-CAM and Integrated Gradients.</p>
+          <p>The original wrong-versus-true map overlap was lower for Grad-CAM
+            (<code>IoU 0.203</code>) than for Integrated Gradients (<code>IoU 0.420</code>), while the corresponding
+            mean rank correlations were <code>0.108</code> and <code>0.733</code>. In these cases, Integrated Gradients
+            assigned more similar pixel rankings to competing targets. The sample is deliberately small and serves as
+            an error-level case study, not a test-set estimate.</p>
+        </div>
+
         <div class="warning">
-          <strong>Conservative interpretation</strong>
-          <p>An error heatmap does not prove why the model failed. It proposes a hypothesis that must survive controlled
-            tests.</p>
+          <strong>Decision rule</strong>
+          <p>A background-supported error requires aligned evidence: the intervention should reduce the fixed wrong
+            score or margin, the wrong-target map should move, and deletion should confirm that the highlighted region
+            controls the score. A heatmap alone does not establish this conclusion.</p>
         </div>
       </div>
     </section>

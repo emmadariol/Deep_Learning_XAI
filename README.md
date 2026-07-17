@@ -299,6 +299,64 @@ outputs/figures/phase5_saliency_comparison.png
 outputs/reports/phase5_saliency_metrics.csv
 ```
 
+## Contrastive Misclassification Audit
+
+The ordinary error grid targets only the class selected by the network. The
+contrastive audit instead fixes the original wrong class and the ground-truth
+class on each misclassified image, then follows both scores through the same
+interventions.
+
+For logits `z`, the central quantity is the decision margin:
+
+```text
+margin(x) = z_wrong(x) - z_true(x)
+```
+
+The original error has a positive margin. A positive `margin_reduction` after
+an intervention means that the wrong class lost relative evidence. The audit
+combines four checks:
+
+```text
+target contrast: Grad-CAM and IG for wrong and true targets on the same image
+background response: fixed true/wrong probabilities, logits and margin
+deletion faithfulness: replace target-ranked pixels with a blurred baseline
+CBM comparator: decompose the CBM's linear wrong-vs-true margin by concept
+```
+
+Run it with the already trained baseline and CBM checkpoints:
+
+```bash
+python scripts/experiments/run_misclassification_audit.py \
+  --manifest data/AWA2_subset_background20/awa2_manifest_subset.csv \
+  --checkpoint outputs/checkpoints/best_resnet50_awa2.pt \
+  --cbm-checkpoint outputs/checkpoints/phase8_cbm_notebook.pt \
+  --metadata-root data/AWA2 \
+  --max-images 4 \
+  --ig-steps 16 \
+  --figure-directory outputs/figures/misclassification_audit
+```
+
+This command does not retrain either model. It produces:
+
+```text
+outputs/reports/misclassification_decision_audit.csv
+outputs/reports/misclassification_audit_summary.csv
+outputs/reports/misclassification_deletion_audit.csv
+outputs/reports/misclassification_concept_evidence.csv
+outputs/reports/misclassification_concept_summary.csv
+outputs/figures/misclassification_audit/target_contrast_gradcam.png
+outputs/figures/misclassification_audit/target_contrast_integrated_gradients.png
+outputs/figures/misclassification_audit/perturbation_decision_margins.png
+outputs/figures/misclassification_audit/deletion_curves.png
+outputs/figures/misclassification_audit/cbm_concept_evidence.png
+```
+
+The CBM figure explains the CBM's semantic pathway, not the separate direct
+ResNet. TCAV remains the direct concept probe of the ResNet, but its main score
+is cohort-level. The error audit therefore uses Grad-CAM, Integrated Gradients
+and score interventions for local ResNet diagnosis, with the CBM as a parallel
+semantic comparator.
+
 ## Concept Profiles and Prediction Transitions
 
 This analysis moves from pixel-level saliency to AwA2 semantic concepts. It reads

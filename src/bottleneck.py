@@ -116,6 +116,71 @@ class ConceptBottleneckModel(nn.Module):
         return self.class_head(concept_probs)
 
 
+def load_concept_bottleneck_checkpoint(
+    checkpoint_path: str | Path,
+    device: torch.device,
+    expected_class_mapping: dict[int, str] | None = None,
+) -> tuple[ConceptBottleneckModel, dict[str, Any]]:
+    """Rebuild and safely load a trained concept bottleneck model.
+
+    The checkpoint must contain the model configuration and concept metadata
+    written by :func:`train_cbm`. This prevents an audit from silently using a
+    different concept order or class mapping.
+    """
+    path = Path(checkpoint_path).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"CBM checkpoint not found: {path}")
+    checkpoint = torch.load(path, map_location=device, weights_only=True)
+    if not isinstance(checkpoint, dict):
+        raise TypeError("CBM checkpoint must be a dictionary.")
+    model_config = checkpoint.get("model_config")
+    metadata = checkpoint.get("metadata")
+    state_dict = checkpoint.get("model_state_dict")
+    if not isinstance(model_config, dict):
+        raise ValueError("CBM checkpoint is missing model_config metadata.")
+    if not isinstance(metadata, dict):
+        raise ValueError("CBM checkpoint is missing semantic metadata.")
+    if not isinstance(state_dict, dict):
+        raise ValueError("CBM checkpoint is missing model_state_dict.")
+
+    concept_names = list(metadata.get("concept_names", []))
+    if not concept_names:
+        raise ValueError("CBM checkpoint does not declare its concept order.")
+    stored_mapping = {
+        int(index): str(name)
+        for index, name in metadata.get("idx_to_class", {}).items()
+    }
+    if not stored_mapping:
+        raise ValueError("CBM checkpoint does not declare its class mapping.")
+    if expected_class_mapping is not None and stored_mapping != expected_class_mapping:
+        raise ValueError("CBM checkpoint class mapping does not match the current manifest.")
+
+    num_classes = int(model_config.get("num_classes", len(stored_mapping)))
+    num_concepts = int(model_config.get("num_concepts", len(concept_names)))
+    if num_classes != len(stored_mapping):
+        raise ValueError("CBM checkpoint class count and class mapping disagree.")
+    if num_concepts != len(concept_names):
+        raise ValueError("CBM checkpoint concept count and concept order disagree.")
+
+    model = ConceptBottleneckModel(
+        num_classes=num_classes,
+        num_concepts=num_concepts,
+        pretrained=False,
+        trainable_backbone_layers=tuple(
+            model_config.get("trainable_backbone_layers", ("layer4",))
+        ),
+        dropout=float(model_config.get("dropout", 0.15)),
+    )
+    model.load_state_dict(state_dict, strict=True)
+    model.backbone_initialization = str(
+        model_config.get("backbone_initialization", "checkpoint")
+    )
+    model.to(device)
+    model.eval()
+    LOGGER.info("loaded concept bottleneck checkpoint: %s", path)
+    return model, metadata
+
+
 def select_concept_indices(
     concept_bank: AwA2ConceptBank,
     requested_concepts: Iterable[str] | None = None,
