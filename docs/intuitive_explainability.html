@@ -687,11 +687,10 @@
     <div class="toc-inner">
       <a href="#overview" aria-current="location">Overview</a>
       <a href="#model">Model</a>
-      <a href="#attribution">Attribution</a>
-      <a href="#errors">Errors</a>
-      <a href="#stress">Stress test</a>
-      <a href="#concepts">Concepts</a>
-      <a href="#evidence">Evidence</a>
+      <a href="#attribution">Q1 &middot; Location</a>
+      <a href="#reliability">Q2 &middot; Reliability</a>
+      <a href="#concepts">Q3 &middot; Representation</a>
+      <a href="#bottleneck">Q4 &middot; Mediation</a>
       <a href="#conclusion">Conclusion</a>
     </div>
   </nav>
@@ -699,35 +698,62 @@
   <main id="content" class="report">
     <section id="overview" class="report-section" aria-labelledby="overview-title">
       <div class="section-heading">
-        <h2 id="overview-title">What is being audited</h2>
+        <h2 id="overview-title">The explainability analysis</h2>
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">Explainability connects a model output to interpretable evidence. Here, the output is
-            an animal-class score; the evidence is either a region of the image or a human-readable concept.</p>
-          <p>We treat each explanation as a hypothesis rather than a proof. Visual plausibility is only the
-            first step. Stability, faithfulness, class specificity and concept alignment provide stronger tests of
-            whether the model is using the evidence shown to us.</p>
+          <p class="prose-intro">The project follows one image from prediction to explanation, intervention, error
+            analysis and semantic interpretation.</p>
+          <p>Each stage answers a stronger question. Spatial attribution proposes where evidence may be located;
+            controlled tests determine whether that proposal is stable and faithful; concept methods then examine
+            whether the representation can be related to human-readable attributes.</p>
         </div>
 
-        <ol class="pipeline" aria-label="Explainability audit pipeline">
-          <li><strong>Image</strong><span>Resize, crop and normalize RGB pixels.</span></li>
-          <li><strong>Classifier</strong><span>ResNet50 produces logits and class probabilities.</span></li>
-          <li><strong>Target contrast</strong><span>Local maps compare the selected class with the true class.</span></li>
-          <li><strong>Interventions</strong><span>Background changes and deletion test score response.</span></li>
-          <li><strong>Concepts</strong><span>TCAV and a CBM add semantic evidence with different scopes.</span></li>
+        <div class="fact-grid" aria-label="Four explainability questions">
+          <article class="fact">
+            <h3>Question 1</h3>
+            <p><strong>Where is evidence located?</strong> Grad-CAM and Integrated Gradients produce spatial maps for a
+              selected class.</p>
+          </article>
+          <article class="fact">
+            <h3>Question 2</h3>
+            <p><strong>Is the map stable and faithful?</strong> Perturbations and quantitative metrics test whether the
+              highlighted evidence survives controlled checks.</p>
+          </article>
+          <article class="fact">
+            <h3>Question 3</h3>
+            <p><strong>Which semantic concepts are represented?</strong> AwA2 attributes and TCAV connect activation
+              directions to concepts such as stripes, horns, fur and flippers.</p>
+          </article>
+          <article class="fact">
+            <h3>Question 4</h3>
+            <p><strong>Can prediction be mediated by concepts?</strong> A Concept Bottleneck Model forces the class
+              prediction through an explicit semantic vector.</p>
+          </article>
+        </div>
+
+        <ol class="pipeline" aria-label="Project analysis flow">
+          <li><strong>Image</strong><span>Load and normalize an AwA2 example.</span></li>
+          <li><strong>Prediction</strong><span>ResNet50 produces logits and probabilities.</span></li>
+          <li><strong>Location</strong><span>Grad-CAM and IG identify candidate evidence.</span></li>
+          <li><strong>Intervention</strong><span>Change the approximate background.</span></li>
+          <li><strong>Verification</strong><span>Measure prediction and explanation changes.</span></li>
+          <li><strong>Errors</strong><span>Compare the wrong and true target classes.</span></li>
+          <li><strong>Concepts</strong><span>Probe or mediate the decision semantically.</span></li>
+          <li><strong>Conclusion</strong><span>Combine all evidence conservatively.</span></li>
         </ol>
 
         <div class="note">
           <strong>Working principle</strong>
-          <p>An explanation becomes credible when independent checks agree. A single attractive heatmap is not enough.</p>
+          <p>These questions are complementary. A local heatmap cannot replace concept analysis, and concept
+            sensitivity cannot replace a spatial explanation.</p>
         </div>
       </div>
     </section>
 
     <section id="model" class="report-section" aria-labelledby="model-title">
       <div class="section-heading">
-        <h2 id="model-title">Classifier and training</h2>
+        <h2 id="model-title">Model and prediction</h2>
       </div>
       <div class="section-content">
         <div class="prose">
@@ -799,16 +825,24 @@
       </div>
     </section>
 
+
     <section id="attribution" class="report-section" aria-labelledby="attribution-title">
       <div class="section-heading">
-        <h2 id="attribution-title">Local attribution</h2>
+        <h2 id="attribution-title">Question 1: where is evidence located?</h2>
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">Grad-CAM and Integrated Gradients highlight the image regions that contribute to a
-            chosen class prediction.</p>
-          <p>All maps follow the same output contract: a finite, non-negative, normalized spatial map. This makes visual
-            and numerical comparisons possible without pretending that the methods are interchangeable.</p>
+          <p class="prose-intro">Grad-CAM and Integrated Gradients locate candidate evidence for one image and one
+            selected class.</p>
+          <p>A saliency map is the numerical attribution tensor. A heatmap is its colour-coded visualization over the
+            image. Both methods produce maps, but they define importance differently and should not be treated as
+            interchangeable measurements.</p>
+        </div>
+
+        <div class="note">
+          <strong>Scope of Question 1</strong>
+          <p>A spatial map answers where attribution is concentrated. It does not yet show that the region is stable,
+            necessary or sufficient for the prediction.</p>
         </div>
 
         <div class="method-list">
@@ -867,12 +901,143 @@
       </div>
     </section>
 
-    <section id="errors" class="report-section" aria-labelledby="errors-title">
+    <section id="reliability" class="report-section" aria-labelledby="reliability-title">
       <div class="section-heading">
-        <h2 id="errors-title">When the network is wrong</h2>
+        <h2 id="reliability-title">Question 2: is the map stable and faithful?</h2>
       </div>
       <div class="section-content">
         <div class="prose">
+          <p class="prose-intro">A plausible map becomes useful only when its highlighted evidence survives
+            interventions and controls the selected class score.</p>
+          <p>The analysis first changes the approximate background, then quantifies map stability and faithfulness,
+            and finally applies the same logic to misclassified images.</p>
+        </div>
+
+        <h3 class="subsection-title">Background interventions</h3>
+<div class="fact-grid">
+          <article class="fact">
+            <h3>Gaussian noise</h3>
+            <p>Add random noise only outside the approximate animal mask.</p>
+          </article>
+          <article class="fact">
+            <h3>Colour shift</h3>
+            <p>Shift background RGB channels while leaving the animal region intact.</p>
+          </article>
+          <article class="fact">
+            <h3>Background replacement</h3>
+            <p>Replace the approximate background with controlled random texture.</p>
+          </article>
+          <article class="fact">
+            <h3>Measured response</h3>
+            <p>Track prediction transitions, fixed-target confidence and spatial similarity between saliency maps.</p>
+          </article>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/background-perturbations.png"
+            alt="Original animal images alongside three controlled background perturbations." loading="lazy"
+            decoding="async">
+          <figcaption><strong>Figure 06</strong> — The perturbation grid makes the intervention explicit before any
+            metric is interpreted.</figcaption>
+        </figure>
+
+        <div class="figure-grid">
+          <figure>
+            <img src="assets/xai-report/stress-gradcam.png" alt="Grad-CAM maps under background perturbations."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 07</strong> — Grad-CAM checks the stability of late-feature localization.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/stress-integrated-gradients.png"
+              alt="Integrated Gradients maps under background perturbations." loading="lazy" decoding="async">
+            <figcaption><strong>Figure 08</strong> — Integrated Gradients checks input-level path attribution.</figcaption>
+          </figure>
+        </div>
+
+        <h3 class="subsection-title">Stability and faithfulness metrics</h3>
+        <div class="prose">
+          <p>IoU and Spearman measure whether the explanation remains spatially consistent. Deletion and insertion
+            test whether highly ranked pixels actually control the target score. These checks answer different parts
+            of the reliability question and must be interpreted together.</p>
+        </div>
+<div class="data-strip" aria-label="Project method counts">
+          <div class="data-point"><strong>2</strong><span>local attribution methods</span></div>
+          <div class="data-point"><strong>2</strong><span>concept-level methods</span></div>
+          <div class="data-point"><strong>3</strong><span>background interventions</span></div>
+        </div>
+
+        <div class="metric-list">
+          <article class="metric">
+            <h3>Top-k IoU</h3>
+            <p>Does the most salient spatial support remain in the same region? Higher overlap indicates more stable
+              localization.</p>
+          </article>
+          <article class="metric">
+            <h3>Spearman rank</h3>
+            <p>Does the full pixel-importance ordering remain similar? Constant maps are treated as undefined rather
+              than as artificial agreement.</p>
+          </article>
+          <article class="metric">
+            <h3>Deletion and insertion</h3>
+            <p>Do salient pixels actually affect the target score? A faithful map should delete evidence quickly and
+              recover it early during insertion.</p>
+          </article>
+          <article class="metric">
+            <h3>Region allocation</h3>
+            <p>How much normalized saliency lies on the approximate animal region compared with the background?</p>
+          </article>
+          <article class="metric">
+            <h3>Sanity controls</h3>
+            <p>Does the map agree with occlusion evidence and change when relevant model parameters are randomized?</p>
+          </article>
+
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/metric-summary.png"
+            alt="Summary charts for explanation stability and faithfulness metrics." loading="lazy" decoding="async">
+          <figcaption><strong>Figure 09</strong> — Metric summaries are consistency checks, not standalone proof.
+          </figcaption>
+        </figure>
+
+        <div class="figure-grid">
+          <figure>
+            <img src="assets/xai-report/advanced-gradcam-deletion.png"
+              alt="Deletion and insertion faithfulness curves for Grad-CAM." loading="lazy" decoding="async">
+            <figcaption><strong>Figure 10</strong> — Grad-CAM’s target score falls as its most salient pixels are
+              deleted and rises as they are restored.
+            </figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/advanced-ig-deletion.png"
+              alt="Deletion and insertion faithfulness curves for Integrated Gradients." loading="lazy" decoding="async">
+            <figcaption><strong>Figure 11</strong> — The same deletion–insertion check tests whether Integrated
+              Gradients ranks evidence that affects the target score.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="figure-grid">
+          <figure>
+            <img src="assets/xai-report/saliency-stress-comparison.png"
+              alt="Comparison of saliency stability under several background perturbations." loading="lazy"
+              decoding="async">
+            <figcaption><strong>Figure 12</strong> — Stress comparisons show whether attribution moves with context.
+            </figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/case-summary.png"
+              alt="Case study linking a prediction transition, confidence change and saliency stability." loading="lazy"
+              decoding="async">
+            <figcaption><strong>Figure 13</strong> — A case study links prediction behaviour with explanation behaviour.
+            </figcaption>
+          </figure>
+
+
+        </div>
+
+        <h3 class="subsection-title">Error analysis</h3>
+<div class="prose">
           <p class="prose-intro">Misclassifications are useful because they force the explanation to account for a
             decision that is visibly incorrect.</p>
           <p>An attribution for the predicted class asks which evidence increased the score the network actually chose.
@@ -907,7 +1072,7 @@
           <img src="assets/xai-report/incorrect-attributions.png"
             alt="Misclassified animals displayed with predicted labels, true labels and attribution maps."
             loading="lazy" decoding="async">
-          <figcaption><strong>Figure 06</strong> — Error cases should be read with the predicted label, true label,
+          <figcaption><strong>Figure 14</strong> — Error cases should be read with the predicted label, true label,
             confidence and attribution target together.</figcaption>
         </figure>
 
@@ -958,14 +1123,14 @@
             <img src="assets/xai-report/error-target-contrast-gradcam.png"
               alt="Misclassified images with Grad-CAM maps for the wrong and true target classes and a difference map."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 06a</strong> — Grad-CAM target contrast distinguishes evidence localized for the
+            <figcaption><strong>Figure 15a</strong> — Grad-CAM target contrast distinguishes evidence localized for the
               selected wrong class from evidence localized for the true class.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/error-target-contrast-ig.png"
               alt="Misclassified images with Integrated Gradients maps for the wrong and true target classes and a difference map."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 06b</strong> — Integrated Gradients repeats the comparison at input resolution
+            <figcaption><strong>Figure 15b</strong> — Integrated Gradients repeats the comparison at input resolution
               along the blurred-baseline path.</figcaption>
           </figure>
         </div>
@@ -974,7 +1139,7 @@
           <img src="assets/xai-report/error-perturbation-margins.png"
             alt="Wrong-class and true-class probabilities and their logit margin before and after background perturbations."
             loading="lazy" decoding="async">
-          <figcaption><strong>Figure 06c</strong> — Probabilities alone can move together; the fixed
+          <figcaption><strong>Figure 15c</strong> — Probabilities alone can move together; the fixed
             <code>wrong − true</code> logit margin shows which class gained relative evidence.</figcaption>
         </figure>
 
@@ -983,14 +1148,14 @@
             <img src="assets/xai-report/error-deletion-curves.png"
               alt="Deletion curves comparing wrong-class and true-class probabilities as salient pixels are removed."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 06d</strong> — Deletion tests whether highlighted pixels actually control the
+            <figcaption><strong>Figure 15d</strong> — Deletion tests whether highlighted pixels actually control the
               corresponding score rather than merely producing a plausible visualization.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/error-cbm-concepts.png"
               alt="Concept bottleneck contributions to the wrong-versus-true class margin on baseline errors."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 06e</strong> — Positive bars support the fixed wrong class in the CBM; negative
+            <figcaption><strong>Figure 15e</strong> — Positive bars support the fixed wrong class in the CBM; negative
               bars support the true class. This is a parallel semantic diagnosis.</figcaption>
           </figure>
         </div>
@@ -1023,70 +1188,16 @@
       </div>
     </section>
 
-    <section id="stress" class="report-section" aria-labelledby="stress-title">
-      <div class="section-heading">
-        <h2 id="stress-title">Background stress test</h2>
-      </div>
-      <div class="section-content">
-        <div class="prose">
-          <p class="prose-intro">The central intervention preserves the approximate animal region while changing its
-            context.</p>
-          <p>If the fixed target probability or the saliency map changes substantially, the explanation is sensitive to
-            background information that should have been secondary.</p>
-        </div>
-
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Gaussian noise</h3>
-            <p>Add random noise only outside the approximate animal mask.</p>
-          </article>
-          <article class="fact">
-            <h3>Colour shift</h3>
-            <p>Shift background RGB channels while leaving the animal region intact.</p>
-          </article>
-          <article class="fact">
-            <h3>Background replacement</h3>
-            <p>Replace the approximate background with controlled random texture.</p>
-          </article>
-          <article class="fact">
-            <h3>Measured response</h3>
-            <p>Track prediction transitions, fixed-target confidence and spatial similarity between saliency maps.</p>
-          </article>
-        </div>
-
-        <figure>
-          <img src="assets/xai-report/background-perturbations.png"
-            alt="Original animal images alongside three controlled background perturbations." loading="lazy"
-            decoding="async">
-          <figcaption><strong>Figure 07</strong> — The perturbation grid makes the intervention explicit before any
-            metric is interpreted.</figcaption>
-        </figure>
-
-        <div class="figure-grid">
-          <figure>
-            <img src="assets/xai-report/stress-gradcam.png" alt="Grad-CAM maps under background perturbations."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 08</strong> — Grad-CAM checks the stability of late-feature localization.</figcaption>
-          </figure>
-          <figure>
-            <img src="assets/xai-report/stress-integrated-gradients.png"
-              alt="Integrated Gradients maps under background perturbations." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 09</strong> — Integrated Gradients checks input-level path attribution.</figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
     <section id="concepts" class="report-section" aria-labelledby="concepts-title">
       <div class="section-heading">
-        <h2 id="concepts-title">Concept-level explanations</h2>
+        <h2 id="concepts-title">Question 3: which semantic concepts are represented?</h2>
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">Concept methods complement spatial maps by asking whether the representation aligns
-            with attributes that people can name.</p>
-          <p>The two approaches play different roles. TCAV probes an existing representation; the Concept Bottleneck
-            Model makes concepts an explicit part of the prediction path.</p>
+          <p class="prose-intro">AwA2 attributes move the analysis from unnamed pixels to semantic properties such as
+            stripes, horns, hooves, fur and flippers.</p>
+          <p>TCAV is a post-hoc probe of the existing ResNet50. It learns a concept direction in activation space and
+            measures whether the target score is consistently sensitive to that direction.</p>
         </div>
 
         <div class="method-list">
@@ -1094,8 +1205,8 @@
             <span class="method-label">Post-hoc concept probe</span>
             <h3>TCAV</h3>
             <p>Learns a concept direction from positive examples and negative references, then measures whether moving
-              along that direction increases a target-class score. The updated protocol supports repeated CAV fits,
-              class-disjoint validation and matched random-CAV controls when those outputs are generated.</p>
+              along that direction increases a target-class score. The maintained protocol uses repeated CAV fits, class-disjoint held-out validation, matched random-CAV
+              controls, uncertainty estimates and corrected significance testing.</p>
             <div class="formula" role="math"
               aria-label="TCAV of c k l equals the mean over x of the indicator that the gradient of h sub l k at x dotted with v sub l superscript c is greater than zero">
               <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
@@ -1109,6 +1220,64 @@
               </math>
             </div>
           </article>
+        </div>
+
+          <figure>
+            <img src="assets/xai-report/tcav-theory.png" alt="Diagram of the TCAV concept-direction procedure."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 16</strong> — TCAV tests directional concept relevance in activation space.
+            </figcaption>
+          </figure>
+
+        <div class="note">
+          <strong>Validated TCAV protocol</strong>
+          <p>The current run uses 20 repeated CAV fits per evaluated pair, held-out validation, matched random
+            directions, confidence intervals, permutation tests and Benjamini&ndash;Hochberg correction. Seven of 49
+            evaluated pairs remain significant at corrected alpha 0.05. Unexpected pairs remain visible because
+            statistical significance does not guarantee a semantically pure concept direction.</p>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/concept-validation-summary.png"
+            alt="Summary of validated TCAV effects, held-out CAV quality, random controls and corrected significance."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 17</strong> &mdash; The validation summary reports repeated CAV estimation, held-out separator quality, random controls and corrected inference.</figcaption>
+        </figure>
+
+        <div class="figure-grid">
+          <figure>
+            <img src="assets/xai-report/tcav-heatmap.png" alt="Heatmap of TCAV scores by class and concept."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 18</strong> &mdash; The class-by-concept matrix summarizes validated TCAV sensitivity, conditional on concept coverage and the random controls.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/xai-report/tcav-top-scores.png" alt="Highest TCAV concept scores by animal class."
+              loading="lazy" decoding="async">
+            <figcaption><strong>Figure 19</strong> &mdash; Effect sizes compare observed TCAV sensitivity with matched random concept directions.</figcaption>
+          </figure>
+        </div>
+
+        <div class="warning">
+          <strong>Interpretation boundary</strong>
+          <p>TCAV shows directional sensitivity in the ResNet50 representation. It does not localize the concept in an
+            individual image and does not prove that the concept is a causal mechanism.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="bottleneck" class="report-section" aria-labelledby="bottleneck-title">
+      <div class="section-heading">
+        <h2 id="bottleneck-title">Question 4: can prediction be mediated by concepts?</h2>
+      </div>
+      <div class="section-content">
+        <div class="prose">
+          <p class="prose-intro">The Concept Bottleneck Model changes the prediction path instead of attaching an
+            explanation after prediction.</p>
+          <p>The image is first mapped to AwA2 semantic concepts. The class head receives only that predicted concept
+            vector, creating an explicit interface that can be inspected and intervened on.</p>
+        </div>
+
+        <div class="method-list">
           <article class="method">
             <span class="method-label">Interpretable architecture</span>
             <h3>Concept Bottleneck Model</h3>
@@ -1129,157 +1298,53 @@
           </article>
         </div>
 
-        <div class="figure-grid">
-          <figure>
-            <img src="assets/xai-report/tcav-theory.png" alt="Diagram of the TCAV concept-direction procedure."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 10</strong> — TCAV tests directional concept relevance in activation space.
-            </figcaption>
-          </figure>
           <figure>
             <img src="assets/xai-report/concept-bottleneck-theory.png"
               alt="Diagram of an image-to-concept-to-class Concept Bottleneck Model." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 11</strong> — A CBM exposes concepts as an intermediate prediction layer.
+            <figcaption><strong>Figure 20</strong> — A CBM exposes concepts as an intermediate prediction layer.
             </figcaption>
           </figure>
-        </div>
 
-        <figure>
-          <img src="assets/xai-report/concept-validation-summary.png"
-            alt="Summary of exploratory TCAV scores, CAV training fit, and Concept Bottleneck Model accuracy."
-            loading="lazy" decoding="async">
-          <figcaption><strong>Figure 12</strong> — The current concept summary separates exploratory TCAV output from
-            bottleneck results. Its CAV fits have no held-out validation, so the displayed TCAV scores are descriptive,
-            not evidence of concept generalisation.</figcaption>
-        </figure>
-
-        <div class="warning">
-          <strong>Reading the current TCAV output</strong>
-          <p>The updated pipeline can produce repeated, held-out CAV validation and random-control comparisons. The
-            available figure was generated from a legacy exploratory CSV with training-fit accuracy only, so it does not
-            claim held-out generalisation, statistical significance or an effect beyond random CAVs.</p>
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>Class accuracy</h3>
+            <p>The current CBM reaches approximately <code>0.799</code>, compared with <code>0.857</code> for the
+              ResNet50 baseline.</p>
+          </article>
+          <article class="fact">
+            <h3>Concept accuracy</h3>
+            <p>Binary concept accuracy is approximately <code>0.754</code>. Concept quality varies substantially across
+              attributes.</p>
+          </article>
+          <article class="fact">
+            <h3>Intervention</h3>
+            <p>Changing a predicted concept tests how that semantic variable affects the CBM class head.</p>
+          </article>
+          <article class="fact">
+            <h3>Model boundary</h3>
+            <p>CBM concept contributions explain the CBM. They are a semantic comparator, not an explanation of the
+              separate ResNet50.</p>
+          </article>
         </div>
 
         <div class="figure-grid">
-          <figure>
-            <img src="assets/xai-report/tcav-heatmap.png" alt="Heatmap of TCAV scores by class and concept."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 13</strong> — The current class-level TCAV heatmap summarizes exploratory
-              semantic trends; it should not be interpreted as held-out validation.</figcaption>
-          </figure>
           <figure>
             <img src="assets/xai-report/cbm-summary.png" alt="Summary of concept and class performance for the CBM."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 14</strong> — The bottleneck report connects class accuracy with concept quality
-              under class-level concept supervision.
-            </figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
-    <section id="evidence" class="report-section" aria-labelledby="evidence-title">
-      <div class="section-heading">
-        <h2 id="evidence-title">Quantitative evidence</h2>
-      </div>
-      <div class="section-content">
-        <div class="prose">
-          <p class="prose-intro">Metrics turn visual impressions into checks that can be reproduced across images and
-            methods.</p>
-          <p>No single number establishes faithfulness. Spatial overlap, rank stability, score response, region
-            allocation and sanity controls answer different questions.</p>
-        </div>
-
-        <div class="data-strip" aria-label="Project method counts">
-          <div class="data-point"><strong>2</strong><span>local attribution methods</span></div>
-          <div class="data-point"><strong>2</strong><span>concept-level methods</span></div>
-          <div class="data-point"><strong>3</strong><span>background interventions</span></div>
-        </div>
-
-        <div class="metric-list">
-          <article class="metric">
-            <h3>Top-k IoU</h3>
-            <p>Does the most salient spatial support remain in the same region? Higher overlap indicates more stable
-              localization.</p>
-          </article>
-          <article class="metric">
-            <h3>Spearman rank</h3>
-            <p>Does the full pixel-importance ordering remain similar? Constant maps are treated as undefined rather
-              than as artificial agreement.</p>
-          </article>
-          <article class="metric">
-            <h3>Deletion and insertion</h3>
-            <p>Do salient pixels actually affect the target score? A faithful map should delete evidence quickly and
-              recover it early during insertion.</p>
-          </article>
-          <article class="metric">
-            <h3>Region allocation</h3>
-            <p>How much normalized saliency lies on the approximate animal region compared with the background?</p>
-          </article>
-          <article class="metric">
-            <h3>Sanity controls</h3>
-            <p>Does the map agree with occlusion evidence and change when relevant model parameters are randomized?</p>
-          </article>
-          <article class="metric">
-            <h3>Concept validation and stress</h3>
-            <p>TCAV needs held-out CAV validation and random controls; its fixed concept directions can then be audited
-              under the same background interventions used for saliency maps.</p>
-          </article>
-        </div>
-
-        <figure>
-          <img src="assets/xai-report/metric-summary.png"
-            alt="Summary charts for explanation stability and faithfulness metrics." loading="lazy" decoding="async">
-          <figcaption><strong>Figure 15</strong> — Metric summaries are consistency checks, not standalone proof.
-          </figcaption>
-        </figure>
-
-        <div class="figure-grid">
-          <figure>
-            <img src="assets/xai-report/advanced-gradcam-deletion.png"
-              alt="Deletion and insertion faithfulness curves for Grad-CAM." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 16</strong> — Grad-CAM’s target score falls as its most salient pixels are
-              deleted and rises as they are restored.
-            </figcaption>
-          </figure>
-          <figure>
-            <img src="assets/xai-report/advanced-ig-deletion.png"
-              alt="Deletion and insertion faithfulness curves for Integrated Gradients." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 17</strong> — The same deletion–insertion check tests whether Integrated
-              Gradients ranks evidence that affects the target score.
-            </figcaption>
-          </figure>
-        </div>
-
-        <div class="figure-grid">
-          <figure>
-            <img src="assets/xai-report/saliency-stress-comparison.png"
-              alt="Comparison of saliency stability under several background perturbations." loading="lazy"
-              decoding="async">
-            <figcaption><strong>Figure 18</strong> — Stress comparisons show whether attribution moves with context.
-            </figcaption>
-          </figure>
-          <figure>
-            <img src="assets/xai-report/case-summary.png"
-              alt="Case study linking a prediction transition, confidence change and saliency stability." loading="lazy"
-              decoding="async">
-            <figcaption><strong>Figure 19</strong> — A case study links prediction behaviour with explanation behaviour.
-            </figcaption>
-          </figure>
-          <figure>
-            <img src="assets/xai-report/tcav-top-scores.png" alt="Highest TCAV concept scores by animal class."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 20</strong> — The current TCAV chart is exploratory; validated CAV outputs would
-              add held-out accuracy, random controls and corrected significance.
-            </figcaption>
+            <figcaption><strong>Figure 21</strong> &mdash; The CBM report connects class accuracy with the quality of the predicted semantic bottleneck.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/concept-interventions.png"
               alt="Changes in class predictions after interventions on bottleneck concepts." loading="lazy"
               decoding="async">
-            <figcaption><strong>Figure 21</strong> — Concept interventions expose changes mediated by the bottleneck.
-            </figcaption>
+            <figcaption><strong>Figure 22</strong> &mdash; Concept interventions show how changes at the bottleneck propagate to the CBM class prediction.</figcaption>
           </figure>
+        </div>
+
+        <div class="warning">
+          <strong>Class-level supervision</strong>
+          <p>AwA2 attributes are class-level rather than image-specific. Every image from one class receives the same
+            target concept vector, even when an attribute is occluded or not visible.</p>
         </div>
       </div>
     </section>
@@ -1289,16 +1354,29 @@
         <h2 id="conclusion-title">Conclusion</h2>
       </div>
       <div class="section-content">
-        <p class="closing-statement">Explanations are most useful as an audit trail: several imperfect views of the
-          model that become stronger when they agree.</p>
+        <p class="closing-statement">The project becomes coherent when every method answers one explicit
+          question and no result is asked to support a stronger claim than it can justify.</p>
+
+        <div class="comparison-wrap" role="region" aria-label="Answers to the four research questions" tabindex="0">
+          <table class="comparison">
+            <thead>
+              <tr><th>Question</th><th>Answer supported by the project</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1. Where is evidence located?</td><td>Grad-CAM and IG provide different spatial hypotheses for a selected class.</td></tr>
+              <tr><td>2. Is the map stable and faithful?</td><td>Only partially. Background interventions and deletion expose instability, shared evidence and contextual sensitivity.</td></tr>
+              <tr><td>3. Which concepts are represented?</td><td>Validated TCAV identifies measurable semantic sensitivity, subject to concept coverage and random controls.</td></tr>
+              <tr><td>4. Can concepts mediate prediction?</td><td>The CBM creates an explicit concept path, with lower class accuracy and imperfect concept prediction.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="prose">
-          <p>Grad-CAM and Integrated Gradients provide local hypotheses about image
-            evidence. Background interventions test whether those hypotheses remain stable. Deletion, insertion,
-            occlusion and randomization controls test whether visual plausibility corresponds to model behaviour. TCAV
-            and the Concept Bottleneck Model add a semantic layer, but the current TCAV visualisations remain
-            exploratory until held-out CAV validation and random-control outputs are generated.</p>
-          <p>The strongest defensible conclusion remains conservative: post-hoc saliency maps are useful diagnostic
-            tools, but they should not be presented alone as faithful explanations of a deep visual classifier.</p>
+          <p>The final interpretation combines prediction behaviour, spatial attribution, controlled interventions,
+            quantitative metrics and concept evidence. Agreement strengthens a hypothesis; disagreement identifies a
+            limitation that should remain visible.</p>
+          <p>The strongest defensible conclusion remains conservative: saliency maps are useful diagnostic tools, but
+            they should not be presented alone as faithful explanations of a deep visual classifier.</p>
         </div>
 
         <div class="warning">
