@@ -815,13 +815,6 @@
           <figcaption><strong>Figure 02</strong> — A forward inspection makes the progressive loss of spatial resolution
             visible.</figcaption>
         </figure>
-        <a class="interactive-link" href="resnet_activation_simulator.html">
-          <span>
-            <strong>Explore the real forward inspection</strong>
-            <span>Move through the ResNet50 stages, inspect activation maps and compare the final prediction with
-              Grad-CAM.</span>
-          </span>
-        </a>
       </div>
     </section>
 
@@ -945,13 +938,23 @@
           <figure>
             <img src="assets/xai-report/stress-gradcam.png" alt="Grad-CAM maps under background perturbations."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 07</strong> — Grad-CAM checks the stability of late-feature localization.</figcaption>
+            <figcaption><strong>Figure 07</strong> — Grad-CAM checks the stability of late-feature localization for the
+              selected prediction target.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/stress-integrated-gradients.png"
               alt="Integrated Gradients maps under background perturbations." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 08</strong> — Integrated Gradients checks input-level path attribution.</figcaption>
+            <figcaption><strong>Figure 08</strong> — Integrated Gradients checks input-level path attribution for the
+              selected prediction target.</figcaption>
           </figure>
+        </div>
+
+        <div class="prose">
+          <p><strong>Why the error maps are separate.</strong> Figures 07 and 08 are stability checks: they ask whether a
+            fixed target explanation changes when only the background is perturbed. A misclassification is a different
+            diagnostic. When the network is wrong, the saliency map should be computed for the class actually selected
+            by the model and then compared with the saliency map for the ground-truth class. That target-specific error
+            audit is shown in the <a href="#error-analysis">Error analysis</a> section.</p>
         </div>
 
         <h3 class="subsection-title">Stability and faithfulness metrics</h3>
@@ -1036,7 +1039,7 @@
 
         </div>
 
-        <h3 class="subsection-title">Error analysis</h3>
+        <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
 <div class="prose">
           <p class="prose-intro">Misclassifications are useful because they force the explanation to account for a
             decision that is visibly incorrect.</p>

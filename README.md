@@ -68,8 +68,8 @@ notebooks/05_blog_figures.ipynb
 Use the maintained notebooks for normal analysis. Heavy execution is behind
 explicit flags, so opening a notebook does not accidentally retrain the model
 or recompute expensive XAI maps. The forward-inspection notebook exports a
-compact trace for the HTML activation simulator, and the blog-figures notebook
-generates lightweight assets for the explanatory report.
+compact trace and a static visual summary of the ResNet50 forward pass, and the
+blog-figures notebook generates lightweight assets for the explanatory report.
 
 ## Data Preparation
 
@@ -603,8 +603,8 @@ low blurred-vs-black IG similarity    -> Integrated Gradients is strongly baseli
 
 This utility records real intermediate tensors from a trained ResNet50 on one
 AwA2 image. It attaches hooks to the main ResNet stages, prints compact tensor
-statistics, saves a visual summary and exports a JSON trace that can be loaded
-by `docs/resnet_activation_simulator.html`.
+statistics, saves a visual summary and exports a compact JSON trace for audit
+and reproducibility.
 
 Run the inspection:
 
