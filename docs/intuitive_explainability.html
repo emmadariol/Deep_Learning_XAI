@@ -402,6 +402,18 @@
       border-radius: 4px;
     }
 
+    main figure img {
+      cursor: zoom-in;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    main figure img:hover,
+    main figure img:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 16px 34px rgba(30, 41, 45, .14);
+      transform: translateY(-1px);
+    }
+
     figcaption {
       max-width: 82ch;
       margin-top: 11px;
@@ -427,6 +439,136 @@
 
     .figure-grid figure {
       margin-top: 38px;
+    }
+
+    .figure-lightbox[hidden] {
+      display: none;
+    }
+
+    .figure-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      padding: clamp(16px, 3vw, 34px);
+    }
+
+    .figure-lightbox-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 27, 31, .78);
+      backdrop-filter: blur(6px);
+    }
+
+    .figure-lightbox-panel {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(340px, .55fr);
+      width: min(100%, 1540px);
+      height: min(92vh, 980px);
+      max-height: min(92vh, 980px);
+      overflow: hidden;
+      background: var(--paper);
+      border: 1px solid rgba(255, 255, 255, .36);
+      border-radius: 6px;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, .34);
+    }
+
+    .figure-lightbox-media {
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      height: 100%;
+      padding: clamp(14px, 2vw, 26px);
+      overflow: auto;
+      background: #11191d;
+    }
+
+    .figure-lightbox-media img {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      max-height: calc(92vh - 70px);
+      background: #fff;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 4px;
+    }
+
+    .figure-lightbox-comment {
+      min-height: 0;
+      height: 100%;
+      max-height: min(92vh, 980px);
+      padding: clamp(24px, 3vw, 38px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border-left: 1px solid var(--line);
+      background: #fffdf9;
+    }
+
+    .figure-lightbox-kicker {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: .74rem;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .figure-lightbox-comment h2 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2vw, 2rem);
+      letter-spacing: -.025em;
+    }
+
+    .figure-lightbox-caption {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: .94rem;
+      line-height: 1.48;
+    }
+
+    .figure-lightbox-body {
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .figure-lightbox-body p {
+      margin: 0 0 14px;
+      font-size: .98rem;
+      line-height: 1.62;
+    }
+
+    .figure-lightbox-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    .figure-lightbox-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      color: #fff;
+      background: rgba(17, 25, 29, .82);
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .figure-lightbox-close:hover,
+    .figure-lightbox-close:focus-visible {
+      background: var(--accent);
+    }
+
+    body.figure-lightbox-open {
+      overflow: hidden;
     }
 
     .data-strip {
@@ -580,6 +722,28 @@
         position: static;
       }
 
+      .figure-lightbox-panel {
+        grid-template-columns: 1fr;
+        height: auto;
+        max-height: 92vh;
+        overflow: auto;
+      }
+
+      .figure-lightbox-media {
+        min-height: auto;
+      }
+
+      .figure-lightbox-media img {
+        max-height: 58vh;
+      }
+
+      .figure-lightbox-comment {
+        height: auto;
+        max-height: none;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
       .pipeline {
         grid-template-columns: 1fr;
       }
@@ -679,7 +843,8 @@
         <img src="assets/xai-report/Icona_sfondo.png" width="1254" height="1254"
           alt="False-colour saliency illustration of a deer." decoding="async" fetchpriority="high">
       </div>
-      <p class="hero-credits">Deep Learning Project · University of Trieste · Alina Fogar, Emma Dariol, Elisabeth Imbalzano · 22/07/2026</p>
+      <p class="hero-credits">Deep Learning Project · University of Trieste · Alina Fogar, Emma Dariol, Elisabeth
+        Imbalzano · 22/07/2026</p>
     </div>
   </header>
 
@@ -784,11 +949,34 @@
               aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
               <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
                 <mrow>
-                  <mi>L</mi><mo>=</mo><mo>−</mo>
-                  <mi mathvariant="normal">log</mi><mo>(</mo>
+                  <mi>L</mi>
+                  <mo>=</mo>
+                  <mo>−</mo>
+                  <mi mathvariant="normal">log</mi>
+                  <mo>(</mo>
                   <mfrac>
-                    <mrow><mi mathvariant="normal">exp</mi><mo>(</mo><msub><mi>z</mi><mi>y</mi></msub><mo>)</mo></mrow>
-                    <mrow><msub><mo>∑</mo><mi>j</mi></msub><mi mathvariant="normal">exp</mi><mo>(</mo><msub><mi>z</mi><mi>j</mi></msub><mo>)</mo></mrow>
+                    <mrow>
+                      <mi mathvariant="normal">exp</mi>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>z</mi>
+                        <mi>y</mi>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                    <mrow>
+                      <msub>
+                        <mo>∑</mo>
+                        <mi>j</mi>
+                      </msub>
+                      <mi mathvariant="normal">exp</mi>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>z</mi>
+                        <mi>j</mi>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
                   </mfrac>
                   <mo>)</mo>
                 </mrow>
@@ -803,15 +991,14 @@
         </div>
 
         <figure>
-          <img src="resnet50_visual.svg" alt="Schematic representation of the ResNet50 architecture."
-            decoding="async">
-          <figcaption><strong>Figure 01</strong> — ResNet50 overview: convolutional stem, residual stages, global average
+          <img src="resnet50_visual.svg" alt="Schematic representation of the ResNet50 architecture." decoding="async">
+          <figcaption><strong>Figure 01</strong> — ResNet50 overview: convolutional stem, residual stages, global
+            average
             pooling and final class logits.</figcaption>
         </figure>
         <figure>
           <img src="assets/xai-report/resnet-forward.png"
-            alt="A real image and its representation at successive stages of ResNet50." loading="lazy"
-            decoding="async">
+            alt="A real image and its representation at successive stages of ResNet50." loading="lazy" decoding="async">
           <figcaption><strong>Figure 02</strong> — A forward inspection makes the progressive loss of spatial resolution
             visible.</figcaption>
         </figure>
@@ -853,6 +1040,40 @@
           </article>
         </div>
 
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>Grad-CAM mechanism</h3>
+            <p>Grad-CAM differentiates the raw target logit <code>z_c</code>, before softmax, with respect to the final
+              convolutional feature maps <code>A^k</code>. Spatial gradients are averaged into channel weights
+              <code>alpha_k^c = mean_ij(dz_c / dA^k_ij)</code>, then combined as
+              <code>ReLU(sum_k alpha_k^c A^k)</code>.
+            </p>
+          </article>
+          <article class="fact">
+            <h3>Grad-CAM limitation</h3>
+            <p>The method inherits the spatial resolution of the selected convolutional layer. In ResNet50,
+              <code>layer4</code> is approximately <code>7 × 7</code>, so the displayed heatmap is necessarily
+              upsampled. Grad-CAM can reveal that the model uses a shortcut, but it cannot by itself distinguish causal
+              evidence from a dataset-level statistical artefact.
+            </p>
+          </article>
+          <article class="fact">
+            <h3>Integrated Gradients mechanism</h3>
+            <p>Integrated Gradients accumulates input gradients along the straight path from a baseline <code>x'</code>
+              to the image <code>x</code>:
+              <code>IG_i(x) = (x_i - x'_i) integral_0^1 dF(x' + a(x - x')) / dx_i da</code>.
+              Its completeness property links the sum of attributions to the output difference between image and
+              baseline.</p>
+          </article>
+          <article class="fact">
+            <h3>Integrated Gradients limitation</h3>
+            <p>The formal guarantee depends on a practical baseline choice. A black image is not a neutral absence of
+              signal for normalized natural images, so this project uses a heavily blurred baseline. Even then, IG can
+              produce high-frequency pixel patterns that are mathematically valid but difficult to interpret
+              causally.</p>
+          </article>
+        </div>
+
         <div class="comparison-wrap" role="region" aria-label="Attribution method comparison" tabindex="0">
           <table class="comparison">
             <thead>
@@ -864,8 +1085,18 @@
               </tr>
             </thead>
             <tbody>
-              <tr><td>Grad-CAM</td><td>Late feature maps</td><td>Class-discriminative regions</td><td>Coarse localization</td></tr>
-              <tr><td>Integrated Gradients</td><td>Input pixels</td><td>Path-based attribution</td><td>Baseline sensitivity</td></tr>
+              <tr>
+                <td>Grad-CAM</td>
+                <td>Late feature maps</td>
+                <td>Class-discriminative regions</td>
+                <td>Coarse localization</td>
+              </tr>
+              <tr>
+                <td>Integrated Gradients</td>
+                <td>Input pixels</td>
+                <td>Path-based attribution</td>
+                <td>Baseline sensitivity</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -874,7 +1105,8 @@
           <figure>
             <img src="assets/xai-report/gradcam-theory.png" alt="Diagram explaining the Grad-CAM computation."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 03</strong> — Grad-CAM combines target gradients with late feature maps.</figcaption>
+            <figcaption><strong>Figure 03</strong> — Grad-CAM combines target gradients with late feature maps.
+            </figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/integrated-gradients-theory.png"
@@ -888,7 +1120,8 @@
         <figure>
           <img src="assets/xai-report/correct-attributions.png"
             alt="Correctly classified animals displayed with attribution maps." loading="lazy" decoding="async">
-          <figcaption><strong>Figure 05</strong> — A correct prediction is informative only when the highlighted evidence
+          <figcaption><strong>Figure 05</strong> — A correct prediction is informative only when the highlighted
+            evidence
             is consistent with the animal.</figcaption>
         </figure>
       </div>
@@ -907,7 +1140,7 @@
         </div>
 
         <h3 class="subsection-title">Background interventions</h3>
-<div class="fact-grid">
+        <div class="fact-grid">
           <article class="fact">
             <h3>Gaussian noise</h3>
             <p>Add random noise only outside the approximate animal mask.</p>
@@ -950,7 +1183,8 @@
         </div>
 
         <div class="prose">
-          <p><strong>Why the error maps are separate.</strong> Figures 07 and 08 are stability checks: they ask whether a
+          <p><strong>Why the error maps are separate.</strong> Figures 07 and 08 are stability checks: they ask whether
+            a
             fixed target explanation changes when only the background is perturbed. A misclassification is a different
             diagnostic. When the network is wrong, the saliency map should be computed for the class actually selected
             by the model and then compared with the saliency map for the ground-truth class. That target-specific error
@@ -963,7 +1197,7 @@
             test whether highly ranked pixels actually control the target score. These checks answer different parts
             of the reliability question and must be interpreted together.</p>
         </div>
-<div class="data-strip" aria-label="Project method counts">
+        <div class="data-strip" aria-label="Project method counts">
           <div class="data-point"><strong>2</strong><span>local attribution methods</span></div>
           <div class="data-point"><strong>2</strong><span>concept-level methods</span></div>
           <div class="data-point"><strong>3</strong><span>background interventions</span></div>
@@ -1013,7 +1247,8 @@
           </figure>
           <figure>
             <img src="assets/xai-report/advanced-ig-deletion.png"
-              alt="Deletion and insertion faithfulness curves for Integrated Gradients." loading="lazy" decoding="async">
+              alt="Deletion and insertion faithfulness curves for Integrated Gradients." loading="lazy"
+              decoding="async">
             <figcaption><strong>Figure 11</strong> — The same deletion–insertion check tests whether Integrated
               Gradients ranks evidence that affects the target score.
             </figcaption>
@@ -1040,7 +1275,7 @@
         </div>
 
         <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
-<div class="prose">
+        <div class="prose">
           <p class="prose-intro">Misclassifications are useful because they force the explanation to account for a
             decision that is visibly incorrect.</p>
           <p>An attribution for the predicted class asks which evidence increased the score the network actually chose.
@@ -1051,7 +1286,8 @@
         <div class="fact-grid">
           <article class="fact">
             <h3>Confident errors</h3>
-            <p>Softmax normalizes logits; it does not verify the evidence. A wrong prediction can therefore remain highly
+            <p>Softmax normalizes logits; it does not verify the evidence. A wrong prediction can therefore remain
+              highly
               confident.</p>
           </article>
           <article class="fact">
@@ -1086,14 +1322,29 @@
             whether controlled interventions weaken the wrong class relative to the true class.</p>
         </div>
 
-        <div class="formula" role="math"
-          aria-label="m of x equals z wrong of x minus z true of x">
+        <div class="formula" role="math" aria-label="m of x equals z wrong of x minus z true of x">
           <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
             <mrow>
-              <mi>m</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>
-              <msub><mi>z</mi><mtext>wrong</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo>
+              <mi>m</mi>
+              <mo>(</mo>
+              <mi>x</mi>
+              <mo>)</mo>
+              <mo>=</mo>
+              <msub>
+                <mi>z</mi>
+                <mtext>wrong</mtext>
+              </msub>
+              <mo>(</mo>
+              <mi>x</mi>
+              <mo>)</mo>
               <mo>−</mo>
-              <msub><mi>z</mi><mtext>true</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo>
+              <msub>
+                <mi>z</mi>
+                <mtext>true</mtext>
+              </msub>
+              <mo>(</mo>
+              <mi>x</mi>
+              <mo>)</mo>
             </mrow>
           </math>
         </div>
@@ -1143,7 +1394,8 @@
             alt="Wrong-class and true-class probabilities and their logit margin before and after background perturbations."
             loading="lazy" decoding="async">
           <figcaption><strong>Figure 15c</strong> — Probabilities alone can move together; the fixed
-            <code>wrong − true</code> logit margin shows which class gained relative evidence.</figcaption>
+            <code>wrong − true</code> logit margin shows which class gained relative evidence.
+          </figcaption>
         </figure>
 
         <div class="figure-grid">
@@ -1174,7 +1426,8 @@
             <code>polar bear → tiger</code>, the margin crossed zero from <code>+0.509</code> to
             <code>−0.194</code>, so polar bear outranked tiger, yet <code>walrus</code> remained the global top-1 class.
             Removing the top 20% wrong-target pixels reduced the margin by about <code>0.36</code> on average for both
-            Grad-CAM and Integrated Gradients.</p>
+            Grad-CAM and Integrated Gradients.
+          </p>
           <p>The original wrong-versus-true map overlap was lower for Grad-CAM
             (<code>IoU 0.203</code>) than for Integrated Gradients (<code>IoU 0.420</code>), while the corresponding
             mean rank correlations were <code>0.108</code> and <code>0.733</code>. In these cases, Integrated Gradients
@@ -1208,29 +1461,88 @@
             <span class="method-label">Post-hoc concept probe</span>
             <h3>TCAV</h3>
             <p>Learns a concept direction from positive examples and negative references, then measures whether moving
-              along that direction increases a target-class score. The maintained protocol uses repeated CAV fits, class-disjoint held-out validation, matched random-CAV
+              along that direction increases a target-class score. The maintained protocol uses repeated CAV fits,
+              class-disjoint held-out validation, matched random-CAV
               controls, uncertainty estimates and corrected significance testing.</p>
             <div class="formula" role="math"
               aria-label="TCAV of c k l equals the mean over x of the indicator that the gradient of h sub l k at x dotted with v sub l superscript c is greater than zero">
               <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
                 <mrow>
-                  <mi mathvariant="normal">TCAV</mi><mo>(</mo><mi>c</mi><mo>,</mo><mi>k</mi><mo>,</mo><mi>l</mi><mo>)</mo><mo>=</mo>
-                  <msub><mi mathvariant="normal">mean</mi><mi>x</mi></msub>
-                  <mi mathvariant="double-struck">1</mi><mo>[</mo>
-                  <mo>∇</mo><msub><mi>h</mi><mrow><mi>l</mi><mo>,</mo><mi>k</mi></mrow></msub><mo>(</mo><mi>x</mi><mo>)</mo>
-                  <mo>·</mo><msubsup><mi>v</mi><mi>l</mi><mi>c</mi></msubsup><mo>&gt;</mo><mn>0</mn><mo>]</mo>
+                  <mi mathvariant="normal">TCAV</mi>
+                  <mo>(</mo>
+                  <mi>c</mi>
+                  <mo>,</mo>
+                  <mi>k</mi>
+                  <mo>,</mo>
+                  <mi>l</mi>
+                  <mo>)</mo>
+                  <mo>=</mo>
+                  <msub>
+                    <mi mathvariant="normal">mean</mi>
+                    <mi>x</mi>
+                  </msub>
+                  <mi mathvariant="double-struck">1</mi>
+                  <mo>[</mo>
+                  <mo>∇</mo>
+                  <msub>
+                    <mi>h</mi>
+                    <mrow>
+                      <mi>l</mi>
+                      <mo>,</mo>
+                      <mi>k</mi>
+                    </mrow>
+                  </msub>
+                  <mo>(</mo>
+                  <mi>x</mi>
+                  <mo>)</mo>
+                  <mo>·</mo>
+                  <msubsup>
+                    <mi>v</mi>
+                    <mi>l</mi>
+                    <mi>c</mi>
+                  </msubsup>
+                  <mo>&gt;</mo>
+                  <mn>0</mn>
+                  <mo>]</mo>
                 </mrow>
               </math>
             </div>
           </article>
         </div>
 
-          <figure>
-            <img src="assets/xai-report/tcav-theory.png" alt="Diagram of the TCAV concept-direction procedure."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 16</strong> — TCAV tests directional concept relevance in activation space.
-            </figcaption>
-          </figure>
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>TCAV mechanism</h3>
+            <p>TCAV leaves pixel space and probes a latent layer. Positive concept examples and negative reference
+              images are passed through the frozen model; a linear separator is trained on the resulting activations;
+              the normal vector to that separator becomes the Concept Activation Vector.</p>
+          </article>
+          <article class="fact">
+            <h3>Directional sensitivity</h3>
+            <p>For a target class, TCAV computes whether the directional derivative of the class score along the CAV is
+              positive. A high TCAV score means that moving in the concept direction tends to increase the target-class
+              score across the evaluated images.</p>
+          </article>
+          <article class="fact">
+            <h3>TCAV limitation</h3>
+            <p>The method assumes that a human concept is linearly separable in an activation space optimized for
+              classification, not for semantic purity. A CAV can therefore mix the intended concept with correlated
+              context, texture, pose or acquisition bias.</p>
+          </article>
+          <article class="fact">
+            <h3>Dataset dependency</h3>
+            <p>The concept direction is only as clean as the examples used to define it. If all positive concept images
+              share a background, the CAV may encode that background as part of the concept. This is why the maintained
+              protocol uses held-out validation, repeated CAVs and random controls.</p>
+          </article>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/tcav-theory.png" alt="Diagram of the TCAV concept-direction procedure."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 16</strong> — TCAV tests directional concept relevance in activation space.
+          </figcaption>
+        </figure>
 
         <div class="note">
           <strong>Validated TCAV protocol</strong>
@@ -1244,19 +1556,22 @@
           <img src="assets/xai-report/concept-validation-summary.png"
             alt="Summary of validated TCAV effects, held-out CAV quality, random controls and corrected significance."
             loading="lazy" decoding="async">
-          <figcaption><strong>Figure 17</strong> &mdash; The validation summary reports repeated CAV estimation, held-out separator quality, random controls and corrected inference.</figcaption>
+          <figcaption><strong>Figure 17</strong> &mdash; The validation summary reports repeated CAV estimation,
+            held-out separator quality, random controls and corrected inference.</figcaption>
         </figure>
 
         <div class="figure-grid">
           <figure>
             <img src="assets/xai-report/tcav-heatmap.png" alt="Heatmap of TCAV scores by class and concept."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 18</strong> &mdash; The class-by-concept matrix summarizes validated TCAV sensitivity, conditional on concept coverage and the random controls.</figcaption>
+            <figcaption><strong>Figure 18</strong> &mdash; The class-by-concept matrix summarizes validated TCAV
+              sensitivity, conditional on concept coverage and the random controls.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/tcav-top-scores.png" alt="Highest TCAV concept scores by animal class."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 19</strong> &mdash; Effect sizes compare observed TCAV sensitivity with matched random concept directions.</figcaption>
+            <figcaption><strong>Figure 19</strong> &mdash; Effect sizes compare observed TCAV sensitivity with matched
+              random concept directions.</figcaption>
           </figure>
         </div>
 
@@ -1287,26 +1602,68 @@
             <p>Predicts AwA2 semantic attributes first and uses those predicted concepts for classification. The concept
               targets are class-level, so every image of one class receives the same concept vector: a useful bottleneck
               baseline, but not image-level concept annotation.</p>
-            <div class="formula" role="math"
-              aria-label="p of y given x equals softmax of g of c hat of x">
+            <div class="formula" role="math" aria-label="p of y given x equals softmax of g of c hat of x">
               <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
                 <mrow>
-                  <mi>p</mi><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo><mo>=</mo>
-                  <mi mathvariant="normal">softmax</mi><mo>(</mo><mi>g</mi><mo>(</mo>
-                  <mover accent="true"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo>
-                  <mo>)</mo><mo>)</mo>
+                  <mi>p</mi>
+                  <mo>(</mo>
+                  <mi>y</mi>
+                  <mo>|</mo>
+                  <mi>x</mi>
+                  <mo>)</mo>
+                  <mo>=</mo>
+                  <mi mathvariant="normal">softmax</mi>
+                  <mo>(</mo>
+                  <mi>g</mi>
+                  <mo>(</mo>
+                  <mover accent="true">
+                    <mi>c</mi>
+                    <mo>^</mo>
+                  </mover>
+                  <mo>(</mo>
+                  <mi>x</mi>
+                  <mo>)</mo>
+                  <mo>)</mo>
+                  <mo>)</mo>
                 </mrow>
               </math>
             </div>
           </article>
         </div>
 
-          <figure>
-            <img src="assets/xai-report/concept-bottleneck-theory.png"
-              alt="Diagram of an image-to-concept-to-class Concept Bottleneck Model." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 20</strong> — A CBM exposes concepts as an intermediate prediction layer.
-            </figcaption>
-          </figure>
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>CBM mechanism</h3>
+            <p>A Concept Bottleneck Model changes the prediction path. The image encoder first predicts a vector of
+              human-defined concepts <code>c_hat(x)</code>; the class head then predicts <code>y</code> only from that
+              concept vector, rather than directly from unconstrained visual features.</p>
+          </article>
+          <article class="fact">
+            <h3>Architectural consequence</h3>
+            <p>The bottleneck creates an explicit semantic interface that can be inspected and intervened on. It is not
+              a
+              post-hoc correction: it changes what information the final classifier is allowed to receive.</p>
+          </article>
+          <article class="fact">
+            <h3>Accuracy trade-off</h3>
+            <p>Forcing predictions through a human taxonomy can reduce class accuracy, because the concept set may be
+              incomplete, noisy or too coarse for the visual task. The model becomes more inspectable but not
+              automatically more correct.</p>
+          </article>
+          <article class="fact">
+            <h3>Leakage risk</h3>
+            <p>If the bottleneck is too flexible or the concepts are insufficient, hidden information can leak through
+              continuous concept values. The model may then encode non-conceptual cues inside the concept vector,
+              weakening the assumption that the bottleneck is fully transparent.</p>
+          </article>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/concept-bottleneck-theory.png"
+            alt="Diagram of an image-to-concept-to-class Concept Bottleneck Model." loading="lazy" decoding="async">
+          <figcaption><strong>Figure 20</strong> — A CBM exposes concepts as an intermediate prediction layer.
+          </figcaption>
+        </figure>
 
         <div class="fact-grid">
           <article class="fact">
@@ -1334,13 +1691,15 @@
           <figure>
             <img src="assets/xai-report/cbm-summary.png" alt="Summary of concept and class performance for the CBM."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 21</strong> &mdash; The CBM report connects class accuracy with the quality of the predicted semantic bottleneck.</figcaption>
+            <figcaption><strong>Figure 21</strong> &mdash; The CBM report connects class accuracy with the quality of
+              the predicted semantic bottleneck.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/concept-interventions.png"
               alt="Changes in class predictions after interventions on bottleneck concepts." loading="lazy"
               decoding="async">
-            <figcaption><strong>Figure 22</strong> &mdash; Concept interventions show how changes at the bottleneck propagate to the CBM class prediction.</figcaption>
+            <figcaption><strong>Figure 22</strong> &mdash; Concept interventions show how changes at the bottleneck
+              propagate to the CBM class prediction.</figcaption>
           </figure>
         </div>
 
@@ -1363,13 +1722,31 @@
         <div class="comparison-wrap" role="region" aria-label="Answers to the four research questions" tabindex="0">
           <table class="comparison">
             <thead>
-              <tr><th>Question</th><th>Answer supported by the project</th></tr>
+              <tr>
+                <th>Question</th>
+                <th>Answer supported by the project</th>
+              </tr>
             </thead>
             <tbody>
-              <tr><td>1. Where is evidence located?</td><td>Grad-CAM and IG provide different spatial hypotheses for a selected class.</td></tr>
-              <tr><td>2. Is the map stable and faithful?</td><td>Only partially. Background interventions and deletion expose instability, shared evidence and contextual sensitivity.</td></tr>
-              <tr><td>3. Which concepts are represented?</td><td>Validated TCAV identifies measurable semantic sensitivity, subject to concept coverage and random controls.</td></tr>
-              <tr><td>4. Can concepts mediate prediction?</td><td>The CBM creates an explicit concept path, with lower class accuracy and imperfect concept prediction.</td></tr>
+              <tr>
+                <td>1. Where is evidence located?</td>
+                <td>Grad-CAM and IG provide different spatial hypotheses for a selected class.</td>
+              </tr>
+              <tr>
+                <td>2. Is the map stable and faithful?</td>
+                <td>Only partially. Background interventions and deletion expose instability, shared evidence and
+                  contextual sensitivity.</td>
+              </tr>
+              <tr>
+                <td>3. Which concepts are represented?</td>
+                <td>Validated TCAV identifies measurable semantic sensitivity, subject to concept coverage and random
+                  controls.</td>
+              </tr>
+              <tr>
+                <td>4. Can concepts mediate prediction?</td>
+                <td>The CBM creates an explicit concept path, with lower class accuracy and imperfect concept
+                  prediction.</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1392,12 +1769,242 @@
   </main>
 
   <footer class="site-footer">
-    <div class="site-footer-inner">Deep Learning Project · University of Trieste · Alina Fogar, Emma Dariol, Elisabeth Imbalzano · 22/07/2026</div>
+    <div class="site-footer-inner">Deep Learning Project · University of Trieste · Alina Fogar, Emma Dariol, Elisabeth
+      Imbalzano · 22/07/2026</div>
   </footer>
+
+  <div class="figure-lightbox" id="figure-lightbox" role="dialog" aria-modal="true"
+    aria-labelledby="figure-lightbox-title" hidden>
+    <div class="figure-lightbox-backdrop" data-lightbox-close></div>
+    <div class="figure-lightbox-panel" role="document">
+      <button class="figure-lightbox-close" type="button" aria-label="Close enlarged figure" data-lightbox-close>
+        &times;
+      </button>
+      <div class="figure-lightbox-media">
+        <img id="figure-lightbox-image" src="" alt="">
+      </div>
+      <aside class="figure-lightbox-comment" aria-label="Figure interpretation">
+        <p class="figure-lightbox-kicker">Figure commentary</p>
+        <h2 id="figure-lightbox-title"></h2>
+        <p class="figure-lightbox-caption" id="figure-lightbox-caption"></p>
+        <div class="figure-lightbox-body" id="figure-lightbox-body"></div>
+      </aside>
+    </div>
+  </div>
 
   <script>
     const tocLinks = [...document.querySelectorAll('.toc a')];
     const reportSections = [...document.querySelectorAll('.report-section')];
+    const figureCommentary = {
+      "resnet50_visual.svg": {
+        "title": "Figure 01 — ResNet50 architecture overview",
+        "paragraphs": [
+          "This schematic should be read as the structural explanation of the classifier before any XAI method is applied. The RGB image is first converted into a 3 x 224 x 224 normalized tensor, processed by a convolutional stem, passed through four residual stages, pooled into a compact representation and finally mapped to class logits.",
+          "The most important detail for explainability is the progressive loss of spatial resolution. ResNet50 trades pixel-level detail for increasingly semantic feature channels. This is why methods based on late convolutional layers, such as Grad-CAM, can highlight discriminative regions but cannot recover fine object boundaries with high precision.",
+          "The residual connections are not an interpretability mechanism by themselves. Their role is optimization: they allow deeper networks to train by learning residual corrections. For the report, the key point is that explanations are applied to a trained discriminative pipeline, not to an intrinsically transparent model."
+        ]
+      },
+      "assets/xai-report/resnet-forward.png": {
+        "title": "Figure 02 — Forward inspection of the ResNet50 backbone",
+        "paragraphs": [
+          "The layer-by-layer activation sequence makes visible, rather than only described in prose, the resolution collapse from the early convolutional stages down to the final low-resolution representation. In the early stages the activation can still trace broad contours and texture transitions; from the middle residual blocks onward the response condenses into a smaller set of high-level regions.",
+          "Because Grad-CAM in this project is computed on layer4[-1], its spatial-resolution ceiling is a direct consequence of this collapse. The coarseness of the final heatmap should therefore be interpreted as an architectural constraint of the selected target layer, not simply as a visualization artefact.",
+          "The tensor diagnostics are useful sanity checks. Post-ReLU activations have zero minima as expected, and the changing means and standard deviations across stages show normal sparsification in a deep residual network. These values are not explanations, but they confirm that the inspected tensors are numerically plausible."
+        ]
+      },
+      "assets/xai-report/gradcam-theory.png": {
+        "title": "Figure 03 — Grad-CAM computation",
+        "paragraphs": [
+          "Grad-CAM generates a spatial map for a selected class by differentiating the raw target logit z_c, before softmax, with respect to the activation maps A^k of the final convolutional layer. The object being explained is therefore the class score itself, not the normalized probability after competition with all other classes.",
+          "The spatial gradients dz_c / dA^k_ij are globally averaged to obtain one scalar importance weight per feature map: alpha_k^c = (1 / Z) sum_i sum_j dz_c / dA^k_ij. The final map is the positive part of the weighted feature-map sum: L_Grad-CAM^c = ReLU(sum_k alpha_k^c A^k).",
+          "The structural limitation is inherited from the target layer. In ResNet50, the last convolutional representation is roughly 7 x 7, so the displayed heatmap is a bilinear upsampling of a coarse semantic map. Grad-CAM can reveal that the network relies on a spurious region, such as background water for ship images, but it cannot by itself distinguish causal evidence from a statistical artefact learned by the classifier."
+        ]
+      },
+      "assets/xai-report/integrated-gradients-theory.png": {
+        "title": "Figure 04 — Integrated Gradients path attribution",
+        "paragraphs": [
+          "Integrated Gradients is an axiomatic input-attribution method. Instead of reading late activations, it integrates gradients along a straight path from a reference baseline x' to the actual input x: IG_i(x) = (x_i - x'_i) integral_0^1 dF(x' + alpha(x - x')) / dx_i d alpha.",
+          "Its main mathematical appeal is completeness: when the integral is exact, the sum of all feature attributions equals the difference between the model output at the real image and at the baseline. This makes IG more principled than a single local input gradient, especially when the model is saturated around x.",
+          "The critical weakness is the practical baseline. A black image is not a neutral absence of signal for ImageNet-normalized natural images; it is an artificial out-of-distribution pattern. This project therefore uses a heavily blurred version of the image, but the method can still produce high-frequency pixel patterns that are mathematically valid and visually difficult to interpret causally."
+        ]
+      },
+      "assets/xai-report/correct-attributions.png": {
+        "title": "Figure 05 — Correct predictions and attribution maps",
+        "paragraphs": [
+          "A correct class label is not sufficient evidence that the model used the right visual reason. This figure should be read by checking label, confidence and attribution target together: a low-confidence correct prediction is a weaker explanation case than a high-confidence one.",
+          "Qualitatively, the comparison illustrates a central methodological difference. Grad-CAM produces coherent, animal-centred blobs because it operates on late semantic feature maps. Integrated Gradients produces more sparse and high-frequency attribution because it operates directly at the input level.",
+          "The technical question is whether highlighted regions correspond to morphologically meaningful evidence: head, torso, legs, horns, fur, flippers or other visible animal features. If the map instead emphasizes background texture, the correct prediction may still be shortcut-supported."
+        ]
+      },
+      "assets/xai-report/background-perturbations.png": {
+        "title": "Figure 06 — Background intervention grid",
+        "paragraphs": [
+          "This is one of the strongest diagnostic figures in the report because it makes the intervention explicit before any metric is interpreted. The approximate animal region is preserved while the background is modified by Gaussian noise, colour shift or replacement.",
+          "The key pattern to inspect is whether morphologically different animals collapse toward the same wrong class after background replacement. In the reviewed outputs, several cases moved toward walrus under structured background replacement, suggesting a possible contextual shortcut rather than a purely shape-based decision.",
+          "This does not by itself prove a causal shortcut across the full dataset. It does, however, generate a concrete hypothesis: some class predictions may be triggered by high-texture or class-correlated backgrounds. That hypothesis is then tested with saliency stability, confidence changes and margin analysis."
+        ]
+      },
+      "assets/xai-report/stress-gradcam.png": {
+        "title": "Figure 07 — Grad-CAM stability under perturbation",
+        "paragraphs": [
+          "This figure asks whether late-feature localization remains stable when the background changes. Since Grad-CAM is computed from layer4 feature maps, it is relatively insensitive to high-frequency pixel noise compared with input-level attribution methods.",
+          "High stability can be interpreted in two different ways. It may mean the method continues to localize animal evidence, but it may also mean the late representation has become too coarse to reveal subtle background-driven changes. Therefore stability is useful, but not sufficient.",
+          "The technical reading should compare map movement with prediction movement. If the class changes while Grad-CAM barely moves, the explanation is not necessarily wrong; rather, localization and class score may be responding at different levels of abstraction."
+        ]
+      },
+      "assets/xai-report/stress-integrated-gradients.png": {
+        "title": "Figure 08 — Integrated Gradients stability under perturbation",
+        "paragraphs": [
+          "Integrated Gradients is evaluated at input resolution, so it is expected to react more strongly to pixel-level perturbations. Under Gaussian noise, the map can become visually noisy even when the semantic foreground remains recognizable.",
+          "This sensitivity is not automatically a weakness. It reflects that IG assigns attribution to individual input dimensions along the baseline-to-image path. If the intervention changes many background pixels, IG can reveal that the model score is locally sensitive to those pixels.",
+          "The limitation is interpretability: a high-frequency map can be numerically meaningful but hard to read visually. This is why IG should be interpreted together with deletion curves, region allocation and rank stability rather than only by visual inspection."
+        ]
+      },
+      "assets/xai-report/metric-summary.png": {
+        "title": "Figure 09 — Stability and faithfulness dashboard",
+        "paragraphs": [
+          "The dashboard quantifies what the stress figures show visually. Top-k IoU measures whether the most salient spatial support remains in the same region; Spearman correlation measures whether the full ranking of pixel saliency remains similar.",
+          "The region-allocation panel is especially important because it distinguishes animal-centred attribution from background allocation. A method can appear visually plausible while still assigning a large fraction of normalized saliency mass outside the animal mask.",
+          "The faithfulness panel reveals a trade-off. Integrated Gradients can produce a lower deletion AUC, meaning the score collapses faster when top pixels are removed, while Grad-CAM can show stronger insertion behavior. Neither method dominates every metric, so the report should present them as complementary diagnostics."
+        ]
+      },
+      "assets/xai-report/advanced-gradcam-deletion.png": {
+        "title": "Figure 10 — Grad-CAM deletion and insertion curves",
+        "paragraphs": [
+          "Deletion progressively removes pixels ranked as salient by Grad-CAM and tracks the target probability. A faithful map should cause the target score to decrease rapidly when its highest-ranked evidence is removed.",
+          "Insertion performs the inverse experiment: starting from a baseline, it restores the most salient pixels first. A useful attribution should recover the target score early, because its top-ranked pixels should be sufficient evidence for the class.",
+          "Grad-CAM typically produces smoother curves because its saliency is derived from coarse late-layer localization. This makes it good for object-level evidence but less precise for isolating small discriminative details."
+        ]
+      },
+      "assets/xai-report/advanced-ig-deletion.png": {
+        "title": "Figure 11 — Integrated Gradients deletion and insertion curves",
+        "paragraphs": [
+          "The same behavioral test is applied to Integrated Gradients. The important question is whether the pixels ranked highly by the path-integrated attribution actually control the selected class score.",
+          "A steep initial deletion drop supports the claim that IG identifies influential pixels. However, a lower insertion AUC can indicate that the top-ranked pixels alone are not sufficient to reconstruct the prediction as effectively.",
+          "This figure is therefore best read as evidence of pixel-level sensitivity, not as a universal proof that IG is more faithful than Grad-CAM. Faithfulness depends on both deletion and insertion behavior."
+        ]
+      },
+      "assets/xai-report/saliency-stress-comparison.png": {
+        "title": "Figure 12 — Stress comparison across attribution methods",
+        "paragraphs": [
+          "This comparison links perturbation type to attribution movement. It asks whether a saliency map follows the animal, follows the background or changes in a way that is not visually interpretable.",
+          "The most important reading is cross-method consistency. If both Grad-CAM and IG move under the same background intervention, the shortcut hypothesis becomes stronger. If only IG moves, the effect may be dominated by input-level sensitivity.",
+          "The figure should be interpreted together with the prediction-change rate. Explanation instability is more concerning when it coincides with a class transition or a large drop in fixed-target confidence."
+        ]
+      },
+      "assets/xai-report/case-summary.png": {
+        "title": "Figure 13 — Case study linking behavior and explanation",
+        "paragraphs": [
+          "This case study is the narrative counterpart of the aggregate stress metrics. It connects a concrete prediction transition with confidence change and saliency stability.",
+          "The technical value is that the same target is tracked before and after perturbation. This avoids a common error: comparing explanations for different predicted classes and treating the difference as pure instability.",
+          "If fixed-target confidence drops and the saliency map moves after a background-only intervention, the evidence supports contextual sensitivity. It still does not prove correct-class recovery unless the true class becomes more competitive."
+        ]
+      },
+      "assets/xai-report/incorrect-attributions.png": {
+        "title": "Figure 14 — Additional misclassified examples",
+        "paragraphs": [
+          "Misclassifications force the explanation to account for an actually wrong decision. The attribution target here is the predicted class selected by the network, because that is the score whose evidence produced the error.",
+          "Low-confidence errors with animal-centred Grad-CAM often suggest morphological ambiguity rather than a pure background shortcut. For example, visually similar body shapes or textures can make the wrong class plausible without requiring the model to ignore the animal.",
+          "However, repeated appearance of the same wrong target across unrelated true classes is a warning sign. It may indicate a class attractor driven by contextual cues, shared textures or dataset imbalance."
+        ]
+      },
+      "assets/xai-report/error-target-contrast-gradcam.png": {
+        "title": "Figure 15a — Grad-CAM target contrast on errors",
+        "paragraphs": [
+          "The same misclassified image is explained twice: once for the wrong predicted class and once for the ground-truth class. This directly tests whether Grad-CAM produces class-specific evidence or merely highlights the same object region for both targets.",
+          "When wrong-target saliency shifts toward background, reflection or texture while true-target saliency stays on the animal, the error has a contextual component. When both maps remain on the animal, the error is more consistent with morphological confusion.",
+          "The difference map should be read with the IoU and rank-correlation values. Low overlap means the model uses different spatial support for the competing targets; high overlap means the targets share much of the same visual evidence."
+        ]
+      },
+      "assets/xai-report/error-target-contrast-ig.png": {
+        "title": "Figure 15b — Integrated Gradients target contrast on errors",
+        "paragraphs": [
+          "This repeats the wrong-versus-true target contrast at input resolution. It can expose fine-grained pixel evidence that Grad-CAM cannot localize because of its late-layer spatial bottleneck.",
+          "The reviewed outputs show an important interpretive tension: Integrated Gradients may have higher numerical overlap between targets while still being visually harder to interpret because high-frequency attribution dominates the image.",
+          "Therefore numerical agreement should not be confused with semantic clarity. A high rank correlation can mean that both targets share a similar noisy attribution pattern, not that the explanation is more class-discriminative."
+        ]
+      },
+      "assets/xai-report/error-perturbation-margins.png": {
+        "title": "Figure 15c — Decision response on misclassified images",
+        "paragraphs": [
+          "This figure tracks the fixed wrong-minus-true logit margin under background interventions. The margin is more informative than probability alone because softmax probabilities can move together when the whole logit distribution changes.",
+          "A positive margin means the original wrong class still outranks the true class. A reduction in the margin means the intervention weakened the wrong class relative to the true class. A sign flip means the true class outranks the original wrong target.",
+          "The important caveat is that reducing the wrong-versus-true margin does not necessarily recover the correct top-1 prediction. A third class can become dominant, which is exactly the kind of behavior that reveals broader contextual sensitivity."
+        ]
+      },
+      "assets/xai-report/error-deletion-curves.png": {
+        "title": "Figure 15d — Deletion curves on errors",
+        "paragraphs": [
+          "Deletion is applied to pixels ranked by wrong-target and true-target saliency maps. This asks whether the highlighted pixels actually control the corresponding score in an error case.",
+          "A subtle but important effect can appear when deleting true-target pixels briefly increases the wrong-class probability. That means the competing classes draw on partially overlapping evidence: removing support for one class can temporarily redirect score mass toward the other.",
+          "This behavioral test is stronger than visual inspection because it intervenes on the input according to the saliency ranking. A plausible heatmap that does not affect the score under deletion is weak evidence."
+        ]
+      },
+      "assets/xai-report/error-cbm-concepts.png": {
+        "title": "Figure 15e — CBM concept comparator for baseline errors",
+        "paragraphs": [
+          "This panel decomposes the Concept Bottleneck Model margin between the wrong and true class into concept-level contributions. Positive bars support the wrong class; negative bars support the true class.",
+          "The interpretation must remain model-specific. A concept contribution is the product of the predicted concept value and the CBM class-head weight. It can look semantically counterintuitive while still being mathematically correct for the trained CBM.",
+          "The useful role of this figure is as a semantic second opinion. When the CBM favors the true class while the direct ResNet fails, it suggests that an explicit concept pathway may separate semantic evidence differently from the black-box classifier."
+        ]
+      },
+      "assets/xai-report/tcav-theory.png": {
+        "title": "Figure 16 — TCAV concept-direction procedure",
+        "paragraphs": [
+          "TCAV moves from spatial attribution to semantic probing in activation space. The user defines a concept through positive examples and compares them with random or reference images. Both sets are passed through a chosen layer of the trained network, and a linear classifier is fitted on the resulting activations.",
+          "The normal vector of that linear separator is the Concept Activation Vector. For a target class, TCAV measures the directional derivative of the class score along this vector. If the derivative is positive for many target-class images, the concept direction is considered relevant for that class.",
+          "The method assumes that a human semantic abstraction is linearly recoverable in a latent space optimized for classification. That assumption can fail. A CAV for wheels, for example, can absorb asphalt if the positive examples always contain wheels on roads. For this reason, concept-set quality, held-out validation, repeated seeds and random-concept baselines are methodological necessities, not optional decoration."
+        ]
+      },
+      "assets/xai-report/concept-validation-summary.png": {
+        "title": "Figure 17 — Validated concept evidence",
+        "paragraphs": [
+          "This figure substantiates the TCAV protocol. Repeated CAV estimation checks variability; held-out validation checks whether the concept separator generalizes; matched random controls check whether the observed sensitivity exceeds random directions.",
+          "The central question is not whether a TCAV score is high in isolation, but whether it is reliably higher than an appropriate random baseline. Confidence intervals and corrected p-values prevent overreading noisy concept directions.",
+          "The CBM-related panel is also important: it quantifies the practical limitation of concept interventions. Even when concepts are interpretable, single-concept corrections may have limited ability to fix selected errors."
+        ]
+      },
+      "assets/xai-report/tcav-heatmap.png": {
+        "title": "Figure 18 — Validated TCAV class-by-concept matrix",
+        "paragraphs": [
+          "The heatmap summarizes mean TCAV sensitivity by class and concept, conditional on validation and random-control checks. It moves the analysis from spatial pixels to semantic attributes such as stripes, horns, hooves, fur and flippers.",
+          "Unexpected significant pairs are not necessarily mistakes; they may reveal entangled directions in activation space. For example, a concept direction intended to represent a visible attribute may also encode correlated body shape, texture, habitat or dataset context.",
+          "This is the key interpretation boundary of TCAV: statistical significance means the direction has reliable influence on the score, not that the direction is semantically pure or causally responsible in the human sense."
+        ]
+      },
+      "assets/xai-report/tcav-top-scores.png": {
+        "title": "Figure 19 — TCAV effects relative to random controls",
+        "paragraphs": [
+          "This figure turns the heatmap into an effect-size view. Error bars make uncertainty visible and help distinguish stable concept effects from concept-class pairs whose intervals overlap the random-control baseline.",
+          "It should be read next to the corrected-significance count. A visually large raw TCAV score is less persuasive if its uncertainty overlaps zero after subtracting matched random CAV behavior.",
+          "The plot therefore supports a conservative conclusion: some semantic directions are measurably represented, but many intuitive concept-class associations do not survive the full validation protocol."
+        ]
+      },
+      "assets/xai-report/concept-bottleneck-theory.png": {
+        "title": "Figure 20 — Concept Bottleneck Model architecture",
+        "paragraphs": [
+          "A Concept Bottleneck Model is not a post-hoc explanation. It changes the architecture by forcing the prediction to pass through human-defined concepts. The image encoder predicts c_hat(x), and the class head computes p(y | x) = softmax(g(c_hat(x))) from those concepts rather than from unconstrained visual features.",
+          "The advantage is an explicit semantic interface: the intermediate variables can be inspected, evaluated and intervened on. This is fundamentally different from a heatmap, which explains a decision after it has already been produced by a black-box classifier.",
+          "The limitation is the accuracy-transparency trade-off and the risk of leakage. If the concept vocabulary is insufficient or the bottleneck is too flexible, the model can encode hidden non-conceptual information inside continuous concept values to reduce the loss. In that case the model appears interpretable while silently violating the assumption that the bottleneck contains only human-readable evidence."
+        ]
+      },
+      "assets/xai-report/cbm-summary.png": {
+        "title": "Figure 21 — Direct classifier versus Concept Bottleneck Model",
+        "paragraphs": [
+          "This figure connects class accuracy with concept accuracy. The CBM is slightly less accurate than the direct ResNet classifier, but exposes an intermediate concept layer that the direct classifier lacks.",
+          "The agreement between the CBM and ResNet is important. Similar aggregate accuracy does not imply identical reasoning. If the two models disagree on a substantial fraction of cases, the CBM should be treated as an independent semantic comparator rather than as a transparent copy of the ResNet.",
+          "Concept binary accuracy is a limiting factor. If concepts are predicted imperfectly, class errors can arise from the bottleneck itself rather than from the final class head."
+        ]
+      },
+      "assets/xai-report/concept-interventions.png": {
+        "title": "Figure 22 — Image-specific concept interventions",
+        "paragraphs": [
+          "This figure shows how changing selected bottleneck concept values propagates to the CBM class prediction. It is the clearest practical difference between a concept bottleneck and a post-hoc heatmap: the intermediate variables can be modified.",
+          "Large corrections from behavioral or non-visible attributes should be interpreted carefully. AwA2 attributes are class-level, so they are not guaranteed to be visually present in every image and may encode class priors rather than image-specific evidence.",
+          "The intervention results are therefore useful but bounded. They show how the CBM class head responds to semantic variables, not necessarily how a human would correct the original ResNet decision."
+        ]
+      }
+    };
 
     function markCurrent(sectionId) {
       tocLinks.forEach((link) => {
@@ -1417,6 +2024,76 @@
 
       reportSections.forEach((section) => sectionObserver.observe(section));
     }
+
+    const lightbox = document.querySelector('#figure-lightbox');
+    const lightboxImage = document.querySelector('#figure-lightbox-image');
+    const lightboxTitle = document.querySelector('#figure-lightbox-title');
+    const lightboxCaption = document.querySelector('#figure-lightbox-caption');
+    const lightboxBody = document.querySelector('#figure-lightbox-body');
+    const closeButtons = [...document.querySelectorAll('[data-lightbox-close]')];
+    let lastFocusedElement = null;
+
+    function normalizedSrc(src) {
+      const url = new URL(src, window.location.href);
+      const docsMarker = '/docs/';
+      const docsIndex = url.pathname.indexOf(docsMarker);
+      return docsIndex >= 0 ? decodeURIComponent(url.pathname.slice(docsIndex + docsMarker.length)) : decodeURIComponent(url.pathname.split('/').pop());
+    }
+
+    function openFigureLightbox(image) {
+      const figure = image.closest('figure');
+      const src = normalizedSrc(image.getAttribute('src'));
+      const commentary = figureCommentary[src] || {
+        title: 'Figure commentary',
+        paragraphs: ['This figure is part of the explainability audit. Read it together with its caption and the surrounding section to understand what question it supports.']
+      };
+      const caption = figure?.querySelector('figcaption')?.innerText.trim() || image.alt || '';
+
+      lastFocusedElement = document.activeElement;
+      lightboxImage.src = image.currentSrc || image.src;
+      lightboxImage.alt = image.alt || commentary.title;
+      lightboxTitle.textContent = commentary.title;
+      lightboxCaption.textContent = caption;
+      lightboxBody.replaceChildren(...commentary.paragraphs.map((paragraph) => {
+        const element = document.createElement('p');
+        element.textContent = paragraph;
+        return element;
+      }));
+
+      lightbox.hidden = false;
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('figure-lightbox-open');
+      lightbox.querySelector('.figure-lightbox-close').focus();
+    }
+
+    function closeFigureLightbox() {
+      if (lightbox.hidden) return;
+      lightbox.hidden = true;
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('figure-lightbox-open');
+      lightboxImage.removeAttribute('src');
+      if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+        lastFocusedElement.focus();
+      }
+    }
+
+    document.querySelectorAll('main figure img').forEach((image) => {
+      image.setAttribute('role', 'button');
+      image.setAttribute('tabindex', '0');
+      image.setAttribute('aria-label', `${image.alt || 'Figure'}: open enlarged view with commentary`);
+      image.addEventListener('click', () => openFigureLightbox(image));
+      image.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openFigureLightbox(image);
+        }
+      });
+    });
+
+    closeButtons.forEach((button) => button.addEventListener('click', closeFigureLightbox));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeFigureLightbox();
+    });
   </script>
 </body>
 
