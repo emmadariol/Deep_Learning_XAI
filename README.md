@@ -108,8 +108,7 @@ analysis step by step, or regenerate figures manually.
 notebooks/01_data_baseline_xai.ipynb
 notebooks/02_stress_concepts_tcav.ipynb
 notebooks/03_bottleneck_sanity_report.ipynb
-notebooks/04_real_forward_inspection.ipynb
-notebooks/05_blog_figures.ipynb
+notebooks/04_blog_figures.ipynb
 ```
 
 ## Workflow Summary
