@@ -1,4 +1,4 @@
-# The Illusion of Saliency Maps
+# Auditing explanations for a visual classifier
 
 Stress testing saliency and concept-based explanations on AwA2.
 
