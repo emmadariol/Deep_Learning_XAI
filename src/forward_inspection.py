@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import io
-import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,7 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
 from torch import nn
 
 from src.data import denormalize_batch
@@ -284,111 +280,3 @@ def print_trace_summary(trace: PredictionTrace, class_names: dict[int, str], top
             f"min={stats.minimum:.5f} max={stats.maximum:.5f} "
             f"mean={stats.mean:.5f} std={stats.std:.5f}"
         )
-
-
-def _tensor_to_grid(tensor: torch.Tensor, size: tuple[int, int]) -> list:
-    """Resize a tensor to a compact JSON-serializable grid."""
-    if tensor.dim() == 3:
-        tensor = tensor.unsqueeze(0)
-    resized = F.interpolate(tensor.detach().float().cpu(), size=size, mode="bilinear", align_corners=False)
-    return resized.squeeze(0).tolist()
-
-
-def _map_to_grid(map_tensor: torch.Tensor, size: tuple[int, int] = (7, 7)) -> list[list[float]]:
-    """Resize a [1, 1, H, W] map to a compact 2D grid."""
-    resized = F.interpolate(map_tensor.detach().float().cpu(), size=size, mode="bilinear", align_corners=False)
-    return resized[0, 0].tolist()
-
-
-def _image_to_data_url(image: torch.Tensor) -> str:
-    """Encode a denormalized RGB tensor as an embedded PNG for browser display."""
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    denorm = denormalize_batch(image.detach().cpu()).clamp(0, 1)[0]
-    image_array = (denorm.permute(1, 2, 0).numpy() * 255).round().astype(np.uint8)
-    pil_image = Image.fromarray(image_array, mode="RGB")
-    buffer = io.BytesIO()
-    pil_image.save(buffer, format="PNG", optimize=True)
-    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
-
-
-def trace_to_browser_payload(
-    image: torch.Tensor,
-    trace: PredictionTrace,
-    class_names: dict[int, str],
-    true_label: int | None = None,
-    image_path: str | None = None,
-    top_k: int = 10,
-) -> dict:
-    """Convert a real forward trace into a small JSON payload for the HTML simulator."""
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    denorm = denormalize_batch(image.detach().cpu()).clamp(0, 1)
-    rgb_grid = _tensor_to_grid(denorm, size=(14, 14))
-    rgb_grid = np.transpose(np.array(rgb_grid), (1, 2, 0)).tolist()
-
-    activation_maps: dict[str, list[list[float]]] = {}
-    for name, map_tensor in trace.activation_maps.items():
-        activation_maps[name] = _map_to_grid(map_tensor, size=(7, 7))
-
-    top_values, top_indices = torch.topk(trace.probabilities[0], k=min(top_k, trace.probabilities.size(1)))
-    probabilities = [
-        {
-            "label": int(index),
-            "name": class_names.get(int(index), str(int(index))),
-            "probability": float(value),
-        }
-        for value, index in zip(top_values.tolist(), top_indices.tolist(), strict=False)
-    ]
-
-    return {
-        "schema": "resnet-forward-trace-v1",
-        "image_path": image_path,
-        "true_label": true_label,
-        "true_name": class_names.get(true_label, str(true_label)) if true_label is not None else None,
-        "predicted_label": trace.predicted_label,
-        "predicted_name": class_names.get(trace.predicted_label, str(trace.predicted_label)),
-        "confidence": trace.confidence,
-        "input_image_data_url": _image_to_data_url(image),
-        "input_rgb_14": rgb_grid,
-        "activation_maps_7": activation_maps,
-        "gradcam_7": _map_to_grid(trace.gradcam_map, size=(7, 7)) if trace.gradcam_map is not None else None,
-        "probabilities": probabilities,
-        "stats": [
-            {
-                "name": stats.name,
-                "shape": list(stats.shape),
-                "min": stats.minimum,
-                "max": stats.maximum,
-                "mean": stats.mean,
-                "std": stats.std,
-            }
-            for stats in trace.stats
-        ],
-    }
-
-
-def save_trace_json(
-    image: torch.Tensor,
-    trace: PredictionTrace,
-    class_names: dict[int, str],
-    output_path: str | Path,
-    true_label: int | None = None,
-    image_path: str | None = None,
-    top_k: int = 10,
-) -> None:
-    """Save a compact real-forward payload that can be loaded by the HTML simulator."""
-    output_path = Path(output_path).expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = trace_to_browser_payload(
-        image=image,
-        trace=trace,
-        class_names=class_names,
-        true_label=true_label,
-        image_path=image_path,
-        top_k=top_k,
-    )
-    with output_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2)
-    LOGGER.info("Saved browser forward trace JSON: %s", output_path)
