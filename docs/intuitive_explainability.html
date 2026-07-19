@@ -519,6 +519,68 @@
       margin-top: 38px;
     }
 
+    .stress-flashcards {
+      display: flex;
+      gap: 28px;
+      margin: 40px 0 0;
+      padding: 4px 4px 22px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-color: var(--accent) transparent;
+    }
+
+    .stress-card {
+      flex: 0 0 min(100%, 1260px);
+      scroll-snap-align: start;
+      padding: clamp(18px, 2.4vw, 30px);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: 0 18px 46px rgba(30, 41, 45, .08);
+    }
+
+    .stress-card-header {
+      max-width: 86ch;
+      margin-bottom: 12px;
+    }
+
+    .stress-card-kicker {
+      margin: 0 0 6px;
+      color: var(--accent);
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .stress-card h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(1.35rem, 2.1vw, 2rem);
+      letter-spacing: 0;
+    }
+
+    .stress-card-header p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: .98rem;
+      line-height: 1.65;
+    }
+
+    .stress-card figure {
+      margin-top: 26px;
+    }
+
+    .stress-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .stress-card-grid figure {
+      margin-top: 28px;
+    }
+
     .figure-lightbox[hidden] {
       display: none;
     }
@@ -884,8 +946,13 @@
       .fact-grid,
       .metric-list,
       .figure-grid,
+      .stress-card-grid,
       .data-strip {
         grid-template-columns: 1fr;
+      }
+
+      .stress-card {
+        flex-basis: min(100%, 92vw);
       }
 
       .data-point,
@@ -1021,14 +1088,14 @@
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">The explained model is a standard ResNet50 adapted to the animal classes available in
-            the AwA2 manifest.</p>
+          <p class="prose-intro">The explained model is a standard ResNet50.</p>
           <p>We start from an ImageNet-pretrained ResNet50 and adapt it to the animal classes in our dataset.
             This transfer-learning setup preserves broadly useful visual features while specialising the model for our
             classification task. </p>
         </div>
         <figure>
-          <img src="resnet50_visual.svg" alt="Schematic representation of the ResNet50 architecture." decoding="async">
+          <img src="assets/xai-report/resnet50-visual-xai-audit.png"
+            alt="ResNet50 visual representation for the XAI audit." decoding="async">
           <figcaption><strong>Figure 01</strong> — ResNet50 overview: convolutional stem, residual stages, global
             average
             pooling and final class logits.</figcaption>
@@ -1158,14 +1225,15 @@
         <div class="prose">
           <p class="prose-intro">Grad-CAM and Integrated Gradients locate candidate evidence for one image and one
             selected class.</p>
-          <p>A saliency map is the numerical attribution tensor. A heatmap is its colour-coded visualization over the
-            image. Both methods produce maps, but they define importance differently and should not be treated as
-            interchangeable measurements.</p>
+          <p>A saliency map is the numerical attribution tensor. <br> A heatmap is its colour-coded visualization over
+            the
+            image. <br> A spatial map answers where attribution is concentrated.</p>
+
         </div>
 
         <div class="note">
           <strong>Scope of Question 1</strong>
-          <p>A spatial map answers where attribution is concentrated. Stability, necessity and sufficiency are
+          <p> Stability, necessity and sufficiency are
             evaluated
             later through perturbation, deletion and insertion tests.</p>
         </div>
@@ -1254,27 +1322,15 @@
           <figure>
             <img src="assets/xai-report/stress-gradcam.png" alt="Grad-CAM maps under background perturbations."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 07</strong> — Grad-CAM checks the stability of late-feature localization for
-              the
-              selected prediction target.</figcaption>
+            <figcaption><strong>Figure 07</strong> — Grad-CAM compares fixed-target stability with the map for the
+              class actually predicted after the background swap.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/stress-integrated-gradients.png"
               alt="Integrated Gradients maps under background perturbations." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 08</strong> — Integrated Gradients checks input-level path attribution for the
-              selected prediction target.</figcaption>
+            <figcaption><strong>Figure 08</strong> — Integrated Gradients compares fixed-target stability with the
+              input-level attribution for the class predicted after the background swap.</figcaption>
           </figure>
-        </div>
-
-        <div class="prose">
-          <p><strong>Why the error maps are separate.</strong> Figures 07 and 08 are stability checks: they ask
-            whether
-            a
-            fixed target explanation changes when only the background is perturbed. A misclassification is a different
-            diagnostic. When the network is wrong, the saliency map should be computed for the class actually selected
-            by the model and then compared with the saliency map for the ground-truth class. That target-specific
-            error
-            audit is shown in the <a href="#error-analysis">Error analysis</a> section.</p>
         </div>
 
         <h3 class="subsection-title">Stability and faithfulness metrics</h3>
@@ -1309,50 +1365,125 @@
             <h3>Region allocation</h3>
             <p>How much normalized saliency lies on the approximate animal region compared with the background?</p>
           </article>
-          <article class="metric">
-            <h3>Sanity controls</h3>
-            <p>Does the map agree with occlusion evidence and change when relevant model parameters are randomized?
-            </p>
+
+
+        </div>
+
+
+        <div class="stress-flashcards" aria-label="Stress-test quantitative flashcards" tabindex="0">
+          <article class="stress-card" id="stress-gaussian-noise">
+            <header class="stress-card-header">
+              <p class="stress-card-kicker">Stress test A</p>
+              <h3>Gaussian noise on the background</h3>
+              <p>The card keeps the same reading order as the original section: summary dashboard, Grad-CAM detail,
+                Integrated Gradients detail and a selected case study.</p>
+            </header>
+            <figure>
+              <img src="assets/xai-report/stress-metric-gaussian-noise.png"
+                alt="Figure-09-style metric dashboard for Gaussian-noise background stress." loading="lazy"
+                decoding="async">
+              <figcaption><strong>Figure 09a</strong> — Figure-09-style dashboard for the Gaussian-noise
+                background intervention.</figcaption>
+            </figure>
+            <div class="stress-card-grid">
+              <figure>
+                <img src="assets/xai-report/stress-curve-gaussian-noise-gradcam.png"
+                  alt="Grad-CAM deletion and insertion curves under Gaussian-noise background stress." loading="lazy"
+                  decoding="async">
+                <figcaption><strong>Figure 10a</strong> — Grad-CAM deletion/insertion curves computed on the
+                  Gaussian-noise perturbed images.</figcaption>
+              </figure>
+              <figure>
+                <img src="assets/xai-report/stress-curve-gaussian-noise-integrated-gradients.png"
+                  alt="Integrated Gradients deletion and insertion curves under Gaussian-noise background stress."
+                  loading="lazy" decoding="async">
+                <figcaption><strong>Figure 11a</strong> — Integrated Gradients deletion/insertion curves computed on
+                  the Gaussian-noise perturbed images.</figcaption>
+              </figure>
+            </div>
+            <figure>
+              <img src="assets/xai-report/stress-metric-gaussian-noise-case.png"
+                alt="Case study for Gaussian-noise background stress." loading="lazy" decoding="async">
+              <figcaption><strong>Figure 12a</strong> — Selected Gaussian-noise case linking prediction behaviour
+                with explanation stability.</figcaption>
+            </figure>
           </article>
 
-        </div>
+          <article class="stress-card" id="stress-colour-shift">
+            <header class="stress-card-header">
+              <p class="stress-card-kicker">Stress test B</p>
+              <h3>Colour shift on the background</h3>
+              <p>This card isolates the RGB-channel background intervention while preserving the same figure order and
+                metric semantics.</p>
+            </header>
+            <figure>
+              <img src="assets/xai-report/stress-metric-colour-shift.png"
+                alt="Figure-09-style metric dashboard for colour-shift background stress." loading="lazy"
+                decoding="async">
+              <figcaption><strong>Figure 09b</strong> — Figure-09-style dashboard for the colour-shift
+                background intervention.</figcaption>
+            </figure>
+            <div class="stress-card-grid">
+              <figure>
+                <img src="assets/xai-report/stress-curve-colour-shift-gradcam.png"
+                  alt="Grad-CAM deletion and insertion curves under colour-shift background stress." loading="lazy"
+                  decoding="async">
+                <figcaption><strong>Figure 10b</strong> — Grad-CAM deletion/insertion curves computed on the
+                  colour-shift perturbed images.</figcaption>
+              </figure>
+              <figure>
+                <img src="assets/xai-report/stress-curve-colour-shift-integrated-gradients.png"
+                  alt="Integrated Gradients deletion and insertion curves under colour-shift background stress."
+                  loading="lazy" decoding="async">
+                <figcaption><strong>Figure 11b</strong> — Integrated Gradients deletion/insertion curves computed on
+                  the colour-shift perturbed images.</figcaption>
+              </figure>
+            </div>
+            <figure>
+              <img src="assets/xai-report/stress-metric-colour-shift-case.png"
+                alt="Case study for colour-shift background stress." loading="lazy" decoding="async">
+              <figcaption><strong>Figure 12b</strong> — Selected colour-shift case linking prediction behaviour with
+                explanation stability.</figcaption>
+            </figure>
+          </article>
 
-        <figure>
-          <img src="assets/xai-report/metric-summary.png"
-            alt="Summary charts for explanation stability and faithfulness metrics." loading="lazy" decoding="async">
-          <figcaption><strong>Figure 09</strong> — Metric summaries are consistency checks, not standalone proof.
-          </figcaption>
-        </figure>
-
-        <div class="figure-grid">
-          <figure>
-            <img src="assets/xai-report/advanced-gradcam-deletion.png"
-              alt="Deletion and insertion faithfulness curves for Grad-CAM." loading="lazy" decoding="async">
-            <figcaption><strong>Figure 10</strong> — Grad-CAM’s target score falls as its most salient pixels are
-              deleted and rises as they are restored.
-            </figcaption>
-          </figure>
-          <figure>
-            <img src="assets/xai-report/advanced-ig-deletion.png"
-              alt="Deletion and insertion faithfulness curves for Integrated Gradients." loading="lazy"
-              decoding="async">
-            <figcaption><strong>Figure 11</strong> — The same deletion–insertion check tests whether Integrated
-              Gradients ranks evidence that affects the target score.
-            </figcaption>
-          </figure>
-        </div>
-
-        <div>
-          <figure>
-            <img src=" assets/xai-report/case-summary.png"
-              alt="Case study linking a prediction transition, confidence change and saliency stability." loading="lazy"
-              decoding="async">
-            <figcaption><strong>Figure 12</strong> — A case study links prediction behaviour with explanation
-              behaviour.
-            </figcaption>
-          </figure>
-
-
+          <article class="stress-card" id="stress-background-replacement">
+            <header class="stress-card-header">
+              <p class="stress-card-kicker">Stress test C</p>
+              <h3>Background replacement</h3>
+              <p>This card contains the strongest intervention: the approximate animal region is preserved while the
+                background is replaced with controlled random texture.</p>
+            </header>
+            <figure>
+              <img src="assets/xai-report/stress-metric-background-replacement.png"
+                alt="Figure-09-style metric dashboard for background-replacement stress." loading="lazy"
+                decoding="async">
+              <figcaption><strong>Figure 09c</strong> — Figure-09-style dashboard for the background-replacement
+                intervention.</figcaption>
+            </figure>
+            <div class="stress-card-grid">
+              <figure>
+                <img src="assets/xai-report/stress-curve-background-replacement-gradcam.png"
+                  alt="Grad-CAM deletion and insertion curves under background-replacement stress." loading="lazy"
+                  decoding="async">
+                <figcaption><strong>Figure 10c</strong> — Grad-CAM deletion/insertion curves computed on the
+                  background-replacement perturbed images.</figcaption>
+              </figure>
+              <figure>
+                <img src="assets/xai-report/stress-curve-background-replacement-integrated-gradients.png"
+                  alt="Integrated Gradients deletion and insertion curves under background-replacement stress."
+                  loading="lazy" decoding="async">
+                <figcaption><strong>Figure 11c</strong> — Integrated Gradients deletion/insertion curves computed on
+                  the background-replacement perturbed images.</figcaption>
+              </figure>
+            </div>
+            <figure>
+              <img src="assets/xai-report/stress-metric-background-replacement-case.png"
+                alt="Case study for background-replacement stress." loading="lazy" decoding="async">
+              <figcaption><strong>Figure 12c</strong> — Selected background-replacement case linking prediction
+                behaviour with explanation stability.</figcaption>
+            </figure>
+          </article>
         </div>
 
         <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
@@ -1366,30 +1497,6 @@
             class more strongly?</p>
         </div>
 
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Confident errors</h3>
-            <p>Softmax normalizes logits; it does not verify the evidence. A wrong prediction can therefore remain
-              highly
-              confident.</p>
-          </article>
-          <article class="fact">
-            <h3>Morphology or context</h3>
-            <p>Animal-centred saliency suggests visual similarity between classes. Background-heavy saliency suggests
-              possible contextual shortcuts.</p>
-          </article>
-          <article class="fact">
-            <h3>Fixed target</h3>
-            <p>Confidence changes under perturbation are measured for the original saliency target, even when the
-              predicted label changes.</p>
-          </article>
-          <article class="fact">
-            <h3>Cross-method evidence</h3>
-            <p>Agreement between methods raises the priority of a case. Independent perturbation and sanity checks
-              then
-              determine whether the shared pattern controls the score.</p>
-          </article>
-        </div>
 
         <figure>
           <img src="assets/xai-report/incorrect-attributions.png"
@@ -1858,20 +1965,16 @@
     const tocLinks = [...document.querySelectorAll('.toc a')];
     const reportSections = [...document.querySelectorAll('.report-section')];
     const figureCommentary = {
-      "resnet50_visual.svg": {
+      "assets/xai-report/resnet50-visual-xai-audit.png": {
         "title": "Figure 01 — ResNet50 architecture overview",
         "paragraphs": [
-          "This schematic should be read as the structural explanation of the classifier before any XAI method is applied. The RGB image is first converted into a 3 x 224 x 224 normalized tensor, processed by a convolutional stem, passed through four residual stages, pooled into a compact representation and finally mapped to class logits.",
-          "The most important detail for explainability is the progressive loss of spatial resolution. ResNet50 trades pixel-level detail for increasingly semantic feature channels. This is why methods based on late convolutional layers, such as Grad-CAM, can highlight discriminative regions but cannot recover fine object boundaries with high precision.",
-          "The residual connections are not an interpretability mechanism by themselves. Their role is optimization: they allow deeper networks to train by learning residual corrections. For the report, the key point is that explanations are applied to a trained discriminative pipeline, not to an intrinsically transparent model."
+          "ResNet50 progressively transforms the image from a pixel-level representation into a semantic representation. In the first layers, it detects edges and textures; in the intermediate layers, it combines parts and patterns; in the final layers, it represents more abstract evidence related to the target class. The final classification is produced from a 2048-dimensional feature vector obtained through global average pooling and then transformed into logits. This is fundamental for XAI: Grad-CAM operates on the last convolutional feature space, so it is semantic but coarse; Integrated Gradients operates on the input, so it is more detailed but also more unstable."
         ]
       },
       "assets/xai-report/resnet-forward.png": {
         "title": "Figure 02 — Forward inspection of the ResNet50 backbone",
         "paragraphs": [
-          "The layer-by-layer activation sequence makes visible, rather than only described in prose, the resolution collapse from the early convolutional stages down to the final low-resolution representation. In the early stages the activation can still trace broad contours and texture transitions; from the middle residual blocks onward the response condenses into a smaller set of high-level regions.",
-          "Because Grad-CAM in this project is computed on layer4[-1], its spatial-resolution ceiling is a direct consequence of this collapse. The coarseness of the final heatmap should therefore be interpreted as an architectural constraint of the selected target layer, not simply as a visualization artefact.",
-          "The tensor diagnostics are useful sanity checks. Post-ReLU activations have zero minima as expected, and the changing means and standard deviations across stages show normal sparsification in a deep residual network. These values are not explanations, but they confirm that the inspected tensors are numerically plausible."
+          "The layer-by-layer activation sequence makes visible, the resolution collapse from the early convolutional stages down to the final low-resolution representation. In the early stages the activation can still trace broad contours and texture transitions; from the middle residual blocks onward the response condenses into a smaller set of high-level regions."
         ]
       },
       "assets/xai-report/gradcam-theory.png": {
@@ -1907,18 +2010,20 @@
         ]
       },
       "assets/xai-report/stress-gradcam.png": {
-        "title": "Figure 07 — Grad-CAM stability under perturbation",
+        "title": "Figure 07 — Grad-CAM stability and wrong-target evidence",
         "paragraphs": [
           "This figure asks whether late-feature localization remains stable when the background changes. Since Grad-CAM is computed from layer4 feature maps, it is relatively insensitive to high-frequency pixel noise compared with input-level attribution methods.",
           "A stable Grad-CAM map has two possible readings: the late representation may still be centered on animal evidence, or the 7 x 7 layer4 map may be too coarse to expose a fine background-driven change. The map must therefore be read together with confidence and prediction transitions.",
+          "The final background-swap column changes the attribution target: instead of explaining the original class, it explains the class actually predicted after the background swap. This is the map needed to interpret the error itself, because it shows which late convolutional regions support the new wrong decision.",
           "The technical reading should compare map movement with prediction movement. If the class changes while Grad-CAM barely moves, the explanation is not necessarily wrong; rather, localization and class score may be responding at different levels of abstraction."
         ]
       },
       "assets/xai-report/stress-integrated-gradients.png": {
-        "title": "Figure 08 — Integrated Gradients stability under perturbation",
+        "title": "Figure 08 — Integrated Gradients stability and wrong-target evidence",
         "paragraphs": [
           "Integrated Gradients is evaluated at input resolution, so it is expected to react more strongly to pixel-level perturbations. Under Gaussian noise, the map can become visually noisy even when the semantic foreground remains recognizable.",
           "This sensitivity is not automatically a weakness. It reflects that IG assigns attribution to individual input dimensions along the baseline-to-image path. If the intervention changes many background pixels, IG can reveal that the model score is locally sensitive to those pixels.",
+          "The final background-swap predicted-target column explains the new class selected by the model after the perturbation. This separates fixed-target stability from the evidence used for the wrong decision: the former asks whether the original explanation moved, while the latter asks what visual evidence now supports the misclassification.",
           "The limitation is interpretability: a high-frequency map can be numerically meaningful but hard to read visually. This is why IG should be interpreted together with deletion curves, region allocation and rank stability rather than only by visual inspection."
         ]
       },
@@ -1928,6 +2033,102 @@
           "The dashboard quantifies what the stress figures show visually. Top-k IoU measures whether the most salient spatial support remains in the same region; Spearman correlation measures whether the full ranking of pixel saliency remains similar.",
           "The region-allocation panel is especially important because it distinguishes animal-centred attribution from background allocation. A method can appear visually plausible while still assigning a large fraction of normalized saliency mass outside the animal mask.",
           "The faithfulness panel reveals a trade-off. Integrated Gradients can produce a lower deletion AUC, meaning the score collapses faster when top pixels are removed, while Grad-CAM can show stronger insertion behavior. Neither method dominates every metric, so the report should present them as complementary diagnostics."
+        ]
+      },
+      "assets/xai-report/stress-metric-gaussian-noise.png": {
+        "title": "Figure 09a — Gaussian-noise stress dashboard",
+        "paragraphs": [
+          "This figure keeps the same four-panel logic as Figure 09, but isolates the Gaussian-noise background intervention. The upper-left panel reports where the saliency mass falls in the unperturbed audit: animal versus background. The lower-left panel reports deletion and insertion AUC, so it remains the behavioral faithfulness reference for both methods.",
+          "The upper-right panel is the stress-specific stability check. It compares the original saliency map with the map after random noise is added only to the background. Grad-CAM keeps higher Top-20 IoU and Spearman than Integrated Gradients, meaning its highlighted region and saliency ranking move less under this intervention.",
+          "The lower-right panel combines stress-test IoU with prediction-change rate. For Gaussian noise, the class changes in a smaller fraction of examples than under background replacement, but the explanation still becomes less stable, especially for Integrated Gradients. The relevant interpretation is not that noise alone explains the model, but that background pixels can perturb both confidence and attribution."
+        ]
+      },
+      "assets/xai-report/stress-metric-colour-shift.png": {
+        "title": "Figure 09b — Colour-shift stress dashboard",
+        "paragraphs": [
+          "This dashboard repeats the Figure 09 structure for the colour-shift intervention. Only background RGB values are shifted while the approximate animal region is preserved, so the test asks whether colour/context changes outside the animal are enough to move the explanation or the prediction.",
+          "The saliency-mass and AUC panels provide the same global references as Figure 09. The stress-specific panel shows that Grad-CAM remains more stable than Integrated Gradients in both Top-20 IoU and Spearman. This is consistent with Grad-CAM's late-layer, coarse localization and Integrated Gradients' higher sensitivity to pixel-level input changes.",
+          "The stress-test panel should be read as model response plus explanation response. The prediction-change rate indicates whether the classifier output changes; the IoU indicates whether the spatial support of the explanation changes. If colour shift modifies the heatmap even when the foreground is untouched, the explanation is not purely morphology-driven."
+        ]
+      },
+      "assets/xai-report/stress-metric-background-replacement.png": {
+        "title": "Figure 09c — Background-replacement stress dashboard",
+        "paragraphs": [
+          "This is the strongest stress dashboard because the background is replaced with controlled random texture while the approximate animal region is kept. The four panels preserve the Figure 09 logic: saliency allocation, map stability, deletion/insertion faithfulness, and stress-specific prediction response.",
+          "The stability panel shows the largest degradation among the background interventions. Grad-CAM remains more stable than Integrated Gradients, but both methods lose overlap and rank correlation compared with the original maps. This means the explanation changes substantially even though the intended semantic foreground is preserved.",
+          "The stress-test panel is the key result: background replacement produces a high prediction-change rate while the saliency IoU drops. This links two facts that must be interpreted together: the model changes class after a background intervention, and the explanation also moves. That is the strongest evidence in this section that the classifier is sensitive to contextual/background evidence rather than only animal morphology."
+        ]
+      },
+      "assets/xai-report/stress-curve-gaussian-noise-gradcam.png": {
+        "title": "Figure 10a — Grad-CAM deletion/insertion under Gaussian noise",
+        "paragraphs": [
+          "This is a true deletion/insertion curve computed after applying Gaussian noise to the background. Grad-CAM is first computed on the perturbed images, then the most salient pixels are progressively removed or restored.",
+          "Deletion tests necessity: if the Grad-CAM pixels are important, removing them should reduce the fixed target score. Insertion tests sufficiency: if the same pixels carry useful evidence, restoring them first should recover the target score early.",
+          "Compared with the original Figure 10, this curve asks whether Grad-CAM remains behaviorally meaningful after the background has been perturbed."
+        ]
+      },
+      "assets/xai-report/stress-curve-gaussian-noise-integrated-gradients.png": {
+        "title": "Figure 11a — Integrated Gradients deletion/insertion under Gaussian noise",
+        "paragraphs": [
+          "This curve applies the same deletion/insertion protocol to Integrated Gradients after Gaussian background noise. The attribution is computed at input resolution on the perturbed image.",
+          "A steep deletion curve indicates that IG identified pixels whose removal weakens the target. A strong insertion curve indicates that the top-ranked pixels are sufficient to rebuild the score from the blurred baseline.",
+          "The comparison with Figure 10a separates the two methods: Grad-CAM tests coarse late-layer evidence, while IG tests pixel-level path attribution."
+        ]
+      },
+      "assets/xai-report/stress-metric-gaussian-noise-case.png": {
+        "title": "Figure 12a — Gaussian-noise case study",
+        "paragraphs": [
+          "The case-study figure selects one inspected image for the Gaussian-noise intervention and places model behavior next to explanation stability. The left panel identifies the true class and the prediction transition.",
+          "The middle panel shows whether the fixed target score weakens after the background perturbation. The right panel compares Grad-CAM and Integrated Gradients on the same example using Top-20 IoU and Spearman.",
+          "This is the local reading of the aggregate dashboard: it shows how a single prediction and its explanations react when only background noise is introduced."
+        ]
+      },
+      "assets/xai-report/stress-curve-colour-shift-gradcam.png": {
+        "title": "Figure 10b — Grad-CAM deletion/insertion under colour shift",
+        "paragraphs": [
+          "This is the Grad-CAM deletion/insertion curve after shifting the RGB channels of the background. The curve tests whether Grad-CAM's salient regions still control the target score under a colour-context intervention.",
+          "Deletion removes the most salient Grad-CAM pixels from the colour-shifted image. Insertion starts from a blurred baseline of the colour-shifted image and restores the Grad-CAM-ranked pixels.",
+          "If the curves weaken compared with the original Figure 10, the saliency map is less behaviorally faithful under this background colour change."
+        ]
+      },
+      "assets/xai-report/stress-curve-colour-shift-integrated-gradients.png": {
+        "title": "Figure 11b — Integrated Gradients deletion/insertion under colour shift",
+        "paragraphs": [
+          "This curve evaluates Integrated Gradients on the colour-shifted images. It keeps the target fixed and asks whether IG-ranked pixels are necessary and sufficient for the model score after the intervention.",
+          "Because IG is input-level, colour changes outside the animal can change which pixels receive high attribution. Deletion/insertion checks whether that changed ranking has behavioral effect.",
+          "The curve should be read together with the stability dashboard: stability says whether the map moved; deletion/insertion says whether the moved map still controls the prediction."
+        ]
+      },
+      "assets/xai-report/stress-metric-colour-shift-case.png": {
+        "title": "Figure 12b — Colour-shift case study",
+        "paragraphs": [
+          "This case study isolates one colour-shift example and shows the prediction transition, target-score movement and explanation stability in one row.",
+          "The figure should be used to connect the aggregate colour-shift dashboard with an interpretable example. If the prediction is unchanged but saliency moves, the explanation is sensitive even when the classifier decision is stable.",
+          "If the prediction changes, the right panel indicates whether the attribution methods also relocated their most salient support."
+        ]
+      },
+      "assets/xai-report/stress-curve-background-replacement-gradcam.png": {
+        "title": "Figure 10c — Grad-CAM deletion/insertion under background replacement",
+        "paragraphs": [
+          "This curve computes Grad-CAM on images where the background has been replaced. It is the strongest faithfulness check in the stress section because the intervention changes the scene context while preserving the approximate animal region.",
+          "Deletion asks whether removing Grad-CAM's most salient pixels from the background-replaced image collapses the original target score. Insertion asks whether restoring those pixels rebuilds that score.",
+          "If the prediction changes under background replacement but the deletion/insertion curve still shows strong control, the saliency map is explaining the altered decision landscape rather than the clean original image."
+        ]
+      },
+      "assets/xai-report/stress-curve-background-replacement-integrated-gradients.png": {
+        "title": "Figure 11c — Integrated Gradients deletion/insertion under background replacement",
+        "paragraphs": [
+          "This curve applies deletion/insertion to Integrated Gradients on background-replaced images. The IG map is recomputed after replacement, then its top-ranked pixels are removed or restored.",
+          "This distinction matters: the curve is not testing the old explanation on a new image; it is testing whether the new IG explanation for the perturbed input has behavioral effect on the fixed target score.",
+          "A weak insertion curve or a slow deletion drop would indicate that the visually salient IG pixels are not sufficient or necessary evidence for the target under the strongest background intervention."
+        ]
+      },
+      "assets/xai-report/stress-metric-background-replacement-case.png": {
+        "title": "Figure 12c — Background-replacement case study",
+        "paragraphs": [
+          "This case study focuses on the most diagnostic stress test. Background replacement is the intervention most likely to expose reliance on contextual shortcuts because it changes the scene while trying to preserve the animal region.",
+          "The left and middle panels show whether the prediction and fixed-target probability changed. The right panel then asks whether Grad-CAM and Integrated Gradients agree that the explanation remained stable.",
+          "When prediction transition, confidence drop and saliency movement occur together, the example supports the report's central claim: post-hoc maps must be audited under interventions before being treated as evidence of model reasoning."
         ]
       },
       "assets/xai-report/advanced-gradcam-deletion.png": {
