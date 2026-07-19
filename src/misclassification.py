@@ -233,31 +233,75 @@ def save_contrastive_attribution_figure(
     wrong_names: list[str],
     method: str,
     output_path: str | Path,
+    background_mask: torch.Tensor | None = None,
+    top_fraction: float = 0.2,
 ) -> None:
-    """Save image, wrong-target map, true-target map and their spatial contrast."""
+    """Save target-contrast maps with per-example error diagnostics."""
     output_path = Path(output_path).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     row_count = images.size(0)
-    fig, axes = plt.subplots(row_count, 4, figsize=(14.2, 3.25 * row_count), squeeze=False)
+    target_iou, target_spearman = saliency_pair_diagnostics(wrong_maps, true_maps, top_fraction)
+    if background_mask is not None:
+        wrong_background = background_saliency_fraction(wrong_maps, background_mask)
+        true_background = background_saliency_fraction(true_maps, background_mask)
+    else:
+        wrong_background = torch.full((row_count,), float("nan"))
+        true_background = torch.full((row_count,), float("nan"))
+
+    top_percent = int(round(top_fraction * 100))
+    fig, axes = plt.subplots(row_count, 6, figsize=(22.0, 3.65 * row_count), squeeze=False)
     for index in range(row_count):
         image = _as_numpy_image(images, index)
         wrong_map = wrong_maps[index, 0].detach().cpu().numpy()
         true_map = true_maps[index, 0].detach().cpu().numpy()
-        difference = wrong_map - true_map
-        limit = max(float(np.quantile(np.abs(difference), 0.995)), 1e-6)
 
         axes[index, 0].imshow(image)
         axes[index, 0].set_title(
-            f"true: {true_names[index]}\nwrong: {wrong_names[index]}\n"
+            f"original image\ntrue: {true_names[index]}\nwrong pred: {wrong_names[index]}\n"
             f"p(wrong)={scores.wrong_probabilities[index]:.3f}, "
             f"p(true)={scores.true_probabilities[index]:.3f}"
         )
         axes[index, 1].imshow(overlay_heatmap(image, wrong_map))
-        axes[index, 1].set_title(f"target = wrong\n{wrong_names[index]}")
+        axes[index, 1].set_title(f"explained target: wrong prediction\n{wrong_names[index]}")
         axes[index, 2].imshow(overlay_heatmap(image, true_map))
-        axes[index, 2].set_title(f"target = true\n{true_names[index]}")
-        axes[index, 3].imshow(difference, cmap="RdBu_r", vmin=-limit, vmax=limit)
-        axes[index, 3].set_title("map contrast\nred=more wrong, blue=more true")
+        axes[index, 2].set_title(f"explained target: ground truth\n{true_names[index]}")
+        axes[index, 3].imshow(wrong_map, cmap="magma", vmin=0.0, vmax=1.0)
+        axes[index, 3].set_title("raw heatmap\nwrong target")
+        axes[index, 4].imshow(true_map, cmap="magma", vmin=0.0, vmax=1.0)
+        axes[index, 4].set_title("raw heatmap\ntrue target")
+
+        probability_gap = (
+            scores.wrong_probabilities[index] - scores.true_probabilities[index]
+        ).item()
+        background_gap = (wrong_background[index] - true_background[index]).item()
+        metrics_text = (
+            "Error diagnostics\n\n"
+            f"wrong - true logit: {scores.margins[index]:+.3f}\n"
+            f"wrong - true prob.: {probability_gap:+.3f}\n\n"
+            f"map IoU@top{top_percent}: {target_iou[index]:.3f}\n"
+            f"map Spearman: {target_spearman[index]:.3f}\n\n"
+            f"background saliency\n"
+            f"wrong target: {wrong_background[index]:.3f}\n"
+            f"true target: {true_background[index]:.3f}\n"
+            f"wrong - true: {background_gap:+.3f}"
+        )
+        axes[index, 5].text(
+            0.03,
+            0.97,
+            metrics_text,
+            transform=axes[index, 5].transAxes,
+            va="top",
+            ha="left",
+            fontsize=9.2,
+            family="monospace",
+            bbox={
+                "boxstyle": "round,pad=0.55",
+                "facecolor": "#f8fafc",
+                "edgecolor": "#cbd5e1",
+                "linewidth": 0.9,
+            },
+        )
+        axes[index, 5].set_title("local metrics")
         for axis in axes[index]:
             axis.axis("off")
     method_label = method.replace("_", " ").title()
