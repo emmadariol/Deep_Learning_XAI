@@ -596,6 +596,8 @@ def main() -> None:
             wrong_names=wrong_names,
             method=method,
             output_path=figure_directory / f"target_contrast_{method}.png",
+            background_mask=background_mask,
+            top_fraction=args.top_fraction,
         )
     save_perturbation_margin_figure(
         images=images,

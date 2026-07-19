@@ -1497,6 +1497,30 @@
             class more strongly?</p>
         </div>
 
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>Confident errors</h3>
+            <p>Softmax normalizes logits; it does not verify the evidence. A wrong prediction can therefore remain
+              highly
+              confident.</p>
+          </article>
+          <article class="fact">
+            <h3>Morphology or context</h3>
+            <p>Animal-centred saliency suggests visual similarity between classes. Background-heavy saliency suggests
+              possible contextual shortcuts.</p>
+          </article>
+          <article class="fact">
+            <h3>Fixed target</h3>
+            <p>Confidence changes under perturbation are measured for the original saliency target, even when the
+              predicted label changes.</p>
+          </article>
+          <article class="fact">
+            <h3>Cross-method evidence</h3>
+            <p>Agreement between methods raises the priority of a case. Independent perturbation and sanity checks
+              then
+              determine whether the shared pattern controls the score.</p>
+          </article>
+        </div>
 
         <figure>
           <img src="assets/xai-report/incorrect-attributions.png"
@@ -1568,18 +1592,18 @@
         <div class="figure-grid">
           <figure>
             <img src="assets/xai-report/error-target-contrast-gradcam.png"
-              alt="Misclassified images with Grad-CAM maps for the wrong and true target classes and a difference map."
+              alt="Misclassified images with Grad-CAM overlays, raw heatmaps and local target-contrast metrics for the wrong and true classes."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 15a</strong> — Grad-CAM target contrast distinguishes evidence localized for
-              the
-              selected wrong class from evidence localized for the true class.</figcaption>
+            <figcaption><strong>Figure 15a</strong> — Grad-CAM error contrast: original image, wrong-class
+              explanation, true-class explanation, raw heatmaps and local metrics for the same misclassified
+              example.</figcaption>
           </figure>
           <figure>
             <img src="assets/xai-report/error-target-contrast-ig.png"
-              alt="Misclassified images with Integrated Gradients maps for the wrong and true target classes and a difference map."
+              alt="Misclassified images with Integrated Gradients overlays, raw heatmaps and local target-contrast metrics for the wrong and true classes."
               loading="lazy" decoding="async">
-            <figcaption><strong>Figure 15b</strong> — Integrated Gradients repeats the comparison at input resolution
-              along the blurred-baseline path.</figcaption>
+            <figcaption><strong>Figure 15b</strong> — Integrated Gradients repeats the same wrong-versus-true
+              diagnostic at input resolution using the blurred-baseline path.</figcaption>
           </figure>
         </div>
 
@@ -1696,16 +1720,8 @@
         <figure>
           <img src="assets/xai-report/concept-bottleneck-theory.png"
             alt="Diagram of an image-to-concept-to-class Concept Bottleneck Model." loading="lazy" decoding="async">
-          <figcaption><strong>Figure 20</strong> &mdash; A CBM exposes concepts as an intermediate prediction layer.
-          </figcaption>
-        </figure>
-
-        <figure>
-          <img src="assets/xai-report/cbm-implementation-structure.png"
-            alt="Detailed Concept Bottleneck Model implementation structure and supervised training flow."
-            loading="lazy" decoding="async">
-          <figcaption><strong>Figure 20a</strong> &mdash; The CBM implementation separates feature extraction,
-            concept prediction, concept-to-class prediction and the two supervised losses used during training.
+          <figcaption><strong>Figure 20</strong> &mdash; A CBM replaces the direct black-box path with an
+            image-to-concepts-to-prediction pipeline.
           </figcaption>
         </figure>
 
@@ -2166,17 +2182,17 @@
       "assets/xai-report/error-target-contrast-gradcam.png": {
         "title": "Figure 15a — Grad-CAM target contrast on errors",
         "paragraphs": [
-          "The same misclassified image is explained twice: once for the wrong predicted class and once for the ground-truth class. This directly tests whether Grad-CAM produces class-specific evidence or merely highlights the same object region for both targets.",
-          "When wrong-target saliency shifts toward background, reflection or texture while true-target saliency stays on the animal, the error has a contextual component. When both maps remain on the animal, the error is more consistent with morphological confusion.",
-          "The difference map should be read with the IoU and rank-correlation values. Low overlap means the model uses different spatial support for the competing targets; high overlap means the targets share much of the same visual evidence."
+          "Each row explains one misclassification twice: first for the class actually predicted by the network, then for the ground-truth class. The two overlays are therefore not two different images; they are two different target logits explained on the same original RGB input.",
+          "The raw heatmaps make the comparison less ambiguous. If the wrong-target map concentrates on background texture while the true-target map is more animal-centred, the error is likely supported by contextual evidence. If both maps remain on the animal with high overlap, the error is more consistent with morphological confusion between similar classes.",
+          "The metric panel should be read as a local error audit. The wrong-minus-true logit and probability gap measure decision dominance; top-k IoU and Spearman measure how similar the two target explanations are; background-saliency fractions show whether the wrong target allocates more attribution outside the approximate animal mask."
         ]
       },
       "assets/xai-report/error-target-contrast-ig.png": {
         "title": "Figure 15b — Integrated Gradients target contrast on errors",
         "paragraphs": [
-          "This repeats the wrong-versus-true target contrast at input resolution. It can expose fine-grained pixel evidence that Grad-CAM cannot localize because of its late-layer spatial bottleneck.",
-          "The reviewed outputs show an important interpretive tension: Integrated Gradients may have higher numerical overlap between targets while still being visually harder to interpret because high-frequency attribution dominates the image.",
-          "Therefore numerical agreement should not be confused with semantic clarity. A high rank correlation can mean that both targets share a similar noisy attribution pattern, not that the explanation is more class-discriminative."
+          "This repeats the wrong-versus-true target contrast with an input-level attribution method. Integrated Gradients can assign evidence to fine pixel structures that Grad-CAM cannot localize because Grad-CAM starts from the late convolutional representation.",
+          "The useful comparison is not only whether the IG map is visually sharp, but whether the wrong-target and true-target maps separate in a meaningful way. Low target IoU or low Spearman means the two classes rely on different pixel rankings; high agreement can mean either shared visual evidence or shared high-frequency noise.",
+          "The background-saliency values are especially important for errors. If the wrong target receives more background attribution than the true target, the explanation supports the hypothesis that contextual evidence helped produce the misclassification. If both background fractions are similar, the error should be interpreted more cautiously."
         ]
       },
       "assets/xai-report/error-perturbation-margins.png": {
@@ -2206,10 +2222,10 @@
       "assets/xai-report/tcav-theory.png": {
         "title": "Figure 16 — TCAV concept-direction procedure",
         "paragraphs": [
-          "TCAV moves from spatial attribution to semantic probing in activation space. The user defines a concept through positive examples and compares them with random or reference images. Both sets are passed through a chosen layer of the trained network, and a linear classifier is fitted on the resulting activations.",
-          "The normal vector of that linear separator is the Concept Activation Vector. For a target class, TCAV measures the directional derivative of the class score along this vector. If the derivative is positive for many target-class images, the concept direction is considered relevant for that class.",
-          "<strong>Label normalization note.</strong> The generated raster contains a few label artefacts: iperpiano should be read as hyperplane, and the misspelled sensitivity label refers to the aggregated directional sensitivities used to compute the TCAV score.",
-          "The method assumes that a human semantic abstraction is linearly recoverable in a latent space optimized for classification. That assumption can fail. A CAV for wheels, for example, can absorb asphalt if the positive examples always contain wheels on roads. For this reason, concept-set quality, held-out validation, repeated seeds and random-concept baselines are methodological necessities, not optional decoration."
+          "TCAV moves from spatial attribution to semantic probing in activation space. The first step defines a human concept, such as stripes, using positive examples and compares those examples with unrelated reference images. Both sets are passed through a chosen layer of the trained CNN.",
+          "A linear separator is fitted in that activation space. Its normal direction is the Concept Activation Vector, which points toward the region of the representation associated with the concept. This turns a semantic idea into a measurable direction inside the model.",
+          "For a target class, TCAV computes a directional sensitivity: it checks whether moving the representation along the concept direction increases or decreases the class score. The final TCAV score is the fraction of target-class images whose directional derivative is positive.",
+          "The method is useful because it asks whether the model representation contains a concept-level direction, not merely where a heatmap is located. Its limitation is methodological: the concept must be well defined, linearly recoverable at the chosen layer and tested against held-out validation plus random-concept controls."
         ]
       },
       "assets/xai-report/concept-validation-summary.png": {
@@ -2239,23 +2255,19 @@
       "assets/xai-report/concept-bottleneck-theory.png": {
         "title": "Figure 20 — Concept Bottleneck Model architecture",
         "paragraphs": [
-          "A Concept Bottleneck Model is not a post-hoc explanation. It changes the architecture by forcing the prediction to pass through human-defined concepts:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><mover accent=\"true\"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>f</mi><mtext>concept</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>,</mo><mspace width=\"0.7em\"/><mi>p</mi><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi mathvariant=\"normal\">softmax</mi><mo>(</mo><mi>g</mi><mo>(</mo><mover accent=\"true\"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo><mo>)</mo></mrow></math></span>",
-          "The advantage is an explicit semantic interface: the intermediate variables can be inspected, evaluated and intervened on. This is fundamentally different from a heatmap, which explains a decision after it has already been produced by a black-box classifier.",
-          "The limitation is the accuracy-transparency trade-off and the risk of leakage. If the concept vocabulary is insufficient or the bottleneck is too flexible, the model can encode hidden non-conceptual information inside continuous concept values to reduce the loss. In that case the model appears interpretable while silently violating the assumption that the bottleneck contains only human-readable evidence."
+          "A Concept Bottleneck Model is not a post-hoc explanation. It changes the prediction path: instead of mapping image features directly to an animal class, the model first predicts a vector of human-readable concepts and then predicts the class from those concepts:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><mover accent=\"true\"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>f</mi><mtext>concept</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>,</mo><mspace width=\"0.7em\"/><mi>p</mi><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi mathvariant=\"normal\">softmax</mi><mo>(</mo><mi>g</mi><mo>(</mo><mover accent=\"true\"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo><mo>)</mo></mrow></math></span>",
+          "The figure contrasts this path with a standard black-box classifier. The CBM path creates an explicit semantic interface: the predicted concept vector can be inspected, evaluated and, in controlled settings, edited before the final class prediction.",
+          "This is different from Grad-CAM or Integrated Gradients. A heatmap explains a decision after a black-box classifier has already made it; a CBM constrains the decision itself to pass through concepts. The trade-off is that the bottleneck can reduce accuracy and inherits any errors or incompleteness in the chosen concept vocabulary."
         ]
       },
       "assets/xai-report/cbm-implementation-structure.png": {
         "title": "Figure 20a — CBM implementation and supervised training flow",
         "paragraphs": [
-          "<strong>Static architecture.</strong> The left panel decomposes the Concept Bottleneck Model into three sequential modules. The input image x is first processed by an encoder network, implemented here with a ResNet50 backbone whose original final classifier is removed. This encoder produces a latent feature representation z: a high-dimensional visual summary that is useful for classification but not directly interpretable.",
-          "<strong>Notation bridge.</strong> This diagram labels the concept predictor as g_theta and the task classifier as h_psi. These correspond to f_concept and g in the formula introduced earlier. The symbols differ across diagrams, but the computation is the same: image features become concepts, then concepts become the class prediction.",
-          "<strong>Concept bottleneck.</strong> The concept predictor maps the latent vector z to predicted concept values c-hat. Each output node corresponds to a predefined AwA2 semantic attribute, such as stripes, horns, hooves, fur or flippers. This is the actual bottleneck: information that is not expressed through the selected concepts cannot be directly used by the final classifier.",
-          "<strong>Task classifier.</strong> The class predictor receives only c-hat and maps those concept probabilities to the final animal prediction y-hat. In the project implementation this is a linear head, so the class score can be decomposed as a weighted combination of concept values. This is why CBM explanations are concept-level rather than pixel-level.",
-          "<strong>Training objective.</strong> The right panel shows that training uses two supervised signals. Concept loss compares c-hat with the ground-truth concept vector C, usually through binary cross-entropy because multiple concepts can be active at the same time. Task loss compares y-hat with the animal label Y through cross-entropy. The total objective is a weighted sum:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msub><mi>L</mi><mtext>total</mtext></msub><mo>=</mo><msub><mi>λ</mi><mi>c</mi></msub><msub><mi>L</mi><mtext>concept</mtext></msub><mo>+</mo><msub><mi>λ</mi><mi>t</mi></msub><msub><mi>L</mi><mtext>task</mtext></msub></mrow></math></span>",
-          "<strong>Backpropagation.</strong> During training, the aggregated loss sends gradients through the class head, the concept head and the encoder. This makes the model jointly optimize concept correctness and class correctness. The lambda weights define the trade-off: stronger concept supervision improves semantic alignment, while stronger task supervision can improve class accuracy but may reduce concept purity.",
-          "<strong>Inference.</strong> At test time the ground-truth concept matrix, task labels and losses disappear. The model only executes the forward path: image to ResNet50 features, features to predicted concepts, concepts to class. The explanation is therefore the intermediate concept vector and its contribution to the final class score.",
-          "<strong>Label normalization note.</strong> Some raster labels in this generated diagram should be read with normalized English terminology: MatriceConcetti means concept matrix, MatriceTask means task matrix, Ambilan should be Amphibian, and Strisce should be Striped.",
-          "<strong>Critical limitation.</strong> The diagram also exposes the main risk of CBMs: information leakage. Because task-loss gradients pass through the concept predictor, continuous concept values can start carrying hidden non-semantic information if the concept vocabulary is insufficient. In that case a node named 'stripes' may partially encode context, texture or background cues that help the task loss, weakening the promise that the bottleneck is purely human-readable."
+          "<strong>Implementation used in this project.</strong> The image encoder is a ResNet50 backbone. Its final classifier is removed, so the backbone acts as a feature extractor. A concept predictor maps those visual features to selected AwA2 attributes, and a task classifier maps the predicted concept vector to the final animal class.",
+          "<strong>Concept bottleneck.</strong> The bottleneck is the predicted concept vector. In principle, only information expressed through concepts should reach the final classifier. This is why the CBM can be inspected at a semantic level: one can ask which concepts were predicted and how those concept values affected the class score.",
+          "<strong>Joint supervision.</strong> Training uses two losses. The concept loss compares predicted concepts with the AwA2 concept targets, while the task loss compares the final class prediction with the animal label. The optimized objective is a weighted sum:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msub><mi>L</mi><mtext>total</mtext></msub><mo>=</mo><msub><mi>λ</mi><mi>c</mi></msub><msub><mi>L</mi><mtext>concept</mtext></msub><mo>+</mo><msub><mi>λ</mi><mi>t</mi></msub><msub><mi>L</mi><mtext>task</mtext></msub></mrow></math></span>",
+          "<strong>Inference and intervention.</strong> At test time the model runs image to concepts to class. If a concept value is edited, the final class head recomputes the prediction from the edited concept vector. This makes interventions easy to reason about, but their interpretation remains model-specific.",
+          "<strong>Critical limitation.</strong> If the concept vocabulary is incomplete or the bottleneck is too flexible, continuous concept values can leak hidden non-semantic information useful for the task. In that case the model may appear interpretable while the concept vector partly encodes texture, context or background cues."
         ]
       },
       "assets/xai-report/cbm-summary.png": {
