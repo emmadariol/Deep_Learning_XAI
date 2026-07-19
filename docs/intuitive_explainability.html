@@ -830,6 +830,117 @@
       font-size: .9rem;
     }
 
+    .target-reading-panel {
+      margin: 1.75rem 0;
+      padding: 1.25rem;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(248, 250, 252, 0.96), rgba(239, 246, 255, 0.9));
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    .target-reading-header {
+      max-width: 980px;
+      margin-bottom: 1rem;
+    }
+
+    .target-reading-header .eyebrow {
+      margin: 0 0 0.25rem;
+      color: #2563eb;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .target-reading-header h3 {
+      margin: 0 0 0.45rem;
+      color: #0f172a;
+      font-size: clamp(1.25rem, 2vw, 1.75rem);
+    }
+
+    .target-reading-header p {
+      margin: 0;
+      color: #475569;
+      line-height: 1.65;
+    }
+
+    .target-pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .target-pattern {
+      padding: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .target-pattern--critical {
+      border-color: rgba(220, 38, 38, 0.28);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(254, 242, 242, 0.85));
+    }
+
+    .pattern-label {
+      display: inline-block;
+      margin-bottom: 0.45rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #075985;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .target-pattern--critical .pattern-label {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .target-pattern h4 {
+      margin: 0 0 0.45rem;
+      color: #0f172a;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .target-pattern p {
+      margin: 0;
+      color: #475569;
+      font-size: 0.94rem;
+      line-height: 1.55;
+    }
+
+    .target-reading-warning {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-left: 4px solid #dc2626;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.86);
+    }
+
+    .target-reading-warning strong {
+      display: block;
+      color: #991b1b;
+      margin-bottom: 0.35rem;
+    }
+
+    .target-reading-warning p {
+      margin: 0;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .target-pattern-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .interactive-link::after {
       flex: 0 0 auto;
       color: var(--accent);
@@ -1497,31 +1608,6 @@
             class more strongly?</p>
         </div>
 
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Confident errors</h3>
-            <p>Softmax normalizes logits; it does not verify the evidence. A wrong prediction can therefore remain
-              highly
-              confident.</p>
-          </article>
-          <article class="fact">
-            <h3>Morphology or context</h3>
-            <p>Animal-centred saliency suggests visual similarity between classes. Background-heavy saliency suggests
-              possible contextual shortcuts.</p>
-          </article>
-          <article class="fact">
-            <h3>Fixed target</h3>
-            <p>Confidence changes under perturbation are measured for the original saliency target, even when the
-              predicted label changes.</p>
-          </article>
-          <article class="fact">
-            <h3>Cross-method evidence</h3>
-            <p>Agreement between methods raises the priority of a case. Independent perturbation and sanity checks
-              then
-              determine whether the shared pattern controls the score.</p>
-          </article>
-        </div>
-
         <figure>
           <img src="assets/xai-report/incorrect-attributions.png"
             alt="Misclassified animals displayed with predicted labels, true labels and attribution maps."
@@ -1530,64 +1616,6 @@
             confidence and attribution target together.</figcaption>
         </figure>
 
-        <h3 class="subsection-title">Contrastive error audit</h3>
-        <div class="prose">
-          <p>The original error grid targets only the class selected by the network. The contrastive audit fixes two
-            targets on the same image: the original wrong prediction and the ground-truth class. It then measures
-            whether controlled interventions weaken the wrong class relative to the true class.</p>
-        </div>
-
-        <div class="formula" role="math" aria-label="m of x equals z wrong of x minus z true of x">
-          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-            <mrow>
-              <mi>m</mi>
-              <mo>(</mo>
-              <mi>x</mi>
-              <mo>)</mo>
-              <mo>=</mo>
-              <msub>
-                <mi>z</mi>
-                <mtext>wrong</mtext>
-              </msub>
-              <mo>(</mo>
-              <mi>x</mi>
-              <mo>)</mo>
-              <mo>−</mo>
-              <msub>
-                <mi>z</mi>
-                <mtext>true</mtext>
-              </msub>
-              <mo>(</mo>
-              <mi>x</mi>
-              <mo>)</mo>
-            </mrow>
-          </math>
-        </div>
-
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Target contrast</h3>
-            <p>Grad-CAM and Integrated Gradients are computed twice on each error: once for the fixed wrong class and
-              once for the true class. Similar maps for different targets indicate weak class discrimination.</p>
-          </article>
-          <article class="fact">
-            <h3>Decision margin</h3>
-            <p>The original error has <code>m(x) &gt; 0</code>. A positive margin reduction after perturbation means
-              the
-              intervention made the true class more competitive.</p>
-          </article>
-          <article class="fact">
-            <h3>Deletion faithfulness</h3>
-            <p>Pixels ranked by each target map are progressively replaced with a blurred baseline. A faithful
-              wrong-target map should produce a substantial fall in the wrong-class score.</p>
-          </article>
-          <article class="fact">
-            <h3>Semantic comparator</h3>
-            <p>The CBM decomposes its own linear wrong-versus-true margin into concept contributions. This explains
-              the
-              CBM pathway and is not presented as causal evidence for the separate ResNet.</p>
-          </article>
-        </div>
 
         <div class="figure-grid">
           <figure>
@@ -1607,6 +1635,62 @@
           </figure>
         </div>
 
+        <div class="target-reading-panel">
+          <div class="target-reading-header">
+            <p class="eyebrow">Misclassification reading</p>
+            <h3>Wrong target versus true target</h3>
+            <p>
+              In Figures 15a and 15b, each row shows the same image explained twice.
+              The wrong-target map explains the class actually predicted by the model.
+              The true-target map explains the ground-truth class.
+            </p>
+          </div>
+
+          <div class="target-pattern-grid">
+            <article class="target-pattern">
+              <span class="pattern-label">Pattern 1</span>
+              <h4>Wrong map on background, true map on animal</h4>
+              <p>
+                The predicted class is supported by contextual evidence. This is the
+                clearest shortcut pattern: the model finds support for the wrong class
+                outside the animal.
+              </p>
+            </article>
+
+            <article class="target-pattern">
+              <span class="pattern-label">Pattern 2</span>
+              <h4>Wrong map on animal, true map on animal</h4>
+              <p>
+                Both classes compete on similar object evidence. The error is more
+                consistent with morphology, pose, texture or visually similar body
+                structure.
+              </p>
+            </article>
+
+            <article class="target-pattern target-pattern--critical">
+              <span class="pattern-label">Pattern 3</span>
+              <h4>Wrong map on animal, true map on background</h4>
+              <p>
+                The model sees the animal, but the animal features activate the wrong
+                class more strongly than the true class. The heatmap can look plausible
+                while supporting a false decision.
+              </p>
+            </article>
+          </div>
+
+          <div class="target-reading-warning">
+            <strong>A saliency map can be faithful to a false prediction.</strong>
+            <p>
+              A heatmap centered on the animal is not automatically a correct
+              explanation. It may faithfully describe what increases the wrong class
+              score. This separates visual plausibility from faithfulness and from
+              ground-truth alignment.
+            </p>
+          </div>
+        </div>
+
+
+
         <figure>
           <img src="assets/xai-report/error-perturbation-margins.png"
             alt="Wrong-class and true-class probabilities and their logit margin before and after background perturbations."
@@ -1616,7 +1700,7 @@
           </figcaption>
         </figure>
 
-        <div class="figure-grid">
+        <div>
           <figure>
             <img src="assets/xai-report/error-deletion-curves.png"
               alt="Deletion curves comparing wrong-class and true-class probabilities as salient pixels are removed."
@@ -1624,35 +1708,15 @@
             <figcaption><strong>Figure 15d</strong> — Deletion tests whether highlighted pixels actually control the
               corresponding score rather than merely producing a plausible visualization.</figcaption>
           </figure>
-          <figure>
-            <img src="assets/xai-report/error-cbm-concepts.png"
-              alt="Concept bottleneck contributions to the wrong-versus-true class margin on baseline errors."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 15e</strong> — Positive bars support the fixed wrong class in the CBM; negative
-              bars support the true class. This is a parallel semantic diagnosis.</figcaption>
-          </figure>
-        </div>
 
-        <div class="note">
-          <strong>Current audit snapshot: two selected errors</strong>
-          <p>All three background interventions changed the top-1 prediction in both examples, but none corrected the
-            image to its true class. Background replacement produced the largest mean reduction of the fixed
-            wrong-versus-true margin (<code>0.638</code>). This supports contextual sensitivity, but not successful
-            recovery of the correct decision.</p>
-          <p>For <code>wolf → antelope</code>, replacement reduced the margin from <code>+0.691</code> to
-            <code>+0.119</code> and the model moved to <code>walrus</code>. For
-            <code>polar bear → tiger</code>, the margin crossed zero from <code>+0.509</code> to
-            <code>−0.194</code>, so polar bear outranked tiger, yet <code>walrus</code> remained the global top-1
-            class.
-            Removing the top 20% wrong-target pixels reduced the margin by about <code>0.36</code> on average for both
-            Grad-CAM and Integrated Gradients.
-          </p>
-          <p>The original wrong-versus-true map overlap was lower for Grad-CAM
-            (<code>IoU 0.203</code>) than for Integrated Gradients (<code>IoU 0.420</code>), while the corresponding
-            mean rank correlations were <code>0.108</code> and <code>0.733</code>. In these cases, Integrated
-            Gradients
-            assigned more similar pixel rankings to competing targets. The sample is deliberately small and serves as
-            an error-level case study, not a test-set estimate.</p>
+
+          <div class="note">
+            <strong>Interpretability limit exposed by errors</strong>
+            <p>The failure is not only that saliency maps may move to the background. A deeper failure is that they may
+              faithfully explain a false model decision. A wrong-target map can be faithful to the model score and still
+              be semantically misleading because it assigns animal evidence to the wrong class.</p>
+            <p>For this reason, visual inspection is insufficient. </p>
+          </div>
         </div>
     </section>
 
@@ -1722,6 +1786,15 @@
             alt="Diagram of an image-to-concept-to-class Concept Bottleneck Model." loading="lazy" decoding="async">
           <figcaption><strong>Figure 20</strong> &mdash; A CBM replaces the direct black-box path with an
             image-to-concepts-to-prediction pipeline.
+          </figcaption>
+        </figure>
+
+        <figure>
+          <img src="assets/xai-report/cbm-implementation-structure.png"
+            alt="Detailed Concept Bottleneck Model implementation structure and supervised training flow."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 20a</strong> &mdash; The same CBM schema highlights joint supervision,
+            concept loss, task loss and the possibility of concept-level intervention.
           </figcaption>
         </figure>
 
