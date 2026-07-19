@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 
 <head>
@@ -220,6 +220,83 @@
     .subsection-title {
       margin: 52px 0 14px;
       font-size: 1.24rem;
+    }
+
+    .section-disclosure {
+      width: 100%;
+    }
+
+    .section-disclosure>summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      padding: 30px 0;
+      cursor: pointer;
+      list-style: none;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-disclosure>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .section-disclosure-title {
+      display: block;
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 760;
+      line-height: 1.35;
+      color: var(--ink);
+    }
+
+    .section-disclosure-meta {
+      display: block;
+      max-width: 76ch;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .98rem;
+      line-height: 1.6;
+    }
+
+    .section-disclosure-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 148px;
+      justify-content: center;
+      padding: 10px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: .78rem;
+      font-weight: 720;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .section-disclosure-action::before {
+      content: "+";
+      font-size: 1.08rem;
+      line-height: 1;
+    }
+
+    .section-disclosure-action::after {
+      content: "Open";
+    }
+
+    .section-disclosure[open] .section-disclosure-action::before {
+      content: "−";
+    }
+
+    .section-disclosure[open] .section-disclosure-action::after {
+      content: "Close";
+    }
+
+    .section-disclosure-body {
+      padding: 34px 0 6px;
     }
 
     p {
@@ -830,6 +907,14 @@
         min-width: 680px;
       }
 
+      .section-disclosure>summary {
+        grid-template-columns: 1fr;
+      }
+
+      .section-disclosure-action {
+        width: fit-content;
+      }
+
       .interactive-link {
         align-items: flex-start;
         flex-direction: column;
@@ -872,6 +957,8 @@
       <a href="#reliability">Q2 &middot; Reliability</a>
       <a href="#concepts">Q3 &middot; Representation</a>
       <a href="#bottleneck">Q4 &middot; Mediation</a>
+      <a href="#evidence-summary">Evidence</a>
+      <a href="#limitations">Limits</a>
       <a href="#conclusion">Conclusion</a>
     </div>
   </nav>
@@ -923,14 +1010,10 @@
           <li><strong>Concepts</strong><span>Probe or mediate the decision semantically.</span></li>
           <li><strong>Conclusion</strong><span>Combine all evidence conservatively.</span></li>
         </ol>
-
-        <div class="note">
-          <strong>Working principle</strong>
-          <p>These questions are complementary. A local heatmap cannot replace concept analysis, and concept
-            sensitivity cannot replace a spatial explanation.</p>
-        </div>
-      </div>
     </section>
+
+
+
 
     <section id="model" class="report-section" aria-labelledby="model-title">
       <div class="section-heading">
@@ -940,79 +1023,58 @@
         <div class="prose">
           <p class="prose-intro">The explained model is a standard ResNet50 adapted to the animal classes available in
             the AwA2 manifest.</p>
-          <p>We normally start from an ImageNet-pretrained ResNet50 and adapt it to the animal classes in our dataset.
+          <p>We start from an ImageNet-pretrained ResNet50 and adapt it to the animal classes in our dataset.
             This transfer-learning setup preserves broadly useful visual features while specialising the model for our
-            classification task. We can also rerun the training without ImageNet weights when we want a controlled
-            comparison with an unpretrained initialization.</p>
+            classification task. </p>
         </div>
-
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Input tensor</h3>
-            <p>RGB images are resized and cropped to <code>224 × 224</code>, converted to a
-              <code>3 × 224 × 224</code>
-              tensor and normalized with ImageNet statistics.</p>
-          </article>
-          <article class="fact">
-            <h3>Residual backbone</h3>
-            <p>The canonical bottleneck architecture uses skip connections and progressive downsampling. The last
-              convolutional representation is approximately <code>2048 × 7 × 7</code>.</p>
-          </article>
-          <article class="fact">
-            <h3>Objective</h3>
-            <p><code>CrossEntropyLoss</code> compares class logits with the ground-truth label. AdamW updates trainable
-              parameters with weight decay.</p>
-            <div class="formula formula--compact" role="math"
-              aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
-              <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-                <mrow>
-                  <mi>L</mi>
-                  <mo>=</mo>
-                  <mo>−</mo>
-                  <mi mathvariant="normal">log</mi>
-                  <mo>(</mo>
-                  <mfrac>
-                    <mrow>
-                      <mi mathvariant="normal">exp</mi>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>z</mi>
-                        <mi>y</mi>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                    <mrow>
-                      <msub>
-                        <mo>∑</mo>
-                        <mi>j</mi>
-                      </msub>
-                      <mi mathvariant="normal">exp</mi>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>z</mi>
-                        <mi>j</mi>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mfrac>
-                  <mo>)</mo>
-                </mrow>
-              </math>
-            </div>
-          </article>
-          <article class="fact">
-            <h3>Evaluation policy</h3>
-            <p>Training uses stochastic augmentation. Validation and test images use deterministic resize and centre
-              crop so reported performance is reproducible.</p>
-          </article>
-        </div>
-
         <figure>
           <img src="resnet50_visual.svg" alt="Schematic representation of the ResNet50 architecture." decoding="async">
           <figcaption><strong>Figure 01</strong> — ResNet50 overview: convolutional stem, residual stages, global
             average
             pooling and final class logits.</figcaption>
         </figure>
+        <article class="fact">
+          <h3>Objective</h3>
+          <p><code>CrossEntropyLoss</code> compares class logits with the ground-truth label. AdamW updates trainable
+            parameters with weight decay.</p>
+          <div class="formula formula--compact" role="math"
+            aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+              <mrow>
+                <mi>L</mi>
+                <mo>=</mo>
+                <mo>−</mo>
+                <mi mathvariant="normal">log</mi>
+                <mo>(</mo>
+                <mfrac>
+                  <mrow>
+                    <mi mathvariant="normal">exp</mi>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>z</mi>
+                      <mi>y</mi>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                  <mrow>
+                    <msub>
+                      <mo>∑</mo>
+                      <mi>j</mi>
+                    </msub>
+                    <mi mathvariant="normal">exp</mi>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>z</mi>
+                      <mi>j</mi>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mfrac>
+                <mo>)</mo>
+              </mrow>
+            </math>
+          </div>
+        </article>
         <figure>
           <img src="assets/xai-report/resnet-forward.png"
             alt="A real image and its representation at successive stages of ResNet50." loading="lazy" decoding="async">
@@ -1020,9 +1082,73 @@
             resolution
             visible.</figcaption>
         </figure>
+
+
+
+        <details class="section-disclosure">
+          <summary>
+            <span>
+              <span class="section-disclosure-title">Experimental setup and reproducibility</span>
+              <span class="section-disclosure-meta">Dataset size, split policy, training hyperparameters,
+                preprocessing and CBM configuration used to contextualize the reported scores.</span>
+            </span>
+            <span class="section-disclosure-action" aria-hidden="true"></span>
+          </summary>
+
+          <div class="section-disclosure-body">
+            <div class="data-strip" aria-label="Dataset split summary">
+              <div class="data-point"><strong>3974</strong><span>images in the maintained subset</span></div>
+              <div class="data-point"><strong>20</strong><span>AwA2 animal classes</span></div>
+              <div class="data-point"><strong>2782 / 596 / 596</strong><span>train / validation / test images</span>
+              </div>
+            </div>
+
+            <div class="comparison-wrap" role="region" aria-label="Training configuration" tabindex="0">
+              <table class="comparison">
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <th>Configuration used in the maintained run</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Dataset interface</td>
+                    <td>Manifest-based AwA2 subset, 20 visible classes, class counts between 174 and 200 images.</td>
+                  </tr>
+                  <tr>
+                    <td>Baseline classifier</td>
+                    <td>ImageNet-pretrained ResNet50, final classifier replaced for the manifest classes, trainable
+                      modules <code>layer4</code> and <code>fc</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Baseline optimization</td>
+                    <td><code>CrossEntropyLoss</code>, AdamW, learning rate <code>1e-4</code>, weight decay
+                      <code>1e-4</code>, batch size <code>32</code>, maximum <code>5</code> epochs, early stopping
+                      patience <code>3</code>, seed <code>42</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Preprocessing</td>
+                    <td>Training uses <code>RandomResizedCrop(224, scale=(0.75, 1.0))</code>,
+                      <code>RandomHorizontalFlip(0.5)</code> and ImageNet normalization. Validation and test use
+                      <code>Resize(256)</code>, <code>CenterCrop(224)</code> and ImageNet normalization.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>CBM training</td>
+                    <td>ResNet50 backbone initialized from the AwA2 baseline checkpoint, 20 selected AwA2 concepts,
+                      dropout <code>0.15</code>, batch size <code>16</code>, AdamW with learning rate and weight decay
+                      <code>1e-4</code>, 5 epochs, concept and class loss weights both <code>1.0</code>.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
       </div>
     </section>
-
 
     <section id="attribution" class="report-section" aria-labelledby="attribution-title">
       <div class="section-heading">
@@ -1039,7 +1165,8 @@
 
         <div class="note">
           <strong>Scope of Question 1</strong>
-          <p>A spatial map answers where attribution is concentrated. Stability, necessity and sufficiency are evaluated
+          <p>A spatial map answers where attribution is concentrated. Stability, necessity and sufficiency are
+            evaluated
             later through perturbation, deletion and insertion tests.</p>
         </div>
 
@@ -1109,6 +1236,20 @@
             metric is interpreted.</figcaption>
         </figure>
 
+        <div class="note">
+          <strong>Quantified walrus-attractor hypothesis</strong>
+          <p>The qualitative pattern is now tied to the available stress-test CSV rather than left as a purely visual
+            impression. Across the unique perturbed examples in Figure 06, <code>5 / 12</code> prediction transitions
+            ended in <code>walrus</code>. Under background replacement alone, <code>3 / 4</code> examples ended in
+            <code>walrus</code>. In the separate selected-error audit, <code>4 / 6</code> perturbed cases also moved
+            to
+            <code>walrus</code>, including <code>2 / 2</code> under background replacement.
+          </p>
+          <p>This is still not a full test-set prevalence estimate. It is a quantified case-study hypothesis: the
+            repeated appearance of <code>walrus</code> under textured background interventions is strong enough to
+            motivate a systematic scan.</p>
+        </div>
+
         <div class="figure-grid">
           <figure>
             <img src="assets/xai-report/stress-gradcam.png" alt="Grad-CAM maps under background perturbations."
@@ -1126,11 +1267,13 @@
         </div>
 
         <div class="prose">
-          <p><strong>Why the error maps are separate.</strong> Figures 07 and 08 are stability checks: they ask whether
+          <p><strong>Why the error maps are separate.</strong> Figures 07 and 08 are stability checks: they ask
+            whether
             a
             fixed target explanation changes when only the background is perturbed. A misclassification is a different
             diagnostic. When the network is wrong, the saliency map should be computed for the class actually selected
-            by the model and then compared with the saliency map for the ground-truth class. That target-specific error
+            by the model and then compared with the saliency map for the ground-truth class. That target-specific
+            error
             audit is shown in the <a href="#error-analysis">Error analysis</a> section.</p>
         </div>
 
@@ -1168,7 +1311,8 @@
           </article>
           <article class="metric">
             <h3>Sanity controls</h3>
-            <p>Does the map agree with occlusion evidence and change when relevant model parameters are randomized?</p>
+            <p>Does the map agree with occlusion evidence and change when relevant model parameters are randomized?
+            </p>
           </article>
 
         </div>
@@ -1198,12 +1342,12 @@
           </figure>
         </div>
 
-        <div class="figure-grid">
+        <div>
           <figure>
-            <img src="assets/xai-report/case-summary.png"
+            <img src=" assets/xai-report/case-summary.png"
               alt="Case study linking a prediction transition, confidence change and saliency stability." loading="lazy"
               decoding="async">
-            <figcaption><strong>Figure 13</strong> — A case study links prediction behaviour with explanation
+            <figcaption><strong>Figure 12</strong> — A case study links prediction behaviour with explanation
               behaviour.
             </figcaption>
           </figure>
@@ -1215,8 +1359,10 @@
         <div class="prose">
           <p class="prose-intro">Misclassifications are useful because they force the explanation to account for a
             decision that is visibly incorrect.</p>
-          <p>An attribution for the predicted class asks which evidence increased the score the network actually chose.
-            An attribution for the true class asks a different question: which regions would need to support the correct
+          <p>An attribution for the predicted class asks which evidence increased the score the network actually
+            chose.
+            An attribution for the true class asks a different question: which regions would need to support the
+            correct
             class more strongly?</p>
         </div>
 
@@ -1239,7 +1385,8 @@
           </article>
           <article class="fact">
             <h3>Cross-method evidence</h3>
-            <p>Agreement between methods raises the priority of a case. Independent perturbation and sanity checks then
+            <p>Agreement between methods raises the priority of a case. Independent perturbation and sanity checks
+              then
               determine whether the shared pattern controls the score.</p>
           </article>
         </div>
@@ -1294,7 +1441,8 @@
           </article>
           <article class="fact">
             <h3>Decision margin</h3>
-            <p>The original error has <code>m(x) &gt; 0</code>. A positive margin reduction after perturbation means the
+            <p>The original error has <code>m(x) &gt; 0</code>. A positive margin reduction after perturbation means
+              the
               intervention made the true class more competitive.</p>
           </article>
           <article class="fact">
@@ -1304,7 +1452,8 @@
           </article>
           <article class="fact">
             <h3>Semantic comparator</h3>
-            <p>The CBM decomposes its own linear wrong-versus-true margin into concept contributions. This explains the
+            <p>The CBM decomposes its own linear wrong-versus-true margin into concept contributions. This explains
+              the
               CBM pathway and is not presented as causal evidence for the separate ResNet.</p>
           </article>
         </div>
@@ -1369,18 +1518,11 @@
           </p>
           <p>The original wrong-versus-true map overlap was lower for Grad-CAM
             (<code>IoU 0.203</code>) than for Integrated Gradients (<code>IoU 0.420</code>), while the corresponding
-            mean rank correlations were <code>0.108</code> and <code>0.733</code>. In these cases, Integrated Gradients
+            mean rank correlations were <code>0.108</code> and <code>0.733</code>. In these cases, Integrated
+            Gradients
             assigned more similar pixel rankings to competing targets. The sample is deliberately small and serves as
             an error-level case study, not a test-set estimate.</p>
         </div>
-
-        <div class="warning">
-          <strong>Decision rule</strong>
-          <p>A background-supported error requires aligned evidence: the intervention should reduce the fixed wrong
-            score or margin, the wrong-target map should move, and deletion should confirm that the highlighted region
-            controls the score. A heatmap alone does not establish this conclusion.</p>
-        </div>
-      </div>
     </section>
 
     <section id="concepts" class="report-section" aria-labelledby="concepts-title">
@@ -1391,8 +1533,6 @@
         <div class="prose">
           <p class="prose-intro">AwA2 attributes let the analysis move beyond unnamed pixels and ask whether the
             ResNet50 representation contains human-readable semantic structure.</p>
-          <p>This section reports the concept-level audit and its validated outputs. The methodological details are kept
-            with the clickable TCAV figure.</p>
         </div>
 
         <figure>
@@ -1433,11 +1573,6 @@
           </figure>
         </div>
 
-        <div class="warning">
-          <strong>Interpretation boundary</strong>
-          <p>Read the TCAV outputs as representation-level evidence. They do not mark pixels in an individual image and
-            do not establish a causal mechanism by themselves.</p>
-        </div>
       </div>
     </section>
 
@@ -1449,8 +1584,6 @@
         <div class="prose">
           <p class="prose-intro">The bottleneck experiment asks whether prediction can be mediated by named attributes
             instead of explained only after the fact.</p>
-          <p>This section reports the CBM results and interventions. The architectural details are kept with the
-            clickable CBM figures.</p>
         </div>
 
         <figure>
@@ -1477,7 +1610,8 @@
           </article>
           <article class="fact">
             <h3>Concept accuracy</h3>
-            <p>Binary concept accuracy is approximately <code>0.754</code>. Concept quality varies substantially across
+            <p>Binary concept accuracy is approximately <code>0.754</code>. Concept quality varies substantially
+              across
               attributes.</p>
           </article>
           <article class="fact">
@@ -1487,7 +1621,8 @@
           <article class="fact">
             <h3>Model boundary</h3>
             <p>CBM concept contributions explain the CBM pathway: ResNet50 backbone, concept head and class head. They
-              are a semantic comparator, not an explanation of the separate end-to-end ResNet50 baseline used for local
+              are a semantic comparator, not an explanation of the separate end-to-end ResNet50 baseline used for
+              local
               attribution maps.</p>
           </article>
         </div>
@@ -1516,13 +1651,126 @@
       </div>
     </section>
 
+    <section id="evidence-summary" class="report-section" aria-labelledby="evidence-summary-title">
+      <div class="section-heading">
+        <h2 id="evidence-summary-title">Evidence across methods</h2>
+      </div>
+      <div class="section-content">
+        <div class="prose">
+        </div>
+
+        <div class="comparison-wrap" role="region" aria-label="Aggregated method comparison" tabindex="0">
+          <table class="comparison">
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Evidence type</th>
+                <th>Main reported numbers</th>
+                <th>Conservative reading</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Grad-CAM</td>
+                <td>Local, activation-level saliency</td>
+                <td>Background-swap stress: mean top-20 IoU <code>0.503</code>, mean Spearman <code>0.595</code>.
+                  Advanced audit: deletion AUC <code>0.136</code>, insertion AUC <code>0.383</code>, animal-saliency
+                  ratio <code>0.774</code>.</td>
+                <td>Often spatially coherent, but constrained by the late <code>7 x 7</code> representation and not
+                  sufficient as causal proof.</td>
+              </tr>
+              <tr>
+                <td>Integrated Gradients</td>
+                <td>Local, input-level attribution</td>
+                <td>Background-swap stress: mean top-20 IoU <code>0.338</code>, mean Spearman <code>0.405</code>.
+                  Advanced audit: deletion AUC <code>0.085</code>, insertion AUC <code>0.269</code>. Blurred versus
+                  black baseline agreement: IoU <code>0.198</code>, Spearman <code>0.215</code>.</td>
+                <td>More pixel-level and more baseline-sensitive. It is mathematically principled, but the visual map
+                  can be noisy and difficult to interpret causally.</td>
+              </tr>
+              <tr>
+                <td>TCAV</td>
+                <td>Concept-level directional sensitivity</td>
+                <td><code>49</code> class-concept tests, <code>7</code> significant after held-out CAV validation,
+                  random-CAV controls and corrected significance. Examples include polar bear/flippers, humpback
+                  whale/flippers, antelope/hooves and dolphin/flippers.</td>
+                <td>Useful for semantic probing of the representation. A significant concept direction is not proof
+                  that the concept is visually pure or causally necessary.</td>
+              </tr>
+              <tr>
+                <td>Concept Bottleneck Model</td>
+                <td>Concept-mediated prediction</td>
+                <td>CBM test accuracy <code>0.799</code>, direct ResNet baseline accuracy <code>0.857</code>, concept
+                  binary accuracy <code>0.754</code>, CBM/baseline agreement <code>0.728</code> on
+                  <code>596</code> evaluated test images.
+                </td>
+                <td>The bottleneck creates an inspectable semantic interface, but it trades off accuracy and inherits
+                  limitations from class-level concept supervision.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <strong>One-line verdict</strong>
+          <p> The report shows that local
+            heatmaps, perturbation metrics, error margins and concept-level checks expose different failure modes of
+            the same visual classifier.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limitations" class="report-section" aria-labelledby="limitations-title">
+      <div class="section-heading">
+        <h2 id="limitations-title">Limitations and future work</h2>
+      </div>
+      <div class="section-content">
+        <div class="prose">
+          <p class="prose-intro">The report is intentionally conservative: every result is interpreted only at the
+            level supported by the experiment that produced it.</p>
+        </div>
+
+        <div class="fact-grid">
+          <article class="fact">
+            <h3>Dataset scope</h3>
+            <p>The maintained experiments use a 20-class AwA2 subset. Extending the same audit to all AwA2 classes
+              would test whether the findings generalize beyond the current subset.</p>
+          </article>
+          <article class="fact">
+            <h3>Mask quality</h3>
+            <p>AwA2 does not provide perfect image-level animal masks in this pipeline. Background interventions rely
+              on approximate separation, so the stress test should be read as a diagnostic rather than as a perfect
+              causal isolation of the animal.</p>
+          </article>
+          <article class="fact">
+            <h3>Walrus hypothesis</h3>
+            <p>The observed walrus pattern is now quantified on the selected panels, but a rigorous claim requires a
+              full test-set scan reporting how often each perturbation changes the top-1 class to <code>walrus</code>
+              and which image properties predict that transition.</p>
+          </article>
+          <article class="fact">
+            <h3>Concept supervision</h3>
+            <p>AwA2 attributes are class-level. A concept may be assigned to every image of one class even when the
+              attribute is not visible in a specific photo, limiting image-level causal interpretation.</p>
+          </article>
+        </div>
+
+        <div class="warning">
+          <strong>Next rigorous experiment</strong>
+          <p>The most valuable extension is a full-transition audit: run every background perturbation on the full
+            test
+            split, count every original-to-perturbed class transition, and report transition rates with confidence
+            intervals. That would turn the walrus-attractor hypothesis from a case-study observation into a dataset
+            statistic.</p>
+        </div>
+      </div>
+    </section>
+
     <section id="conclusion" class="report-section" aria-labelledby="conclusion-title">
       <div class="section-heading">
         <h2 id="conclusion-title">Conclusion</h2>
       </div>
       <div class="section-content">
-        <p class="closing-statement">The project becomes coherent when every method answers one explicit
-          question and no result is asked to support a stronger claim than it can justify.</p>
 
         <div class="comparison-wrap" role="region" aria-label="Answers to the four research questions" tabindex="0">
           <table class="comparison">
@@ -1556,18 +1804,27 @@
           </table>
         </div>
 
-        <div class="prose">
-          <p>The final interpretation combines prediction behaviour, spatial attribution, controlled interventions,
-            quantitative metrics and concept evidence. Agreement strengthens a hypothesis; disagreement identifies a
-            limitation that should remain visible.</p>
+        <div class="warning">
           <p>The strongest defensible conclusion remains conservative: saliency maps are useful diagnostic tools, but
             they should not be presented alone as faithful explanations of a deep visual classifier.</p>
         </div>
+      </div>
+    </section>
 
-        <div class="warning">
-          <strong>Final caution</strong>
-          <p>A heatmap is not proof. It becomes more credible only when visual inspection, perturbation stability,
-            faithfulness, class specificity and concept evidence tell a consistent story.</p>
+    <section id="references" class="report-section" aria-labelledby="references-title">
+      <div class="section-heading">
+        <h2 id="references-title">References</h2>
+      </div>
+      <div class="section-content">
+        <div class="prose">
+          <ol>
+            <li>Selvaraju, R. R. et al. (2017). <a href="https://arxiv.org/abs/1610.02391">Grad-CAM: Visual
+                Explanations from Deep Networks via Gradient-based Localization</a>.</li>
+            <li>Kim, B. et al. (2018). <a href="https://proceedings.mlr.press/v80/kim18d.html">Interpretability
+                Beyond Feature Attribution: Quantitative Testing with Concept Activation Vectors</a>.</li>
+            <li>Koh, P. W. et al. (2020). <a href="https://proceedings.mlr.press/v119/koh20a.html">Concept Bottleneck
+                Models</a>.</li>
+          </ol>
         </div>
       </div>
     </section>
