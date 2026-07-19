@@ -233,6 +233,7 @@ def save_saliency_comparison_grid(
     perturbed_batches: dict[str, torch.Tensor],
     perturbed_predictions: dict[str, torch.Tensor],
     saliency_maps: dict[str, dict[str, torch.Tensor]],
+    predicted_target_saliency_maps: dict[str, dict[str, torch.Tensor]],
     true_names: list[str],
     original_prediction_names: list[str],
     idx_to_class: dict[int, str],
@@ -247,9 +248,11 @@ def save_saliency_comparison_grid(
         preferred_method = next(iter(saliency_maps))
 
     method_maps = saliency_maps[preferred_method]
+    predicted_target_method_maps = predicted_target_saliency_maps.get(preferred_method, {})
     perturbation_names = list(perturbed_batches)
     row_count = images.size(0)
-    col_count = 2 + len(perturbation_names)
+    has_background_swap_predicted_target = "background_swap" in predicted_target_method_maps
+    col_count = 2 + len(perturbation_names) + int(has_background_swap_predicted_target)
 
     original_denorm = denormalize_batch(images.detach().cpu()).clamp(0.0, 1.0)
     perturbed_denorm = {
@@ -292,6 +295,23 @@ def save_saliency_comparison_grid(
                 f"pred after:\n{original_prediction_names[row]} -> {perturbed_name}",
             )
             axes[row, col].set_title(f"{preferred_method}: {perturbation_name}")
+            axes[row, col].axis("off")
+
+        if has_background_swap_predicted_target:
+            col = 2 + len(perturbation_names)
+            perturbed_np = perturbed_denorm["background_swap"][row].permute(1, 2, 0).numpy()
+            perturbed_name = perturbed_prediction_names["background_swap"][row]
+            predicted_target_map = (
+                predicted_target_method_maps["background_swap"][row, 0].detach().cpu().numpy()
+            )
+            axes[row, col].imshow(overlay_heatmap(perturbed_np, predicted_target_map))
+            draw_panel_label(
+                axes[row, col],
+                f"saliency target:\n{perturbed_name}",
+            )
+            axes[row, col].set_title(
+                f"{preferred_method}: background_swap\npredicted target"
+            )
             axes[row, col].axis("off")
 
     fig.tight_layout()
@@ -385,6 +405,7 @@ def main() -> None:
     )
 
     saliency_maps: dict[str, dict[str, torch.Tensor]] = {}
+    predicted_target_saliency_maps: dict[str, dict[str, torch.Tensor]] = {}
     for xai_method in args.xai_methods:
         LOGGER.info("Computing %s saliency maps", xai_method)
         method_maps: dict[str, torch.Tensor] = {
@@ -408,6 +429,22 @@ def main() -> None:
             ).detach().cpu()
         saliency_maps[xai_method] = method_maps
 
+        method_predicted_target_maps: dict[str, torch.Tensor] = {}
+        if "background_swap" in perturbed_batches:
+            LOGGER.info(
+                "Computing %s saliency maps for background_swap predicted targets",
+                xai_method,
+            )
+            method_predicted_target_maps["background_swap"] = compute_saliency_maps(
+                model=model,
+                images=perturbed_batches["background_swap"],
+                targets=perturbed_predictions["background_swap"],
+                method=xai_method,
+                ig_steps=args.ig_steps,
+                ig_internal_batch_size=args.ig_internal_batch_size,
+            ).detach().cpu()
+        predicted_target_saliency_maps[xai_method] = method_predicted_target_maps
+
     rows = build_metric_rows(
         true_names=true_names,
         target_names=target_names,
@@ -428,6 +465,7 @@ def main() -> None:
         perturbed_batches=perturbed_batches,
         perturbed_predictions=perturbed_predictions,
         saliency_maps=saliency_maps,
+        predicted_target_saliency_maps=predicted_target_saliency_maps,
         true_names=true_names,
         original_prediction_names=original_prediction_names,
         idx_to_class=idx_to_class,
@@ -444,6 +482,7 @@ def main() -> None:
             perturbed_batches=perturbed_batches,
             perturbed_predictions=perturbed_predictions,
             saliency_maps=saliency_maps,
+            predicted_target_saliency_maps=predicted_target_saliency_maps,
             true_names=true_names,
             original_prediction_names=original_prediction_names,
             idx_to_class=idx_to_class,
