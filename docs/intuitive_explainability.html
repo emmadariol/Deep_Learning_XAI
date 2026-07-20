@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
     content="An evidence-based audit of local and concept-level explanations for a ResNet50 animal classifier trained on AwA2.">
-  <title>Auditing explanations for a visual classifier</title>
+  <title>What Does a Model Use to Explain Its Decisions?</title>
   <style>
     :root {
       --ink: #1e292d;
@@ -288,7 +288,7 @@
     }
 
     .section-disclosure[open] .section-disclosure-action::before {
-      content: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢";
+      content: "−";
     }
 
     .section-disclosure[open] .section-disclosure-action::after {
@@ -465,6 +465,113 @@
     .warning p {
       margin: 0;
       font-size: .93rem;
+    }
+
+    .method-brief {
+      margin: 38px 0 0;
+      padding-top: 26px;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .method-brief-header {
+      max-width: 74ch;
+      margin-bottom: 22px;
+    }
+
+    .method-brief-eyebrow {
+      margin: 0 0 6px;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .method-brief-header h3 {
+      margin: 0 0 8px;
+      font-size: clamp(1.24rem, 1.8vw, 1.58rem);
+      line-height: 1.25;
+    }
+
+    .method-brief-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .96rem;
+    }
+
+    .method-lenses {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin: 22px 0 24px;
+    }
+
+    .method-lens {
+      padding: 18px 0 0;
+      border-top: 2px solid var(--accent);
+    }
+
+    .method-lens--design {
+      border-top-color: var(--warning);
+    }
+
+    .method-lens strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: .92rem;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .method-lens p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .93rem;
+    }
+
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .method-item {
+      min-height: 150px;
+      padding: 18px 18px 16px 0;
+      border-right: 1px solid var(--line);
+    }
+
+    .method-item:not(:first-child) {
+      padding-left: 18px;
+    }
+
+    .method-item:last-child {
+      border-right: 0;
+    }
+
+    .method-tag {
+      display: inline-block;
+      margin-bottom: 18px;
+      color: var(--accent);
+      font-size: .72rem;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .method-item h4 {
+      margin: 0 0 6px;
+      font-size: .98rem;
+      line-height: 1.25;
+    }
+
+    .method-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .86rem;
+      line-height: 1.48;
     }
 
     figure {
@@ -944,7 +1051,7 @@
     .interactive-link::after {
       flex: 0 0 auto;
       color: var(--accent);
-      content: "Open interactive view ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢";
+      content: "Open interactive view →";
       font-size: .82rem;
       font-weight: 700;
       white-space: nowrap;
@@ -1062,6 +1169,23 @@
         grid-template-columns: 1fr;
       }
 
+      .method-lenses,
+      .method-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .method-item,
+      .method-item:not(:first-child) {
+        min-height: auto;
+        padding: 16px 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .method-item:last-child {
+        border-bottom: 0;
+      }
+
       .stress-card {
         flex-basis: min(100%, 92vw);
       }
@@ -1114,16 +1238,15 @@
   <header class="masthead">
     <div class="masthead-inner">
       <div class="hero-copy">
-        <h1>Auditing explanations for a visual classifier</h1>
-        <p class="lead">A heatmap can look persuasive without being reliable. This report tests whether local saliency
-          maps and concept-level explanations provide evidence that survives controlled checks.</p>
+        <h1>What Does a Model Use to Explain Its Decisions?</h1>
+        <p class="lead">From Pixels to Concepts: Understanding What a Model Looks At</p>
       </div>
       <div class="hero-art">
         <img src="assets/xai-report/Icona_sfondo.png" width="1254" height="1254"
           alt="False-colour saliency illustration of a deer." decoding="async" fetchpriority="high">
       </div>
-      <p class="hero-credits">Deep Learning Project ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· University of Trieste ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Alina Fogar, Emma Dariol, Elisabeth
-        Imbalzano ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· 22/07/2026</p>
+      <p class="hero-credits">Deep Learning Project · University of Trieste · Alina Fogar, Emma Dariol, Elisabeth
+        Imbalzano · 22/07/2026</p>
     </div>
   </header>
 
@@ -1178,16 +1301,51 @@
           </article>
         </div>
 
-        <ol class="pipeline" aria-label="Project analysis flow">
-          <li><strong>Image</strong><span>Load and normalize an AwA2 example.</span></li>
-          <li><strong>Prediction</strong><span>ResNet50 produces logits and probabilities.</span></li>
-          <li><strong>Location</strong><span>Grad-CAM and IG identify candidate evidence.</span></li>
-          <li><strong>Intervention</strong><span>Change the approximate background.</span></li>
-          <li><strong>Verification</strong><span>Measure prediction and explanation changes.</span></li>
-          <li><strong>Errors</strong><span>Compare the wrong and true target classes.</span></li>
-          <li><strong>Concepts</strong><span>Probe or mediate the decision semantically.</span></li>
-          <li><strong>Conclusion</strong><span>Combine all evidence conservatively.</span></li>
-        </ol>
+        <div class="method-brief" aria-label="Algorithms used in the report">
+          <div class="method-brief-header">
+            <p class="method-brief-eyebrow">Methods at a glance</p>
+            <h3>Two ways to make a prediction understandable</h3>
+            <p>The report combines post-hoc explanation methods, which inspect a trained ResNet50 after it predicts,
+              with an interpretable-by-design model, where concepts are built into the prediction path.</p>
+          </div>
+
+          <div class="method-lenses" aria-label="Post-hoc versus interpretable by design">
+            <div class="method-lens">
+              <strong>Post-hoc</strong>
+              <p>Grad-CAM, Integrated Gradients and TCAV do not change the classifier. They ask what evidence the
+                already-trained model appears to use, either in pixels, feature maps or concept directions.</p>
+            </div>
+            <div class="method-lens method-lens--design">
+              <strong>Interpretable by design</strong>
+              <p>The Concept Bottleneck Model changes the architecture: the class decision must pass through explicit
+                semantic variables before the final prediction is made.</p>
+            </div>
+          </div>
+
+          <div class="method-grid" aria-label="Explanation algorithms">
+            <article class="method-item">
+              <span class="method-tag">Spatial</span>
+              <h4>Grad-CAM</h4>
+              <p>Uses gradients on late convolutional maps to highlight broad image regions that support a class.</p>
+            </article>
+            <article class="method-item">
+              <span class="method-tag">Pixel path</span>
+              <h4>Integrated Gradients</h4>
+              <p>Accumulates input gradients from a baseline image to estimate pixel-level contribution.</p>
+            </article>
+            <article class="method-item">
+              <span class="method-tag">Concept probe</span>
+              <h4>TCAV</h4>
+              <p>Tests whether a class score is sensitive to directions representing human concepts in activation space.</p>
+            </article>
+            <article class="method-item">
+              <span class="method-tag">Concept model</span>
+              <h4>Concept Bottleneck</h4>
+              <p>Predicts named concepts first, then predicts the class from those concepts.</p>
+            </article>
+          </div>
+        </div>
+      </div>
     </section>
 
 
@@ -1221,7 +1379,7 @@
               <mrow>
                 <mi>L</mi>
                 <mo>=</mo>
-                <mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢</mo>
+                <mo>−</mo>
                 <mi mathvariant="normal">log</mi>
                 <mo>(</mo>
                 <mfrac>
@@ -1236,7 +1394,7 @@
                   </mrow>
                   <mrow>
                     <msub>
-                      <mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¹Ã…â€œ</mo>
+                      <mo>∑</mo>
                       <mi>j</mi>
                     </msub>
                     <mi mathvariant="normal">exp</mi>
@@ -1694,7 +1852,7 @@
             alt="Wrong-class and true-class probabilities and their logit margin before and after background perturbations."
             loading="lazy" decoding="async">
           <figcaption><strong>Figure 15c</strong> - Probabilities alone can move together; the fixed
-            <code>wrong ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ true</code> logit margin shows which class gained relative evidence.
+            <code>wrong − true</code> logit margin shows which class gained relative evidence.
           </figcaption>
         </figure>
 
@@ -1750,14 +1908,6 @@
               loading="lazy" decoding="async">
             <figcaption><strong>Figure 18</strong> &mdash; The class-by-concept matrix summarizes validated TCAV
               sensitivity, conditional on concept coverage and the random controls.</figcaption>
-          </figure>
-          <figure>
-            <img src="assets/xai-report/tcav-spurious-pairs.png"
-              alt="Audit chart comparing TCAV scores with AwA2 oracle concept values for concept-species pairs."
-              loading="lazy" decoding="async">
-            <figcaption><strong>Figure 19</strong> &mdash; This is not a correlation plot: it is a mismatch audit that
-              flags classes whose scores are sensitive to a concept direction despite low AwA2 support for that
-              attribute.</figcaption>
           </figure>
         </div>
 
@@ -2049,8 +2199,8 @@
   </main>
 
   <footer class="site-footer">
-    <div class="site-footer-inner">Deep Learning Project ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· University of Trieste ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Alina Fogar, Emma Dariol, Elisabeth
-      Imbalzano ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· 22/07/2026</div>
+    <div class="site-footer-inner">Deep Learning Project · University of Trieste · Alina Fogar, Emma Dariol, Elisabeth
+      Imbalzano · 22/07/2026</div>
   </footer>
 
   <div class="figure-lightbox" id="figure-lightbox" role="dialog" aria-modal="true"
@@ -2092,14 +2242,14 @@
         "title": "Figure 03 - Grad-CAM computation",
         "paragraphs": [
           "Grad-CAM generates a spatial map for a selected class by differentiating the raw target logit z_c, before softmax, with respect to the activation maps A^k of the final convolutional layer. The object being explained is therefore the class score itself, not the normalized probability after competition with all other classes.",
-          "The spatial gradients are globally averaged to obtain one scalar importance weight per feature map:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msubsup><mi>ÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±</mi><mi>k</mi><mi>c</mi></msubsup><mo>=</mo><mfrac><mn>1</mn><mi>Z</mi></mfrac><msub><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¹Ã…â€œ</mo><mi>i</mi></msub><msub><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¹Ã…â€œ</mo><mi>j</mi></msub><mfrac><mrow><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡</mo><msub><mi>z</mi><mi>c</mi></msub></mrow><mrow><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡</mo><msubsup><mi>A</mi><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow><mi>k</mi></msubsup></mrow></mfrac></mrow></math></span>The final map is the positive part of the weighted feature-map sum:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msubsup><mi>L</mi><mtext>Grad-CAM</mtext><mi>c</mi></msubsup><mo>=</mo><mi mathvariant=\"normal\">ReLU</mi><mo>(</mo><msub><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¹Ã…â€œ</mo><mi>k</mi></msub><msubsup><mi>ÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±</mi><mi>k</mi><mi>c</mi></msubsup><msup><mi>A</mi><mi>k</mi></msup><mo>)</mo></mrow></math></span>",
+          "The spatial gradients are globally averaged to obtain one scalar importance weight per feature map:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msubsup><mi>Î±</mi><mi>k</mi><mi>c</mi></msubsup><mo>=</mo><mfrac><mn>1</mn><mi>Z</mi></mfrac><msub><mo>∑</mo><mi>i</mi></msub><msub><mo>∑</mo><mi>j</mi></msub><mfrac><mrow><mo>∂</mo><msub><mi>z</mi><mi>c</mi></msub></mrow><mrow><mo>∂</mo><msubsup><mi>A</mi><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow><mi>k</mi></msubsup></mrow></mfrac></mrow></math></span>The final map is the positive part of the weighted feature-map sum:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msubsup><mi>L</mi><mtext>Grad-CAM</mtext><mi>c</mi></msubsup><mo>=</mo><mi mathvariant=\"normal\">ReLU</mi><mo>(</mo><msub><mo>∑</mo><mi>k</mi></msub><msubsup><mi>Î±</mi><mi>k</mi><mi>c</mi></msubsup><msup><mi>A</mi><mi>k</mi></msup><mo>)</mo></mrow></math></span>",
           "The structural limitation is inherited from the target layer. In ResNet50, the last convolutional representation is roughly 7 x 7, so the displayed heatmap is a bilinear upsampling of a coarse semantic map. Grad-CAM can reveal that the network relies on a spurious region, such as background water for ship images, but it cannot by itself distinguish causal evidence from a statistical artefact learned by the classifier."
         ]
       },
       "assets/xai-report/integrated-gradients-theory.png": {
         "title": "Figure 04 - Integrated Gradients path attribution",
         "paragraphs": [
-          "Integrated Gradients is an axiomatic input-attribution method. Instead of reading late activations, it integrates gradients along a straight path from a reference baseline to the actual input:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msub><mi>IG</mi><mi>i</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢</mo><msubsup><mi>x</mi><mi>i</mi><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â²</mo></msubsup><mo>)</mo><msubsup><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â«</mo><mn>0</mn><mn>1</mn></msubsup><mfrac><mrow><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡</mo><mi>F</mi><mo>(</mo><mi>x</mi><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â²</mo><mo>+</mo><mi>ÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±</mi><mo>(</mo><mi>x</mi><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢</mo><mi>x</mi><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â²</mo><mo>)</mo><mo>)</mo></mrow><mrow><mo>ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡</mo><msub><mi>x</mi><mi>i</mi></msub></mrow></mfrac><mi>d</mi><mi>ÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±</mi></mrow></math></span>",
+          "Integrated Gradients is an axiomatic input-attribution method. Instead of reading late activations, it integrates gradients along a straight path from a reference baseline to the actual input:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msub><mi>IG</mi><mi>i</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><msubsup><mi>x</mi><mi>i</mi><mo>′</mo></msubsup><mo>)</mo><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><mfrac><mrow><mo>∂</mo><mi>F</mi><mo>(</mo><mi>x</mi><mo>′</mo><mo>+</mo><mi>Î±</mi><mo>(</mo><mi>x</mi><mo>−</mo><mi>x</mi><mo>′</mo><mo>)</mo><mo>)</mo></mrow><mrow><mo>∂</mo><msub><mi>x</mi><mi>i</mi></msub></mrow></mfrac><mi>d</mi><mi>Î±</mi></mrow></math></span>",
           "Its main mathematical appeal is completeness: when the integral is exact, the sum of all feature attributions equals the difference between the model output at the real image and at the baseline. This makes IG more principled than a single local input gradient, especially when the model is saturated around x.",
           "The critical weakness is the practical baseline. A black image is not a neutral absence of signal for ImageNet-normalized natural images; it is an artificial out-of-distribution pattern. This project therefore uses a heavily blurred version of the image, but the method can still produce high-frequency pixel patterns that are mathematically valid and visually difficult to interpret causally."
         ]
@@ -2302,11 +2452,11 @@
       "assets/xai-report/error-perturbation-margins.png": {
         "title": "Figure 15c - Decision response on misclassified images",
         "paragraphs": [
-          "Figure 15C isolates the role of the background in misclassified examples by measuring how the model's decision changes when only the approximate background is perturbed. The key quantity is the fixed <code>wrong ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ true</code> logit margin: a positive value means that the originally predicted wrong class still receives stronger evidence than the ground-truth class, while a negative value means that the ground-truth class has overtaken the original wrong target.",
+          "Figure 15C isolates the role of the background in misclassified examples by measuring how the model's decision changes when only the approximate background is perturbed. The key quantity is the fixed <code>wrong − true</code> logit margin: a positive value means that the originally predicted wrong class still receives stronger evidence than the ground-truth class, while a negative value means that the ground-truth class has overtaken the original wrong target.",
 
-          "The figure shows that the background is not a neutral visual component. In the <code>wolf ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ antelope</code> example, background perturbations substantially reduce the probability and margin of the wrong class, especially under background replacement. However, the margin remains positive, meaning that the intervention weakens the wrong decision without fully correcting it. This suggests that the error is not caused by the background alone: the model is likely combining contextual cues with animal-level features such as pose, scale, texture, or silhouette.",
+          "The figure shows that the background is not a neutral visual component. In the <code>wolf → antelope</code> example, background perturbations substantially reduce the probability and margin of the wrong class, especially under background replacement. However, the margin remains positive, meaning that the intervention weakens the wrong decision without fully correcting it. This suggests that the error is not caused by the background alone: the model is likely combining contextual cues with animal-level features such as pose, scale, texture, or silhouette.",
 
-          "The <code>polar bear ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ tiger</code> example shows an even stronger background effect. Gaussian noise and colour shift progressively reduce the advantage of the wrong class, and background replacement flips the <code>wrong ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ true</code> margin below zero. In other words, after changing the background, <code>polar bear</code> receives more evidence than the originally predicted <code>tiger</code>. This indicates that the original wrong prediction was strongly supported by scene-level statistics rather than by animal morphology alone.",
+          "The <code>polar bear → tiger</code> example shows an even stronger background effect. Gaussian noise and colour shift progressively reduce the advantage of the wrong class, and background replacement flips the <code>wrong − true</code> margin below zero. In other words, after changing the background, <code>polar bear</code> receives more evidence than the originally predicted <code>tiger</code>. This indicates that the original wrong prediction was strongly supported by scene-level statistics rather than by animal morphology alone.",
 
           "The most important observation is that changing the background does not simply reveal the correct class. In some cases, the model moves toward another wrong class, such as <code>walrus</code>. This means that background interventions reorganize the whole decision landscape: they can weaken the original wrong class, strengthen the true class, or redirect the prediction toward a third spurious class. The background therefore acts as an active source of evidence, not merely as visual noise.",
 
