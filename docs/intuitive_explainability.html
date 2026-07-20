@@ -1342,13 +1342,6 @@
 
         </div>
 
-        <div class="note">
-          <strong>Scope of Question 1</strong>
-          <p> Stability, necessity and sufficiency are
-            evaluated
-            later through perturbation, deletion and insertion tests.</p>
-        </div>
-
         <div class="figure-grid">
           <figure>
             <img src="assets/xai-report/gradcam-theory.png" alt="Diagram explaining the Grad-CAM computation."
@@ -1417,16 +1410,12 @@
 
         <div class="note">
           <strong>Quantified walrus-attractor hypothesis</strong>
-          <p>The qualitative pattern is now tied to the available stress-test CSV rather than left as a purely visual
-            impression. Across the unique perturbed examples in Figure 06, <code>5 / 12</code> prediction transitions
+          <p> Across the unique perturbed examples in Figure 06, <code>5 / 12</code> prediction transitions
             ended in <code>walrus</code>. Under background replacement alone, <code>3 / 4</code> examples ended in
-            <code>walrus</code>. In the separate selected-error audit, <code>4 / 6</code> perturbed cases also moved
-            to
-            <code>walrus</code>, including <code>2 / 2</code> under background replacement.
-          </p>
-          <p>This is still not a full test-set prevalence estimate. It is a quantified case-study hypothesis: the
+            <code>walrus</code>. The
             repeated appearance of <code>walrus</code> under textured background interventions is strong enough to
-            motivate a systematic scan.</p>
+            motivate a systematic scan.
+          </p>
         </div>
 
         <div class="figure-grid">
@@ -1596,6 +1585,15 @@
             </figure>
           </article>
         </div>
+
+        <figure>
+          <img src="assets/xai-report/background-stress-summary.png"
+            alt="Summary dashboard comparing Grad-CAM and Integrated Gradients under Gaussian noise, colour shift and background replacement stress tests."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 13</strong> &mdash; Aggregate background stress-test summary: all perturbations
+            affect the classifier, but background replacement is the most destructive intervention. Across the
+            maintained checks, Grad-CAM remains more spatially stable than Integrated Gradients.</figcaption>
+        </figure>
 
         <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
         <div class="prose">
@@ -1789,15 +1787,6 @@
           </figcaption>
         </figure>
 
-        <figure>
-          <img src="assets/xai-report/cbm-implementation-structure.png"
-            alt="Detailed Concept Bottleneck Model implementation structure and supervised training flow."
-            loading="lazy" decoding="async">
-          <figcaption><strong>Figure 20a</strong> &mdash; The same CBM schema highlights joint supervision,
-            concept loss, task loss and the possibility of concept-level intervention.
-          </figcaption>
-        </figure>
-
         <div class="fact-grid">
           <article class="fact">
             <h3>Class accuracy</h3>
@@ -1847,74 +1836,6 @@
       </div>
     </section>
 
-    <section id="evidence-summary" class="report-section" aria-labelledby="evidence-summary-title">
-      <div class="section-heading">
-        <h2 id="evidence-summary-title">Evidence across methods</h2>
-      </div>
-      <div class="section-content">
-        <div class="prose">
-        </div>
-
-        <div class="comparison-wrap" role="region" aria-label="Aggregated method comparison" tabindex="0">
-          <table class="comparison">
-            <thead>
-              <tr>
-                <th>Method</th>
-                <th>Evidence type</th>
-                <th>Main reported numbers</th>
-                <th>Conservative reading</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Grad-CAM</td>
-                <td>Local, activation-level saliency</td>
-                <td>Background-swap stress: mean top-20 IoU <code>0.503</code>, mean Spearman <code>0.595</code>.
-                  Advanced audit: deletion AUC <code>0.136</code>, insertion AUC <code>0.383</code>, animal-saliency
-                  ratio <code>0.774</code>.</td>
-                <td>Often spatially coherent, but constrained by the late <code>7 x 7</code> representation and not
-                  sufficient as causal proof.</td>
-              </tr>
-              <tr>
-                <td>Integrated Gradients</td>
-                <td>Local, input-level attribution</td>
-                <td>Background-swap stress: mean top-20 IoU <code>0.338</code>, mean Spearman <code>0.405</code>.
-                  Advanced audit: deletion AUC <code>0.085</code>, insertion AUC <code>0.269</code>. Blurred versus
-                  black baseline agreement: IoU <code>0.198</code>, Spearman <code>0.215</code>.</td>
-                <td>More pixel-level and more baseline-sensitive. It is mathematically principled, but the visual map
-                  can be noisy and difficult to interpret causally.</td>
-              </tr>
-              <tr>
-                <td>TCAV</td>
-                <td>Concept-level directional sensitivity</td>
-                <td><code>49</code> class-concept tests, <code>7</code> significant after held-out CAV validation,
-                  random-CAV controls and corrected significance. Examples include polar bear/flippers, humpback
-                  whale/flippers, antelope/hooves and dolphin/flippers.</td>
-                <td>Useful for semantic probing of the representation. A significant concept direction is not proof
-                  that the concept is visually pure or causally necessary.</td>
-              </tr>
-              <tr>
-                <td>Concept Bottleneck Model</td>
-                <td>Concept-mediated prediction</td>
-                <td>CBM test accuracy <code>0.799</code>, direct ResNet baseline accuracy <code>0.857</code>, concept
-                  binary accuracy <code>0.754</code>, CBM/baseline agreement <code>0.728</code> on
-                  <code>596</code> evaluated test images.
-                </td>
-                <td>The bottleneck creates an inspectable semantic interface, but it trades off accuracy and inherits
-                  limitations from class-level concept supervision.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="note">
-          <strong>One-line verdict</strong>
-          <p> The report shows that local
-            heatmaps, perturbation metrics, error margins and concept-level checks expose different failure modes of
-            the same visual classifier.</p>
-        </div>
-      </div>
-    </section>
 
     <section id="limitations" class="report-section" aria-labelledby="limitations-title">
       <div class="section-heading">
@@ -1926,40 +1847,7 @@
             level supported by the experiment that produced it.</p>
         </div>
 
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Dataset scope</h3>
-            <p>The maintained experiments use a 20-class AwA2 subset. Extending the same audit to all AwA2 classes
-              would test whether the findings generalize beyond the current subset.</p>
-          </article>
-          <article class="fact">
-            <h3>Mask quality</h3>
-            <p>AwA2 does not provide perfect image-level animal masks in this pipeline. Background interventions rely
-              on approximate separation, so the stress test should be read as a diagnostic rather than as a perfect
-              causal isolation of the animal.</p>
-          </article>
-          <article class="fact">
-            <h3>Walrus hypothesis</h3>
-            <p>The observed walrus pattern is now quantified on the selected panels, but a rigorous claim requires a
-              full test-set scan reporting how often each perturbation changes the top-1 class to <code>walrus</code>
-              and which image properties predict that transition.</p>
-          </article>
-          <article class="fact">
-            <h3>Concept supervision</h3>
-            <p>AwA2 attributes are class-level. A concept may be assigned to every image of one class even when the
-              attribute is not visible in a specific photo, limiting image-level causal interpretation.</p>
-          </article>
-        </div>
 
-        <div class="warning">
-          <strong>Next rigorous experiment</strong>
-          <p>The most valuable extension is a full-transition audit: run every background perturbation on the full
-            test
-            split, count every original-to-perturbed class transition, and report transition rates with confidence
-            intervals. That would turn the walrus-attractor hypothesis from a case-study observation into a dataset
-            statistic.</p>
-        </div>
-      </div>
     </section>
 
     <section id="conclusion" class="report-section" aria-labelledby="conclusion-title">
@@ -2220,6 +2108,15 @@
           "When prediction transition, confidence drop and saliency movement occur together, the example supports the report's central claim: post-hoc maps must be audited under interventions before being treated as evidence of model reasoning."
         ]
       },
+      "assets/xai-report/background-stress-summary.png": {
+        "title": "Figure 13 — Background stress-test summary",
+        "paragraphs": [
+          "This dashboard condenses the three background interventions into one reading point before the report moves to error analysis. It compares the model response, measured by prediction-change rate, with the explanation response, measured by top-k IoU and Spearman rank stability.",
+          "Gaussian noise and colour shift produce moderate prediction changes, but they still move the attribution maps. Background replacement is the strongest intervention: the prediction-change rate rises to 0.75, showing that replacing only the approximate background can often alter the final class decision.",
+          "The comparison between Grad-CAM and Integrated Gradients is deliberately conservative. Grad-CAM has higher IoU and Spearman values across the three perturbations, so it is more spatially stable in this run. Integrated Gradients remains useful as a pixel-level attribution method, but it is more sensitive to background changes and baseline-dependent high-frequency effects.",
+          "The lower table links stability with faithfulness checks. Grad-CAM assigns more saliency mass to the animal region and obtains higher insertion AUC, while Integrated Gradients places more mass on the background and shows lower insertion AUC. The conclusion is not that Grad-CAM is a proof of correct reasoning, but that it is the more robust local diagnostic under these specific stress tests."
+        ]
+      },
       "assets/xai-report/advanced-gradcam-deletion.png": {
         "title": "Figure 10 — Grad-CAM deletion and insertion curves",
         "paragraphs": [
@@ -2271,17 +2168,31 @@
       "assets/xai-report/error-perturbation-margins.png": {
         "title": "Figure 15c — Decision response on misclassified images",
         "paragraphs": [
-          "This figure tracks the fixed wrong-minus-true logit margin under background interventions. The margin is more informative than probability alone because softmax probabilities can move together when the whole logit distribution changes.",
-          "A positive margin means the original wrong class still outranks the true class. A reduction in the margin means the intervention weakened the wrong class relative to the true class. A sign flip means the true class outranks the original wrong target.",
-          "The important caveat is that reducing the wrong-versus-true margin does not necessarily recover the correct top-1 prediction. A third class can become dominant, which is exactly the kind of behavior that reveals broader contextual sensitivity."
+          "Figure 15C isolates the role of the background in misclassified examples by measuring how the model's decision changes when only the approximate background is perturbed. The key quantity is the fixed <code>wrong − true</code> logit margin: a positive value means that the originally predicted wrong class still receives stronger evidence than the ground-truth class, while a negative value means that the ground-truth class has overtaken the original wrong target.",
+
+          "The figure shows that the background is not a neutral visual component. In the <code>wolf → antelope</code> example, background perturbations substantially reduce the probability and margin of the wrong class, especially under background replacement. However, the margin remains positive, meaning that the intervention weakens the wrong decision without fully correcting it. This suggests that the error is not caused by the background alone: the model is likely combining contextual cues with animal-level features such as pose, scale, texture, or silhouette.",
+
+          "The <code>polar bear → tiger</code> example shows an even stronger background effect. Gaussian noise and colour shift progressively reduce the advantage of the wrong class, and background replacement flips the <code>wrong − true</code> margin below zero. In other words, after changing the background, <code>polar bear</code> receives more evidence than the originally predicted <code>tiger</code>. This indicates that the original wrong prediction was strongly supported by scene-level statistics rather than by animal morphology alone.",
+
+          "The most important observation is that changing the background does not simply reveal the correct class. In some cases, the model moves toward another wrong class, such as <code>walrus</code>. This means that background interventions reorganize the whole decision landscape: they can weaken the original wrong class, strengthen the true class, or redirect the prediction toward a third spurious class. The background therefore acts as an active source of evidence, not merely as visual noise.",
+
+          "This is a central limitation for post-hoc saliency methods. A heatmap may look plausible on the original image, but if the decision margin changes sharply after modifying only the background, then the explanation must be interpreted together with the stress test. Figure 15C shows that the model is not purely morphology-driven: background statistics can support, weaken, or redirect class evidence. For this reason, saliency maps should be treated as diagnostic hypotheses rather than standalone proof of correct visual reasoning."
         ]
       },
       "assets/xai-report/error-deletion-curves.png": {
-        "title": "Figure 15d — Deletion curves on errors",
+        "title": "Figure 15d — Deletion curves on misclassified images",
         "paragraphs": [
-          "Deletion is applied to pixels ranked by wrong-target and true-target saliency maps. This asks whether the highlighted pixels actually control the corresponding score in an error case.",
-          "A subtle but important effect can appear when deleting true-target pixels briefly increases the wrong-class probability. That means the competing classes draw on partially overlapping evidence: removing support for one class can temporarily redirect score mass toward the other.",
-          "This behavioral test is stronger than visual inspection because it intervenes on the input according to the saliency ranking. A plausible heatmap that does not affect the score under deletion is weak evidence."
+          "Figure 15D tests whether the pixels highlighted by the saliency maps actually control the model scores in misclassified examples. This is a faithfulness check: instead of asking whether the heatmap looks visually plausible, the experiment removes the pixels ranked as most important and measures whether the corresponding class probability decreases.",
+
+          "For each misclassified image, the audit computes two target-specific saliency maps: one for the originally predicted wrong class and one for the ground-truth class. Deletion is then applied separately using each ranking. If removing the top-ranked pixels from the wrong-target map causes the wrong-class score to fall, the map is faithful to the model's wrong decision. If removing pixels from the true-target map affects the true-class score, then the true-class evidence is also behaviorally meaningful.",
+
+          "This distinction is crucial. A wrong-target map can be faithful even when the prediction is false. In that case, the heatmap is not necessarily a bad explanation of the model; it is a faithful explanation of a bad decision. The model has assigned real visual evidence to the wrong semantic class, and deletion reveals whether that evidence actually supports the wrong score.",
+
+          "The curves should therefore be read together with Figure 15C. Figure 15C shows whether background perturbations change the decision margin between the wrong and true classes. Figure 15D asks a different question: once a saliency map has selected pixels as important, do those pixels causally affect the selected score when removed? A visually plausible heatmap that produces a flat deletion curve is weak evidence, because the highlighted pixels do not strongly control the model output.",
+
+          "In error cases, deletion can also expose competition between classes. Removing pixels ranked for the true class may sometimes increase the wrong-class probability, because the two classes share or compete for overlapping visual evidence. This makes misclassification analysis more informative than standard correct-prediction visualization: it reveals whether the model's wrong decision is supported by stable evidence, by background-dependent evidence, or by a confused allocation of animal features across competing labels.",
+
+          "The main limitation is that deletion is still an intervention based on an artificial replacement strategy, here a blurred baseline. It is stronger than visual inspection, but it is not a perfect causal proof. It should be interpreted as behavioral evidence: if deleting salient pixels consistently changes the relevant score, the saliency map is more faithful; if it does not, the map may be visually convincing but weakly connected to the model's actual decision process."
         ]
       },
       "assets/xai-report/error-cbm-concepts.png": {
@@ -2302,11 +2213,11 @@
         ]
       },
       "assets/xai-report/concept-validation-summary.png": {
-        "title": "Figure 17 — Validated concept evidence",
+        "title": "Figure 17 — Validated TCAV concept evidence",
         "paragraphs": [
-          "This figure substantiates the TCAV protocol. Repeated CAV estimation checks variability; held-out validation checks whether the concept separator generalizes; matched random controls check whether the observed sensitivity exceeds random directions.",
-          "The central question is not whether a TCAV score is high in isolation, but whether it is reliably higher than an appropriate random baseline. Confidence intervals and corrected p-values prevent overreading noisy concept directions.",
-          "The CBM-related panel gives a concrete bound on intervention power: the selected-error correction rate is 2.9%. In this run, most single-concept edits change scores but do not actually fix the chosen errors."
+          "This figure substantiates the TCAV protocol without mixing it with the Concept Bottleneck analysis. Repeated CAV estimation checks variability; held-out validation checks whether the concept separator generalizes; matched random controls check whether the observed sensitivity exceeds random directions.",
+          "The left panel reports the real TCAV effect beyond matched random CAVs. Positive values indicate that the human-defined concept direction changes the target-class sensitivity more than a random direction; wide intervals indicate unstable concept evidence.",
+          "The right panel validates whether real CAVs separate concept examples better than random CAVs on held-out activations. This makes the figure a TCAV-only diagnostic: CBM accuracy and concept interventions are intentionally reported later in the bottleneck section."
         ]
       },
       "assets/xai-report/tcav-heatmap.png": {
@@ -2333,16 +2244,7 @@
           "This is different from Grad-CAM or Integrated Gradients. A heatmap explains a decision after a black-box classifier has already made it; a CBM constrains the decision itself to pass through concepts. The trade-off is that the bottleneck can reduce accuracy and inherits any errors or incompleteness in the chosen concept vocabulary."
         ]
       },
-      "assets/xai-report/cbm-implementation-structure.png": {
-        "title": "Figure 20a — CBM implementation and supervised training flow",
-        "paragraphs": [
-          "<strong>Implementation used in this project.</strong> The image encoder is a ResNet50 backbone. Its final classifier is removed, so the backbone acts as a feature extractor. A concept predictor maps those visual features to selected AwA2 attributes, and a task classifier maps the predicted concept vector to the final animal class.",
-          "<strong>Concept bottleneck.</strong> The bottleneck is the predicted concept vector. In principle, only information expressed through concepts should reach the final classifier. This is why the CBM can be inspected at a semantic level: one can ask which concepts were predicted and how those concept values affected the class score.",
-          "<strong>Joint supervision.</strong> Training uses two losses. The concept loss compares predicted concepts with the AwA2 concept targets, while the task loss compares the final class prediction with the animal label. The optimized objective is a weighted sum:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><msub><mi>L</mi><mtext>total</mtext></msub><mo>=</mo><msub><mi>λ</mi><mi>c</mi></msub><msub><mi>L</mi><mtext>concept</mtext></msub><mo>+</mo><msub><mi>λ</mi><mi>t</mi></msub><msub><mi>L</mi><mtext>task</mtext></msub></mrow></math></span>",
-          "<strong>Inference and intervention.</strong> At test time the model runs image to concepts to class. If a concept value is edited, the final class head recomputes the prediction from the edited concept vector. This makes interventions easy to reason about, but their interpretation remains model-specific.",
-          "<strong>Critical limitation.</strong> If the concept vocabulary is incomplete or the bottleneck is too flexible, continuous concept values can leak hidden non-semantic information useful for the task. In that case the model may appear interpretable while the concept vector partly encodes texture, context or background cues."
-        ]
-      },
+
       "assets/xai-report/cbm-summary.png": {
         "title": "Figure 21 — Direct classifier versus Concept Bottleneck Model",
         "paragraphs": [
