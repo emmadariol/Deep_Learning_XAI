@@ -316,6 +316,88 @@
       line-height: 1.5;
     }
 
+    .overview-intro {
+      max-width: 78ch;
+    }
+
+    .overview-intro p:not(.prose-intro) {
+      color: var(--muted);
+      font-size: 1.02rem;
+    }
+
+    .analysis-lenses {
+      display: grid;
+      gap: 14px;
+      max-width: 820px;
+      margin: 32px 0 10px;
+    }
+
+    .analysis-lens {
+      --lens-accent: var(--accent);
+      --lens-ink: var(--ink);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 16px;
+      padding: 20px 22px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--lens-accent);
+      border-radius: 0 7px 7px 0;
+      box-shadow: 0 12px 26px rgba(30, 41, 45, .045);
+    }
+
+    .analysis-lens--spatial {
+      --lens-accent: #245f69;
+      --lens-ink: #16464f;
+    }
+
+    .analysis-lens--testing {
+      --lens-accent: #9a5a2b;
+      --lens-ink: #784015;
+    }
+
+    .analysis-lens--concepts {
+      --lens-accent: #4d7563;
+      --lens-ink: #2f5c48;
+    }
+
+    .analysis-lens-index {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      color: var(--lens-ink);
+      background: color-mix(in srgb, var(--lens-accent) 14%, #fff);
+      border: 1px solid color-mix(in srgb, var(--lens-accent) 26%, #fff);
+      border-radius: 50%;
+      font-size: .72rem;
+      font-weight: 780;
+      letter-spacing: .08em;
+    }
+
+    .analysis-lens h3 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin: 0 0 6px;
+      color: var(--lens-ink);
+      font-size: 1.08rem;
+    }
+
+    .analysis-lens-kicker {
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 520;
+    }
+
+    .analysis-lens p {
+      margin: 0;
+      color: #334155;
+      font-size: .96rem;
+      line-height: 1.58;
+    }
+
     code {
       font-family: var(--mono);
       font-size: .87em;
@@ -352,6 +434,57 @@
 
     .formula--compact math {
       font-size: 1rem;
+    }
+
+    .objective-card {
+      display: grid;
+      grid-template-columns: minmax(220px, .42fr) minmax(0, 1fr);
+      gap: clamp(20px, 4vw, 46px);
+      align-items: center;
+      margin: 34px 0 0;
+      padding: clamp(22px, 3vw, 32px);
+      background: #f7f3ea;
+      border: 1px solid #d8cbb7;
+      border-radius: 7px;
+    }
+
+    .objective-label {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--warning);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .objective-card h3 {
+      max-width: 18ch;
+      margin: 0;
+      font-size: clamp(1.32rem, 2vw, 1.78rem);
+      line-height: 1.12;
+    }
+
+    .objective-card p {
+      max-width: 62ch;
+      margin: 0 0 16px;
+      color: #4f5a5e;
+      font-size: .95rem;
+      line-height: 1.58;
+    }
+
+    .objective-card .formula {
+      margin: 0;
+      padding: 18px 20px;
+      background: rgba(255, 255, 255, .62);
+      border: 1px solid #dfd3c1;
+      border-left: 0;
+      border-radius: 5px;
+    }
+
+    .objective-card .formula math {
+      font-size: clamp(1.05rem, 1.7vw, 1.32rem);
     }
 
     .matrix-block {
@@ -438,6 +571,59 @@
       font-size: .93rem;
     }
 
+    .fact-grid--questions {
+      gap: 20px;
+    }
+
+    .fact-grid--questions .fact {
+      position: relative;
+      min-height: 178px;
+      padding: 24px 24px 22px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #f5faf9 0%, #fff 72%);
+      border: 1px solid #cbdad8;
+      border-top: 5px solid var(--accent);
+      border-radius: 0 0 7px 7px;
+    }
+
+    .fact-grid--questions .fact::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, transparent 50%, rgba(36, 95, 105, .14) 50%);
+      pointer-events: none;
+    }
+
+    .question-label {
+      display: block;
+      margin-bottom: 18px;
+      color: var(--accent);
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .fact-grid--questions h3 {
+      max-width: 28ch;
+      color: var(--ink);
+      font-size: clamp(1.08rem, 1.5vw, 1.26rem);
+      font-weight: 760;
+      line-height: 1.24;
+    }
+
+    .fact-grid--questions .fact p {
+      max-width: 56ch;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+
     .note,
     .warning {
       max-width: 74ch;
@@ -468,57 +654,69 @@
     }
 
     .method-brief {
-      margin: 38px 0 0;
-      padding-top: 26px;
-      border-top: 1px solid var(--line-strong);
+      margin: 42px 0 0;
+      padding: 30px 0 0;
+      border-top: 1px solid var(--line);
     }
 
     .method-brief-header {
-      max-width: 74ch;
-      margin-bottom: 22px;
+      display: grid;
+      grid-template-columns: minmax(210px, .42fr) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+      margin-bottom: 24px;
     }
 
     .method-brief-eyebrow {
-      margin: 0 0 6px;
+      margin: 4px 0 0;
       color: var(--accent);
-      font-size: .78rem;
-      font-weight: 760;
-      letter-spacing: .08em;
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .1em;
       text-transform: uppercase;
     }
 
     .method-brief-header h3 {
+      grid-column: 2;
       margin: 0 0 8px;
-      font-size: clamp(1.24rem, 1.8vw, 1.58rem);
-      line-height: 1.25;
+      font-size: clamp(1.2rem, 1.65vw, 1.46rem);
+      line-height: 1.24;
     }
 
-    .method-brief-header p {
+    .method-brief-header p:not(.method-brief-eyebrow) {
+      grid-column: 2;
+      max-width: 68ch;
       margin: 0;
       color: var(--muted);
-      font-size: .96rem;
+      font-size: .94rem;
+      line-height: 1.58;
     }
 
     .method-lenses {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 22px;
-      margin: 22px 0 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 24px;
     }
 
     .method-lens {
-      padding: 18px 0 0;
-      border-top: 2px solid var(--accent);
+      flex: 1 1 280px;
+      padding: 14px 16px;
+      background: rgba(36, 95, 105, .055);
+      border: 1px solid rgba(36, 95, 105, .14);
+      border-radius: 6px;
     }
 
     .method-lens--design {
-      border-top-color: var(--warning);
+      background: rgba(154, 90, 43, .07);
+      border-color: rgba(154, 90, 43, .18);
     }
 
     .method-lens strong {
       display: block;
-      margin-bottom: 6px;
-      font-size: .92rem;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: .84rem;
       letter-spacing: .04em;
       text-transform: uppercase;
     }
@@ -526,25 +724,26 @@
     .method-lens p {
       margin: 0;
       color: var(--muted);
-      font-size: .93rem;
+      font-size: .88rem;
+      line-height: 1.5;
     }
 
     .method-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0;
-      border-top: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 36px;
+      row-gap: 20px;
+      padding-top: 2px;
     }
 
     .method-item {
-      min-height: 150px;
-      padding: 18px 18px 16px 0;
-      border-right: 1px solid var(--line);
+      min-height: 0;
+      padding: 0 0 18px;
+      border-bottom: 1px solid var(--line);
     }
 
     .method-item:not(:first-child) {
-      padding-left: 18px;
+      padding-left: 0;
     }
 
     .method-item:last-child {
@@ -552,22 +751,24 @@
     }
 
     .method-tag {
-      display: inline-block;
-      margin-bottom: 18px;
+      display: block;
+      margin: 0 0 7px;
       color: var(--accent);
-      font-size: .72rem;
-      font-weight: 760;
-      letter-spacing: .08em;
+      font-size: .66rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
       text-transform: uppercase;
     }
 
     .method-item h4 {
-      margin: 0 0 6px;
-      font-size: .98rem;
+      margin: 0 0 5px;
+      font-size: 1rem;
       line-height: 1.25;
     }
 
     .method-item p {
+      max-width: 42ch;
       margin: 0;
       color: var(--muted);
       font-size: .86rem;
@@ -1141,6 +1342,10 @@
       .pipeline span {
         margin-left: 36px;
       }
+
+      .analysis-lenses {
+        max-width: none;
+      }
     }
 
     @media (max-width: 680px) {
@@ -1169,15 +1374,25 @@
         grid-template-columns: 1fr;
       }
 
-      .method-lenses,
+      .objective-card,
+      .method-brief-header,
       .method-grid {
         grid-template-columns: 1fr;
+      }
+
+      .objective-card h3 {
+        max-width: none;
+      }
+
+      .method-brief-header h3,
+      .method-brief-header p:not(.method-brief-eyebrow) {
+        grid-column: 1;
       }
 
       .method-item,
       .method-item:not(:first-child) {
         min-height: auto;
-        padding: 16px 0;
+        padding: 0 0 16px;
         border-right: 0;
         border-bottom: 1px solid var(--line);
       }
@@ -1221,6 +1436,17 @@
         align-items: flex-start;
         flex-direction: column;
         gap: 12px;
+      }
+
+      .analysis-lens {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 18px;
+      }
+
+      .analysis-lens-index {
+        width: 34px;
+        height: 34px;
       }
     }
 
@@ -1270,34 +1496,60 @@
         <h2 id="overview-title">The explainability analysis</h2>
       </div>
       <div class="section-content">
-        <div class="prose">
-          <p class="prose-intro">The project follows one image from prediction to explanation, intervention, error
-            analysis and semantic interpretation.</p>
-          <p>Each stage answers a stronger question. Spatial attribution proposes where evidence may be located;
-            controlled tests determine whether that proposal is stable and faithful; concept methods then examine
-            whether the representation can be related to human-readable attributes.</p>
+        <div class="prose overview-intro">
+          <p class="prose-intro">Our workflow investigates the model's decision-making process by tracking the journey of input
+            images across five crucial stages: <strong>prediction, explanation, intervention, error analysis</strong>
+            and <strong>semantic interpretation</strong>.</p>
+          <p>At each step, we move progressively deeper into the model's black box, from the pixels that seem to
+            matter, to the stability of that evidence, to the semantic concepts that may shape the final decision.</p>
         </div>
 
-        <div class="fact-grid" aria-label="Four explainability questions">
+        <div class="analysis-lenses" aria-label="Explainability workflow lenses">
+          <article class="analysis-lens analysis-lens--spatial">
+            <span class="analysis-lens-index" aria-hidden="true">01</span>
+            <div>
+              <h3>Spatial Attribution <span class="analysis-lens-kicker">The where</span></h3>
+              <p>Hypothesizes where the visual evidence driving the model's decision may be located within the image.</p>
+            </div>
+          </article>
+          <article class="analysis-lens analysis-lens--testing">
+            <span class="analysis-lens-index" aria-hidden="true">02</span>
+            <div>
+              <h3>Controlled Testing <span class="analysis-lens-kicker">The reliability</span></h3>
+              <p>Empirically checks whether the model's focus is stable and faithful, or whether it depends on fragile
+                visual shortcuts.</p>
+            </div>
+          </article>
+          <article class="analysis-lens analysis-lens--concepts">
+            <span class="analysis-lens-index" aria-hidden="true">03</span>
+            <div>
+              <h3>Conceptual Analysis <span class="analysis-lens-kicker">The what</span></h3>
+              <p>Translates activation patterns into human-readable attributes and tests whether the internal
+                representation aligns with semantic concepts.</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="fact-grid fact-grid--questions" aria-label="Four explainability questions">
           <article class="fact">
-            <h3>Question 1</h3>
-            <p><strong>Where is evidence located?</strong> Grad-CAM and Integrated Gradients produce spatial maps for a
-              selected class.</p>
+            <span class="question-label">Question 01</span>
+            <h3>Where is evidence located?</h3>
+            <p>Grad-CAM and Integrated Gradients produce spatial maps for a selected class.</p>
           </article>
           <article class="fact">
-            <h3>Question 2</h3>
-            <p><strong>Is the map stable and faithful?</strong> Perturbations and quantitative metrics test whether the
-              highlighted evidence survives controlled checks.</p>
+            <span class="question-label">Question 02</span>
+            <h3>Is the map stable and faithful?</h3>
+            <p>Perturbations and quantitative metrics test whether the highlighted evidence survives controlled checks.</p>
           </article>
           <article class="fact">
-            <h3>Question 3</h3>
-            <p><strong>Which semantic concepts are represented?</strong> AwA2 attributes and TCAV connect activation
-              directions to concepts such as stripes, horns, fur and flippers.</p>
+            <span class="question-label">Question 03</span>
+            <h3>Which semantic concepts are represented?</h3>
+            <p>AwA2 attributes and TCAV connect activation directions to concepts such as stripes, horns, fur and flippers.</p>
           </article>
           <article class="fact">
-            <h3>Question 4</h3>
-            <p><strong>Can prediction be mediated by concepts?</strong> A Concept Bottleneck Model forces the class
-              prediction through an explicit semantic vector.</p>
+            <span class="question-label">Question 04</span>
+            <h3>Can prediction be mediated by concepts?</h3>
+            <p>A Concept Bottleneck Model forces the class prediction through an explicit semantic vector.</p>
           </article>
         </div>
 
@@ -1369,12 +1621,16 @@
             average
             pooling and final class logits.</figcaption>
         </figure>
-        <article class="fact">
-          <h3>Objective</h3>
-          <p><code>CrossEntropyLoss</code> compares class logits with the ground-truth label. AdamW updates trainable
-            parameters with weight decay.</p>
-          <div class="formula formula--compact" role="math"
-            aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
+        <article class="objective-card">
+          <div>
+            <span class="objective-label">Objective</span>
+            <h3>Cross-entropy training signal</h3>
+          </div>
+          <div class="objective-body">
+            <p><code>CrossEntropyLoss</code> compares class logits with the ground-truth label. AdamW then updates the
+              trainable parameters with weight decay.</p>
+            <div class="formula formula--compact" role="math"
+              aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
             <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
               <mrow>
                 <mi>L</mi>
@@ -1409,6 +1665,7 @@
                 <mo>)</mo>
               </mrow>
             </math>
+            </div>
           </div>
         </article>
         <figure>
