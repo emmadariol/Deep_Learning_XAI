@@ -183,8 +183,6 @@ def save_prediction_trace_figure(
     class_names: dict[int, str],
     output_path: str | Path,
     true_label: int | None = None,
-    image_path: str | None = None,
-    top_k: int = 5,
 ) -> None:
     """Save a visual summary of a real ResNet50 forward pass."""
     output_path = Path(output_path).expanduser().resolve()
@@ -196,15 +194,13 @@ def save_prediction_trace_figure(
     layer_order = [name for name in ("conv1", "maxpool", "layer1", "layer2", "layer3", "layer4") if name in trace.activation_maps]
 
     n_cols = 4
-    n_rows = 3
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 12))
+    n_rows = 2
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 9))
     flat_axes = axes.flatten()
 
     predicted_name = class_names.get(trace.predicted_label, str(trace.predicted_label))
     true_name = class_names.get(true_label, str(true_label)) if true_label is not None else "not provided"
     title = f"true={true_name} | predicted={predicted_name} | confidence={trace.confidence:.3f}"
-    if image_path:
-        title += f"\n{image_path}"
     fig.suptitle(title, fontsize=14)
 
     flat_axes[0].imshow(image_np)
@@ -226,44 +222,6 @@ def save_prediction_trace_figure(
         flat_axes[axis_index].set_title("Grad-CAM\ncomputed on layer4[-1]")
         flat_axes[axis_index].axis("off")
         axis_index += 1
-
-    top_values, top_indices = torch.topk(trace.probabilities[0], k=min(top_k, trace.probabilities.size(1)))
-    labels = [class_names.get(int(index), str(int(index))) for index in top_indices]
-    values = top_values.numpy()
-    flat_axes[axis_index].barh(np.arange(len(labels)), values, color="#315d9c")
-    flat_axes[axis_index].set_yticks(np.arange(len(labels)), labels)
-    flat_axes[axis_index].invert_yaxis()
-    flat_axes[axis_index].set_xlim(0, max(float(values.max()) * 1.15, 0.05))
-    flat_axes[axis_index].set_title("Top softmax probabilities")
-    flat_axes[axis_index].set_xlabel("probability")
-    axis_index += 1
-
-    stats_rows = []
-    for stats in trace.stats:
-        if stats.name in {"input", "conv1", "maxpool", "layer1", "layer2", "layer3", "layer4", "avgpool", "logits", "probabilities"}:
-            stats_rows.append(
-                [
-                    stats.name,
-                    "x".join(str(dim) for dim in stats.shape),
-                    f"{stats.minimum:.3f}",
-                    f"{stats.maximum:.3f}",
-                    f"{stats.mean:.3f}",
-                    f"{stats.std:.3f}",
-                ]
-            )
-
-    flat_axes[axis_index].axis("off")
-    table = flat_axes[axis_index].table(
-        cellText=stats_rows,
-        colLabels=["tensor", "shape", "min", "max", "mean", "std"],
-        loc="center",
-        cellLoc="center",
-    )
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1, 1.35)
-    flat_axes[axis_index].set_title("Real tensor diagnostics")
-    axis_index += 1
 
     for index in range(axis_index, len(flat_axes)):
         flat_axes[index].axis("off")

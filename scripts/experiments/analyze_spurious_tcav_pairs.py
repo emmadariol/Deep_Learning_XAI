@@ -439,20 +439,22 @@ def save_audit_figure(rows: list[dict[str, object]], output_path: Path, top_n: i
 
     fig, ax = plt.subplots(figsize=(10.5, max(4.0, 0.42 * len(selected))))
     bars = ax.barh(y_positions, scores, color="#0f766e", alpha=0.86, label="TCAV score")
-    ax.scatter(oracle_values, y_positions, color="#9a5a2b", s=34, zorder=3, label="AwA2 oracle value")
-    ax.axvline(0.70, color="#314047", linestyle="--", linewidth=1.0, alpha=0.7)
+    ax.scatter(oracle_values, y_positions, color="#9a5a2b", s=34, zorder=3, label="Real-world value")
     ax.set_yticks(y_positions)
     ax.set_yticklabels(labels)
     ax.invert_yaxis()
     ax.set_xlim(0.0, 1.02)
     ax.set_xlabel("Score")
-    ax.set_title("TCAV sensitivity versus AwA2 concept prior")
+    ax.set_title("TCAV sensitivity versus real-world value")
     ax.legend(loc="lower right")
+    display_status = {
+        "high_tcav_low_oracle": "high TCAV / low real-world value",
+    }
     for bar, row in zip(bars, selected):
         ax.text(
             min(1.0, bar.get_width() + 0.015),
             bar.get_y() + bar.get_height() / 2,
-            str(row["audit_status"]),
+            display_status.get(str(row["audit_status"]), str(row["audit_status"])),
             va="center",
             fontsize=8,
             color="#314047",
@@ -499,7 +501,7 @@ def save_bridge_figure(rows: list[dict[str, object]], output_path: Path) -> None
     for row_index in range(values.shape[0]):
         for col_index in range(values.shape[1]):
             value = values[row_index, col_index]
-            if value >= 0.35:
+            if value > 0.0:
                 ax.text(
                     col_index,
                     row_index,
