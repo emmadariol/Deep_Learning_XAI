@@ -9,9 +9,20 @@ quantity keeps a precise interpretation.
 from __future__ import annotations
 
 import math
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+
+_CACHE_ROOT = Path(tempfile.gettempdir()) / "deep_learning_xai"
+_MPLCONFIGDIR = _CACHE_ROOT / "matplotlib"
+_XDG_CACHE_HOME = _CACHE_ROOT / "xdg-cache"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+_XDG_CACHE_HOME.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+os.environ.setdefault("XDG_CACHE_HOME", str(_XDG_CACHE_HOME))
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -168,6 +179,15 @@ def concept_evidence_rows(
         scores = score_target_pair(logits, true_targets, wrong_targets)
         weight_delta = class_head.weight[wrong_targets] - class_head.weight[true_targets]
         contributions = weight_delta * concept_probabilities
+        if class_head.bias is None:
+            bias_delta = torch.zeros(
+                concept_probabilities.size(0),
+                dtype=concept_probabilities.dtype,
+                device=concept_probabilities.device,
+            )
+        else:
+            bias_delta = class_head.bias[wrong_targets] - class_head.bias[true_targets]
+        reconstructed_margins = contributions.sum(dim=1) + bias_delta
 
     rows: list[dict[str, float | int | str]] = []
     for image_index in range(concept_probabilities.size(0)):
@@ -176,11 +196,14 @@ def concept_evidence_rows(
             corrected = base_concepts.clone()
             corrected[concept_index] = true_prototypes[image_index, concept_index]
             with torch.no_grad():
+                corrected_logits = class_head(corrected[None])
                 corrected_scores = score_target_pair(
-                    class_head(corrected[None]),
+                    corrected_logits,
                     true_targets[image_index : image_index + 1],
                     wrong_targets[image_index : image_index + 1],
                 )
+                corrected_probabilities = torch.softmax(corrected_logits, dim=1)
+                corrected_confidence, corrected_prediction = corrected_probabilities.max(dim=1)
             predicted_value = float(base_concepts[concept_index].item())
             true_value = float(true_prototypes[image_index, concept_index].item())
             wrong_value = float(wrong_prototypes[image_index, concept_index].item())
@@ -201,7 +224,15 @@ def concept_evidence_rows(
                     "wrong_vs_true_margin_contribution": float(
                         contributions[image_index, concept_index].item()
                     ),
+                    "wrong_vs_true_bias": float(bias_delta[image_index].item()),
                     "original_cbm_margin": float(scores.margins[image_index].item()),
+                    "reconstructed_cbm_margin": float(
+                        reconstructed_margins[image_index].item()
+                    ),
+                    "margin_reconstruction_error": float(
+                        reconstructed_margins[image_index].item()
+                        - scores.margins[image_index].item()
+                    ),
                     "corrected_cbm_margin": float(corrected_scores.margins[0].item()),
                     "correction_margin_delta": float(
                         corrected_scores.margins[0].item() - scores.margins[image_index].item()
@@ -213,6 +244,10 @@ def concept_evidence_rows(
                     "correction_wrong_probability_delta": float(
                         corrected_scores.wrong_probabilities[0].item()
                         - scores.wrong_probabilities[image_index].item()
+                    ),
+                    "corrected_prediction_index": int(corrected_prediction[0].item()),
+                    "corrected_prediction_confidence": float(
+                        corrected_confidence[0].item()
                     ),
                 }
             )
@@ -235,11 +270,16 @@ def save_contrastive_attribution_figure(
     output_path: str | Path,
     background_mask: torch.Tensor | None = None,
     top_fraction: float = 0.2,
+    actual_names: list[str] | None = None,
 ) -> None:
     """Save target-contrast maps with per-example error diagnostics."""
     output_path = Path(output_path).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     row_count = images.size(0)
+    if actual_names is None:
+        actual_names = wrong_names
+    if len(actual_names) != row_count:
+        raise ValueError("actual_names must match the number of images.")
     target_iou, target_spearman = saliency_pair_diagnostics(wrong_maps, true_maps, top_fraction)
     if background_mask is not None:
         wrong_background = background_saliency_fraction(wrong_maps, background_mask)
@@ -254,19 +294,23 @@ def save_contrastive_attribution_figure(
         image = _as_numpy_image(images, index)
         wrong_map = wrong_maps[index, 0].detach().cpu().numpy()
         true_map = true_maps[index, 0].detach().cpu().numpy()
+        fixed_target = actual_names[index] != wrong_names[index]
+        contrast_label = "contrast target"
+        metric_prefix = "contrast - true"
 
         axes[index, 0].imshow(image)
         axes[index, 0].set_title(
-            f"original image\ntrue: {true_names[index]}\nwrong pred: {wrong_names[index]}\n"
-            f"p(wrong)={scores.wrong_probabilities[index]:.3f}, "
+            f"original image\ntrue: {true_names[index]}\nactual pred: {actual_names[index]}\n"
+            f"{contrast_label}: {wrong_names[index]}\n"
+            f"p({wrong_names[index]})={scores.wrong_probabilities[index]:.3f}, "
             f"p(true)={scores.true_probabilities[index]:.3f}"
         )
         axes[index, 1].imshow(overlay_heatmap(image, wrong_map))
-        axes[index, 1].set_title(f"explained target: wrong prediction\n{wrong_names[index]}")
+        axes[index, 1].set_title(f"explained target: {contrast_label}\n{wrong_names[index]}")
         axes[index, 2].imshow(overlay_heatmap(image, true_map))
         axes[index, 2].set_title(f"explained target: ground truth\n{true_names[index]}")
         axes[index, 3].imshow(wrong_map, cmap="magma", vmin=0.0, vmax=1.0)
-        axes[index, 3].set_title("raw heatmap\nwrong target")
+        axes[index, 3].set_title(f"raw heatmap\n{contrast_label}")
         axes[index, 4].imshow(true_map, cmap="magma", vmin=0.0, vmax=1.0)
         axes[index, 4].set_title("raw heatmap\ntrue target")
 
@@ -275,15 +319,15 @@ def save_contrastive_attribution_figure(
         ).item()
         background_gap = (wrong_background[index] - true_background[index]).item()
         metrics_text = (
-            "Error diagnostics\n\n"
-            f"wrong - true logit: {scores.margins[index]:+.3f}\n"
-            f"wrong - true prob.: {probability_gap:+.3f}\n\n"
+            "Contrast diagnostics\n\n"
+            f"{metric_prefix} logit: {scores.margins[index]:+.3f}\n"
+            f"{metric_prefix} prob.: {probability_gap:+.3f}\n\n"
             f"map IoU@top{top_percent}: {target_iou[index]:.3f}\n"
             f"map Spearman: {target_spearman[index]:.3f}\n\n"
             f"background saliency\n"
-            f"wrong target: {wrong_background[index]:.3f}\n"
+            f"{contrast_label}: {wrong_background[index]:.3f}\n"
             f"true target: {true_background[index]:.3f}\n"
-            f"wrong - true: {background_gap:+.3f}"
+            f"{metric_prefix}: {background_gap:+.3f}"
         )
         axes[index, 5].text(
             0.03,
@@ -305,7 +349,11 @@ def save_contrastive_attribution_figure(
         for axis in axes[index]:
             axis.axis("off")
     method_label = method.replace("_", " ").title()
-    fig.suptitle(f"Misclassification target contrast: {method_label}", fontsize=14, y=1.002)
+    if any(actual != wrong for actual, wrong in zip(actual_names, wrong_names, strict=True)):
+        title = f"Fixed target contrast: {method_label}"
+    else:
+        title = f"Misclassification target contrast: {method_label}"
+    fig.suptitle(title, fontsize=14, y=1.002)
     fig.tight_layout()
     fig.savefig(output_path, dpi=170, bbox_inches="tight")
     plt.close(fig)
@@ -474,4 +522,208 @@ def save_concept_evidence_figure(
     )
     fig.tight_layout()
     fig.savefig(output_path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
+
+
+def save_cbm_error_decomposition_figure(
+    image: torch.Tensor,
+    rows: list[dict[str, object]],
+    summary: dict[str, object],
+    output_path: str | Path,
+    top_k: int = 8,
+) -> None:
+    """Save a four-panel semantic decomposition of one wrong CBM prediction.
+
+    The panels connect the input image, its predicted-versus-AwA2 concept
+    values, the exact linear-head contributions to the predicted-versus-true
+    logit margin, and one-concept oracle corrections.  Positive contribution
+    bars support the wrong prediction; negative bars support the true class.
+    """
+    if not rows:
+        raise ValueError("rows must contain at least one concept.")
+    if top_k <= 0:
+        raise ValueError("top_k must be positive.")
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+    if image.dim() != 4 or image.size(0) != 1 or image.size(1) != 3:
+        raise ValueError("image must have shape [3, H, W] or [1, 3, H, W].")
+
+    output_path = Path(output_path).expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, axes = plt.subplots(2, 2, figsize=(16.0, 11.0))
+
+    predicted_class = str(summary["cbm_predicted_class"])
+    contrast_class = str(summary.get("contrast_class", predicted_class))
+    fixed_contrast = contrast_class != predicted_class
+    class_line = f"true: {summary['true_class']} | CBM top-1: {predicted_class}"
+    if fixed_contrast:
+        class_line += f"\nfixed contrast: {contrast_class} vs {summary['true_class']}"
+    contrast_probability = float(
+        summary.get("cbm_contrast_probability", summary["cbm_predicted_probability"])
+    )
+
+    axes[0, 0].imshow(_as_numpy_image(image, 0))
+    axes[0, 0].set_title(
+        "A. Original image\n"
+        f"{class_line}"
+    )
+    axes[0, 0].axis("off")
+    axes[0, 0].text(
+        0.02,
+        0.02,
+        (
+            f"confidence={float(summary['cbm_confidence']):.3f}\n"
+            f"p(true)={float(summary['cbm_true_probability']):.3f}\n"
+            f"p({contrast_class})={contrast_probability:.3f}\n"
+            f"margin {contrast_class}-true={float(summary['wrong_vs_true_margin']):+.3f}"
+        ),
+        transform=axes[0, 0].transAxes,
+        va="bottom",
+        ha="left",
+        fontsize=9.5,
+        family="monospace",
+        bbox={
+            "boxstyle": "round,pad=0.45",
+            "facecolor": "white",
+            "edgecolor": "#cbd5e1",
+            "alpha": 0.9,
+        },
+    )
+
+    error_rows = sorted(
+        rows,
+        key=lambda row: float(row["distance_to_true_prototype"]),
+        reverse=True,
+    )[:top_k]
+    error_rows.reverse()
+    positions = np.arange(len(error_rows))
+    axes[0, 1].barh(
+        positions - 0.18,
+        [float(row["predicted_value"]) for row in error_rows],
+        height=0.34,
+        color="#c2410c",
+        label="predicted concept",
+    )
+    axes[0, 1].barh(
+        positions + 0.18,
+        [float(row["true_prototype_value"]) for row in error_rows],
+        height=0.34,
+        color="#0f766e",
+        label="AwA2 true-class target",
+    )
+    axes[0, 1].set_yticks(positions, [str(row["concept"]) for row in error_rows])
+    axes[0, 1].set_xlim(0.0, 1.0)
+    axes[0, 1].set_xlabel("concept value")
+    axes[0, 1].set_title("B. Largest concept prediction errors")
+    axes[0, 1].grid(axis="x", alpha=0.25)
+    axes[0, 1].legend(loc="lower right", fontsize=8.5)
+
+    contribution_rows = sorted(
+        rows,
+        key=lambda row: abs(float(row["wrong_vs_true_margin_contribution"])),
+        reverse=True,
+    )[:top_k]
+    contribution_rows.reverse()
+    contribution_values = [
+        float(row["wrong_vs_true_margin_contribution"])
+        for row in contribution_rows
+    ]
+    axes[1, 0].barh(
+        [str(row["concept"]) for row in contribution_rows],
+        contribution_values,
+        color=["#b91c1c" if value > 0 else "#0f766e" for value in contribution_values],
+    )
+    axes[1, 0].axvline(0.0, color="black", linewidth=0.9)
+    axes[1, 0].set_xlabel(f"contribution to {contrast_class} - true logit margin")
+    axes[1, 0].set_title(
+        f"C. Linear class-head contributions ({contrast_class} vs {summary['true_class']})\n"
+        f"bias contribution={float(summary['wrong_vs_true_bias']):+.3f}"
+    )
+    axes[1, 0].grid(axis="x", alpha=0.25)
+    axes[1, 0].text(
+        0.01,
+        -0.17,
+        f"red: supports {contrast_class} | green: supports {summary['true_class']}",
+        transform=axes[1, 0].transAxes,
+        fontsize=8.5,
+    )
+
+    ranked_intervention_rows = sorted(
+        rows,
+        key=lambda row: abs(float(row["correction_true_probability_delta"])),
+        reverse=True,
+    )
+    intervention_rows = ranked_intervention_rows[:top_k]
+    for recovery_row in (
+        row
+        for row in ranked_intervention_rows
+        if bool(row.get("correction_recovers_true_class", False))
+    ):
+        if recovery_row in intervention_rows:
+            continue
+        replace_index = next(
+            (
+                index
+                for index in range(len(intervention_rows) - 1, -1, -1)
+                if not bool(
+                    intervention_rows[index].get(
+                        "correction_recovers_true_class",
+                        False,
+                    )
+                )
+            ),
+            None,
+        )
+        if replace_index is not None:
+            intervention_rows[replace_index] = recovery_row
+    intervention_rows.reverse()
+    intervention_values = [
+        float(row["correction_true_probability_delta"])
+        for row in intervention_rows
+    ]
+    axes[1, 1].barh(
+        [
+            f"{row['concept']}*"
+            if bool(row.get("correction_recovers_true_class", False))
+            else str(row["concept"])
+            for row in intervention_rows
+        ],
+        intervention_values,
+        color=[
+            "#0f766e"
+            if bool(row.get("correction_recovers_true_class", False))
+            else "#5aa79d"
+            if value > 0
+            else "#b45309"
+            for row, value in zip(intervention_rows, intervention_values, strict=True)
+        ],
+    )
+    axes[1, 1].axvline(0.0, color="black", linewidth=0.9)
+    axes[1, 1].set_xlabel("change in true-class probability after correction")
+    axes[1, 1].set_title("D. One-concept oracle interventions")
+    axes[1, 1].grid(axis="x", alpha=0.25)
+    if any(
+        bool(row.get("correction_recovers_true_class", False))
+        for row in intervention_rows
+    ):
+        axes[1, 1].text(
+            0.01,
+            -0.17,
+            "* correction recovers the true class",
+            transform=axes[1, 1].transAxes,
+            fontsize=8.5,
+        )
+
+    figure_title = (
+        f"CBM Concept Decomposition: fixed {contrast_class} vs {summary['true_class']} contrast"
+        if fixed_contrast
+        else "CBM Error Decomposition: concept prediction, weighting, and intervention"
+    )
+    fig.suptitle(
+        figure_title,
+        fontsize=15,
+        y=1.01,
+    )
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180, bbox_inches="tight")
     plt.close(fig)

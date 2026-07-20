@@ -205,6 +205,12 @@
       top: 92px;
     }
 
+    .section-heading h2 {
+      font-size: clamp(1.76rem, 2.65vw, 2.55rem);
+      line-height: 1.12;
+      letter-spacing: -.028em;
+    }
+
     h2 {
       margin: 0;
       font-size: clamp(2rem, 3.3vw, 3rem);
@@ -1129,6 +1135,9 @@
       overscroll-behavior: contain;
       border-left: 1px solid var(--line);
       background: #fffdf9;
+      font-family: var(--body);
+      font-size: .95rem;
+      line-height: 1.58;
     }
 
     .figure-lightbox-kicker {
@@ -1142,14 +1151,15 @@
 
     .figure-lightbox-comment h2 {
       margin: 0;
-      font-size: clamp(1.55rem, 2vw, 2rem);
-      letter-spacing: -.025em;
+      font-size: clamp(1.34rem, 1.72vw, 1.72rem);
+      line-height: 1.16;
+      letter-spacing: -.02em;
     }
 
     .figure-lightbox-caption {
       margin: 14px 0 0;
       color: var(--muted);
-      font-size: .94rem;
+      font-size: .9rem;
       line-height: 1.48;
     }
 
@@ -1161,12 +1171,25 @@
 
     .figure-lightbox-body p {
       margin: 0 0 14px;
-      font-size: .98rem;
+      font-size: .93rem;
       line-height: 1.62;
     }
 
     .figure-lightbox-body p:last-child {
       margin-bottom: 0;
+    }
+
+    .figure-lightbox-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+
+    .figure-lightbox-list li {
+      padding-left: 3px;
+      font-size: .93rem;
+      line-height: 1.58;
     }
 
     .comment-formula {
@@ -2385,6 +2408,14 @@
 
 
         <figure>
+          <img src="assets/xai-report/tcav-spurious-pairs.png"
+            alt="Bar chart comparing TCAV sensitivity scores with AwA2 class-level concept priors."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 19a</strong> &mdash; The spurious-pair audit ranks concept-class pairs where TCAV
+            sensitivity is high despite a low AwA2 semantic prior for that concept in the target class.</figcaption>
+        </figure>
+
+        <figure>
           <img src="assets/xai-report/tcav-bridge-concepts.png"
             alt="Heatmap of bridge concepts shared by suspicious TCAV source classes and target species."
             loading="lazy" decoding="async">
@@ -2574,6 +2605,85 @@
               propagate to the CBM class prediction.</figcaption>
           </figure>
         </div>
+
+        <h3 class="subsection-title">What is an oracle intervention?</h3>
+        <div class="prose">
+          <p class="prose-intro">An oracle intervention is a controlled edit of the bottleneck, not an edit of the
+            image.</p>
+          <p>For an image with true class <code>y</code>, the CBM first predicts a concept vector
+            <code>c&#770;(x)</code>. AwA2 supplies a class-level reference profile <code>c*(y)</code>. A one-concept
+            oracle intervention replaces one predicted coordinate <code>c&#770;<sub>j</sub>(x)</code> with the
+            corresponding reference value <code>c*<sub>j</sub>(y)</code>, keeps every other predicted concept fixed,
+            and runs the edited vector through the same class head.</p>
+        </div>
+
+        <div class="fact-grid" aria-label="Oracle intervention interpretation">
+          <article class="fact">
+            <h3>Why “oracle”?</h3>
+            <p>The evaluator uses privileged knowledge of the true class and its AwA2 attribute profile. The model
+              does not receive this information during normal inference.</p>
+          </article>
+          <article class="fact">
+            <h3>What is measured?</h3>
+            <p>The audit measures changes in the true-class probability, the predicted-versus-true logit margin and
+              the final top-1 class after the semantic coordinate is corrected.</p>
+          </article>
+          <article class="fact">
+            <h3>What it does not prove</h3>
+            <p>It is not a pixel-level causal edit and not an image-specific ground-truth annotation. AwA2 targets are
+              class-level, and edited vectors can lie outside the distribution seen by the class head during
+              training.</p>
+          </article>
+          <article class="fact">
+            <h3>Single versus full oracle</h3>
+            <p>A single intervention changes one concept and isolates its local effect. A full intervention replaces
+              the complete predicted vector and stress-tests whether the class head can recognize the true-class
+              AwA2 profile.</p>
+          </article>
+        </div>
+
+        <div class="note">
+          <strong>Probability and rank can move differently</strong>
+          <p>In a multiclass softmax, a correction can make the true class top-1 even if its absolute probability
+            decreases, provided that the competing classes decrease by more. For this reason the report reads
+            <code>&Delta;p(true)</code>, the wrong-versus-true margin and the final predicted class together.</p>
+        </div>
+
+        <h3 class="subsection-title">CBM real error decomposition: bobcat &rarr; hippopotamus</h3>
+        <div class="prose">
+          <p class="prose-intro">This case is selected directly from the CBM error report with
+            <code>cbm_correct = False</code>, ranked by mean absolute concept error.</p>
+          <p>The true class is <code>bobcat</code>, while the Concept Bottleneck Model predicts
+            <code>hippopotamus</code>. The contrast class is therefore the CBM's own wrong top-1 prediction, not a
+            manually fixed comparator.</p>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/cbm-real-error-case-1.png"
+            alt="Four-panel CBM error decomposition for a bobcat image classified as hippopotamus, showing concept errors, linear class-head contributions and oracle interventions."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 23</strong> &mdash; CBM decomposition for the true <code>bobcat</code> class versus
+            the predicted <code>hippopotamus</code> class. Predicted concepts are compared with the AwA2 bobcat
+            profile, then decomposed into exact contributions to the <code>hippopotamus &minus; bobcat</code> logit margin and tested with
+            one-concept corrections.</figcaption>
+        </figure>
+
+        <h3 class="subsection-title">CBM real error decomposition: polar bear &rarr; sheep</h3>
+        <div class="prose">
+          <p class="prose-intro">This is the second strongest real CBM error under the same ranking rule.</p>
+          <p>The true class is <code>polar+bear</code>, while the Concept Bottleneck Model predicts
+            <code>sheep</code>. Here the oracle class-level concept vector would recover <code>polar+bear</code>,
+            so the error is consistent with a bottleneck concept-prediction failure.</p>
+        </div>
+
+        <figure>
+          <img src="assets/xai-report/cbm-real-error-case-2.png"
+            alt="Four-panel CBM error decomposition for a polar bear image classified as sheep, showing concept errors, linear class-head contributions and oracle interventions."
+            loading="lazy" decoding="async">
+          <figcaption><strong>Figure 24</strong> &mdash; CBM decomposition for the true <code>polar+bear</code> class
+            versus the predicted <code>sheep</code> class. The lower-left panel decomposes the exact
+            <code>sheep &minus; polar+bear</code> logit margin.</figcaption>
+        </figure>
 
         <div class="warning">
           <strong>Class-level supervision</strong>
@@ -2976,7 +3086,7 @@
         ]
       },
       "assets/xai-report/tcav-spurious-pairs.png": {
-        "title": "Figure 19 - TCAV spurious concept-species audit",
+        "title": "Figure 19a - TCAV spurious concept-species audit",
         "paragraphs": [
           "This audit does not claim that a concept and a species are statistically correlated. It compares TCAV sensitivity with the AwA2 oracle value for the same species and concept, so it highlights mismatches between model response and semantic expectation.",
           "For flippers and polar bear, the useful hypothesis is representation entanglement: the flippers CAV is trained from aquatic mammal examples, so it may encode water, coast, smooth body texture or dataset context in addition to anatomical flippers.",
@@ -3039,6 +3149,28 @@
           "The antelope examples are the most useful rows to inspect: changes in class-level attributes can move the CBM scores substantially, but the edited concept may represent a class prior rather than a visible pixel-level correction in that specific image.",
           "The intervention table should be read as a response analysis of the CBM class head: it shows how semantic variables move the bottleneck prediction, not how a human would correct the original ResNet decision."
         ]
+      },
+      "assets/xai-report/cbm-real-error-case-1.png": {
+        "title": "Figure 23 - CBM bobcat-to-hippopotamus error decomposition",
+        "bullets": [
+          "<strong>Real CBM error:</strong> this image is selected from rows with <code>cbm_correct = False</code>. The true class is <code>bobcat</code>, while the CBM predicts <code>hippopotamus</code>.",
+          "<strong>Margin:</strong> <code>p(hippopotamus)=0.100</code> and <code>p(bobcat)=0.048</code>, with a <code>hippopotamus &minus; bobcat</code> logit margin of <code>+0.734</code>.",
+          "<strong>Largest concept errors:</strong> <code>claws</code>, <code>agility</code> and <code>tail</code> are strongly underpredicted relative to the AwA2 bobcat profile, while <code>hairless</code> is overpredicted.",
+          "<strong>Class-head evidence:</strong> <code>hairless</code>, <code>flippers</code>, <code>hooves</code> and <code>meatteeth</code> contribute positive evidence toward the wrong <code>hippopotamus</code> class over <code>bobcat</code>.",
+          "<strong>Single-concept oracle:</strong> the best one-concept correction is <code>hairless</code>, but it still does not recover the true class.",
+          "<strong>Full-vector oracle:</strong> replacing all concepts with the class-level AwA2 bobcat profile predicts <code>lion</code>, not <code>bobcat</code>. This indicates both bottleneck error and a concept-to-class head limitation."
+        ]
+      },
+      "assets/xai-report/cbm-real-error-case-2.png": {
+        "title": "Figure 24 - CBM polar-bear-to-sheep error decomposition",
+        "bullets": [
+          "<strong>Real CBM error:</strong> this image is selected from rows with <code>cbm_correct = False</code>. The true class is <code>polar+bear</code>, while the CBM predicts <code>sheep</code>.",
+          "<strong>Margin:</strong> <code>p(sheep)=0.090</code> and <code>p(polar+bear)=0.066</code>, with a <code>sheep &minus; polar+bear</code> logit margin of <code>+0.311</code>.",
+          "<strong>Largest concept errors:</strong> <code>paws</code>, <code>walks</code> and <code>meatteeth</code> are underpredicted relative to the AwA2 polar-bear profile, while <code>hooves</code> is overpredicted.",
+          "<strong>Class-head evidence:</strong> <code>claws</code>, <code>stripes</code> and <code>water</code> support the wrong <code>sheep</code> class, while <code>walks</code> pushes back toward <code>polar+bear</code>.",
+          "<strong>Single-concept oracle:</strong> the best one-concept correction is <code>meatteeth</code>, but it still does not recover the true class.",
+          "<strong>Full-vector oracle:</strong> replacing all concepts with the class-level AwA2 polar-bear profile recovers <code>polar+bear</code>, so this case is consistent with a bottleneck concept-prediction failure."
+        ]
       }
     };
 
@@ -3090,11 +3222,24 @@
       lightboxImage.alt = image.alt || commentary.title;
       lightboxTitle.textContent = commentary.title;
       lightboxCaption.textContent = caption;
-      lightboxBody.replaceChildren(...commentary.paragraphs.map((paragraph) => {
+      const commentaryElements = (commentary.paragraphs || []).map((paragraph) => {
         const element = document.createElement('p');
         element.innerHTML = paragraph;
         return element;
-      }));
+      });
+
+      if (commentary.bullets?.length) {
+        const list = document.createElement('ul');
+        list.className = 'figure-lightbox-list';
+        commentary.bullets.forEach((bullet) => {
+          const item = document.createElement('li');
+          item.innerHTML = bullet;
+          list.append(item);
+        });
+        commentaryElements.push(list);
+      }
+
+      lightboxBody.replaceChildren(...commentaryElements);
 
       lightbox.hidden = false;
       lightbox.setAttribute('aria-hidden', 'false');

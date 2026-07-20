@@ -5,15 +5,26 @@ from __future__ import annotations
 import argparse
 import csv
 import logging
+import os
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
+
+_CACHE_ROOT = Path(tempfile.gettempdir()) / "deep_learning_xai"
+_MPLCONFIGDIR = _CACHE_ROOT / "matplotlib"
+_XDG_CACHE_HOME = _CACHE_ROOT / "xdg-cache"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+_XDG_CACHE_HOME.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+os.environ.setdefault("XDG_CACHE_HOME", str(_XDG_CACHE_HOME))
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from src.concepts import (
     align_concept_bank_to_manifest,
@@ -71,6 +82,11 @@ def parse_args() -> argparse.Namespace:
         "--transition-figure-output",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "phase6_concept_transition_examples.png",
+    )
+    parser.add_argument(
+        "--skip-transition-figure",
+        action="store_true",
+        help="Write transition CSV rows without saving the concept-transition bar chart.",
     )
     parser.add_argument(
         "--matrix-kind",
@@ -240,11 +256,14 @@ def main() -> None:
     transition_rows = build_transition_rows(concept_bank, transitions)
     if transition_rows:
         write_csv(transition_rows, args.transition_output)
-        save_transition_plot(
-            transition_rows,
-            args.transition_figure_output,
-            max_rows=args.max_transitions_plot,
-        )
+        if args.skip_transition_figure:
+            LOGGER.info("skipped transition figure: %s", args.transition_figure_output)
+        else:
+            save_transition_plot(
+                transition_rows,
+                args.transition_figure_output,
+                max_rows=args.max_transitions_plot,
+            )
     else:
         LOGGER.warning("No changed prediction transitions found; wrote only class profiles.")
 

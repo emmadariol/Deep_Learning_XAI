@@ -283,8 +283,7 @@ def build_stages(args: argparse.Namespace) -> dict[str, Stage]:
                     "outputs/reports/phase6_concept_transitions.csv",
                     "--heatmap-output",
                     "outputs/figures/phase6_class_concept_heatmap.png",
-                    "--transition-figure-output",
-                    "outputs/figures/phase6_concept_transition_examples.png",
+                    "--skip-transition-figure",
                     "--log-level",
                     args.log_level,
                 ]
@@ -537,11 +536,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", default="outputs/checkpoints/best_resnet50_awa2.pt")
     parser.add_argument("--cbm-checkpoint", default="outputs/checkpoints/phase8_cbm.pt")
     parser.add_argument("--device", default="auto")
-    parser.add_argument("--num-workers", default=0, type=int)
+    parser.add_argument("--num-workers", default=2, type=int)
     parser.add_argument("--seed", default=42, type=int)
     parser.add_argument("--log-level", default="INFO")
     parser.add_argument("--batch-size", default=32, type=int)
-    parser.add_argument("--epochs", default=20, type=int)
+    parser.add_argument("--epochs", default=5, type=int)
     parser.add_argument("--early-stopping-patience", default=3, type=int)
     parser.add_argument("--max-images", default=4, type=int)
     parser.add_argument("--ig-steps", default=16, type=int)
