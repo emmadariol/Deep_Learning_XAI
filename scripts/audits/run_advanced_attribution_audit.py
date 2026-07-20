@@ -5,13 +5,24 @@ from __future__ import annotations
 import argparse
 import logging
 import math
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
+
+_CACHE_ROOT = Path(tempfile.gettempdir()) / "deep_learning_xai"
+_MPLCONFIGDIR = _CACHE_ROOT / "matplotlib"
+_XDG_CACHE_HOME = _CACHE_ROOT / "xdg-cache"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+_XDG_CACHE_HOME.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+os.environ.setdefault("XDG_CACHE_HOME", str(_XDG_CACHE_HOME))
 
 from scripts.experiments.run_xai import collect_correct_examples
 from src.attribution_audit import (

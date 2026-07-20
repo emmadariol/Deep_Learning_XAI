@@ -5,14 +5,26 @@ from __future__ import annotations
 import argparse
 import csv
 import logging
+import os
 import sys
+import tempfile
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
+
+_CACHE_ROOT = Path(tempfile.gettempdir()) / "deep_learning_xai"
+_MPLCONFIGDIR = _CACHE_ROOT / "matplotlib"
+_XDG_CACHE_HOME = _CACHE_ROOT / "xdg-cache"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+_XDG_CACHE_HOME.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+os.environ.setdefault("XDG_CACHE_HOME", str(_XDG_CACHE_HOME))
+
+import matplotlib.pyplot as plt
 
 from src.concepts import (
     align_concept_bank_to_manifest,
@@ -283,9 +295,18 @@ def concept_positive_classes_from_summary(path: Path) -> dict[str, dict[str, int
     if not path.exists():
         return {}
     rows = read_csv_rows(path)
+    if rows and "positive_classes" not in rows[0]:
+        LOGGER.info(
+            "CAV summary %s has no positive_classes column; inferring source classes from AwA2.",
+            path,
+        )
+        return {}
     mapping: dict[str, dict[str, int]] = {}
     for row in rows:
-        mapping[normalize_class_name(row["concept"])] = parse_class_counts(row["positive_classes"])
+        positive_classes = row.get("positive_classes", "").strip()
+        if not positive_classes:
+            continue
+        mapping[normalize_class_name(row["concept"])] = parse_class_counts(positive_classes)
     return mapping
 
 

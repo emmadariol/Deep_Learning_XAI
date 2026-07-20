@@ -326,6 +326,12 @@ def build_dataloaders(
             transform=build_resnet_transforms(train=split == "train"),
             class_map_path=class_map_path,
         )
+        loader_kwargs = {}
+        if num_workers > 0:
+            loader_kwargs = {
+                "persistent_workers": True,
+                "prefetch_factor": 2,
+            }
         dataloaders[split] = DataLoader(
             dataset,
             batch_size=batch_size,
@@ -333,6 +339,7 @@ def build_dataloaders(
             num_workers=num_workers,
             pin_memory=pin_memory,
             drop_last=False,
+            **loader_kwargs,
         )
     return dataloaders
 

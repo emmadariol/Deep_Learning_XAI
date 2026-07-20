@@ -91,6 +91,17 @@ def main() -> None:
         num_workers=args.num_workers,
         pin_memory=device.type == "cuda",
     )
+    LOGGER.info(
+        "training_config batch_size=%d epochs=%d num_workers=%d train_samples=%d "
+        "train_batches=%d val_samples=%d val_batches=%d",
+        args.batch_size,
+        args.epochs,
+        args.num_workers,
+        len(dataloaders["train"].dataset),
+        len(dataloaders["train"]),
+        len(dataloaders["val"].dataset),
+        len(dataloaders["val"]),
+    )
 
     model = build_resnet50_classifier(
         num_classes=num_classes,

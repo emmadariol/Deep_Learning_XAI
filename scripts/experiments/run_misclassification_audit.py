@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import logging
 import math
+import os
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -16,13 +19,23 @@ import torch.nn.functional as F
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+_CACHE_ROOT = Path(tempfile.gettempdir()) / "deep_learning_xai"
+_MPLCONFIGDIR = _CACHE_ROOT / "matplotlib"
+_XDG_CACHE_HOME = _CACHE_ROOT / "xdg-cache"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+_XDG_CACHE_HOME.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+os.environ.setdefault("XDG_CACHE_HOME", str(_XDG_CACHE_HOME))
+
 from scripts.experiments.run_xai import collect_correct_examples
 from src.attribution_audit import compute_attribution
-from src.bottleneck import load_concept_bottleneck_checkpoint
+from src.bottleneck import ConceptBottleneckModel, load_concept_bottleneck_checkpoint
 from src.concepts import (
     align_concept_bank_to_manifest,
     find_awa2_metadata_root,
     load_awa2_concepts,
+    normalize_class_name,
     read_manifest_classes,
 )
 from src.data import build_dataloaders, infer_num_classes, load_idx_to_class
@@ -76,6 +89,20 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "outputs" / "checkpoints" / "phase8_cbm_notebook.pt",
     )
+    parser.add_argument(
+        "--legacy-concept-report",
+        type=Path,
+        default=(
+            PROJECT_ROOT
+            / "outputs"
+            / "reports"
+            / "phase8_concept_metrics_notebook.csv"
+        ),
+        help=(
+            "Ordered concept report used only when loading a legacy CBM checkpoint "
+            "without embedded semantic metadata."
+        ),
+    )
     parser.add_argument("--metadata-root", type=Path, default=PROJECT_ROOT / "data" / "AWA2")
     parser.add_argument("--matrix-kind", choices=("continuous", "binary"), default="continuous")
     parser.add_argument("--skip-cbm", action="store_true")
@@ -107,6 +134,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-images", type=positive_int, default=4)
     parser.add_argument("--max-per-class", type=positive_int, default=1)
+    parser.add_argument(
+        "--target-pairs",
+        nargs="*",
+        default=None,
+        metavar="TRUE:WRONG",
+        help=(
+            "Optional fixed true/wrong class pairs for the contrastive audit. "
+            "Exact true->wrong errors are preferred; if none exists for a pair, "
+            "the test image with the highest wrong-class probability is used. "
+            "Append @FILENAME to force a specific image."
+        ),
+    )
     parser.add_argument("--batch-size", type=positive_int, default=8)
     parser.add_argument("--num-workers", type=nonnegative_int, default=0)
     parser.add_argument("--ig-steps", type=positive_int, default=16)
@@ -366,8 +405,260 @@ def run_deletion_audit(
     return rows
 
 
+def _read_csv(path: Path) -> list[dict[str, str]]:
+    path = path.expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(path)
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _class_lookup(idx_to_class: dict[int, str]) -> dict[str, tuple[int, str]]:
+    return {
+        normalize_class_name(class_name): (label, class_name)
+        for label, class_name in idx_to_class.items()
+    }
+
+
+def _parse_target_pairs(
+    values: list[str] | None,
+    idx_to_class: dict[int, str],
+) -> list[tuple[int, str, int, str, str | None]]:
+    if not values:
+        return []
+    lookup = _class_lookup(idx_to_class)
+    pairs: list[tuple[int, str, int, str, str | None]] = []
+    for value in values:
+        pair_value, image_selector = (
+            [part.strip() for part in value.split("@", 1)]
+            if "@" in value
+            else (value.strip(), None)
+        )
+        separator = "->" if "->" in pair_value else ":"
+        if separator not in pair_value:
+            raise ValueError(
+                f"Invalid target pair {value!r}; expected TRUE:WRONG or TRUE->WRONG."
+            )
+        true_raw, wrong_raw = [part.strip() for part in pair_value.split(separator, 1)]
+        true_key = normalize_class_name(true_raw)
+        wrong_key = normalize_class_name(wrong_raw)
+        if true_key not in lookup:
+            raise ValueError(f"Unknown true class in target pair {value!r}: {true_raw!r}")
+        if wrong_key not in lookup:
+            raise ValueError(f"Unknown wrong class in target pair {value!r}: {wrong_raw!r}")
+        true_label, true_name = lookup[true_key]
+        wrong_label, wrong_name = lookup[wrong_key]
+        if true_label == wrong_label:
+            raise ValueError(f"Target pair must use two different classes: {value!r}")
+        pairs.append((true_label, true_name, wrong_label, wrong_name, image_selector))
+    return pairs
+
+
+def _matches_image_selector(image_path: str, image_selector: str | None) -> bool:
+    if image_selector is None:
+        return True
+    return image_selector == Path(image_path).name or image_selector in image_path
+
+
+def collect_target_pair_examples(
+    model: torch.nn.Module,
+    loader: torch.utils.data.DataLoader,
+    device: torch.device,
+    target_pairs: list[tuple[int, str, int, str, str | None]],
+    idx_to_class: dict[int, str],
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, list[str], list[str], list[str]]:
+    """Select one test image for each requested true/wrong target pair."""
+    best_exact: list[tuple[float, tuple[object, ...]] | None] = [None] * len(target_pairs)
+    best_fallback: list[tuple[float, tuple[object, ...]] | None] = [None] * len(target_pairs)
+    pairs_by_true_label: dict[int, list[int]] = {}
+    for pair_index, (true_label, _true_name, _wrong_label, _wrong_name, _image_selector) in enumerate(target_pairs):
+        pairs_by_true_label.setdefault(true_label, []).append(pair_index)
+
+    model.eval()
+    with torch.no_grad():
+        for batch in loader:
+            images = batch[0].to(device, non_blocking=True)
+            labels = batch[1].to(device, non_blocking=True)
+            image_paths = list(batch[3])
+            probabilities = torch.softmax(model(images), dim=1)
+            confidences, predictions = probabilities.max(dim=1)
+
+            for batch_index in range(images.size(0)):
+                true_label = int(labels[batch_index].item())
+                if true_label not in pairs_by_true_label:
+                    continue
+                predicted_label = int(predictions[batch_index].item())
+                for pair_index in pairs_by_true_label[true_label]:
+                    (
+                        _pair_true_label,
+                        true_name,
+                        wrong_label,
+                        wrong_name,
+                        image_selector,
+                    ) = target_pairs[pair_index]
+                    if not _matches_image_selector(image_paths[batch_index], image_selector):
+                        continue
+                    wrong_probability = float(
+                        probabilities[batch_index, wrong_label].detach().cpu().item()
+                    )
+                    candidate = (
+                        images[batch_index].detach().cpu(),
+                        labels[batch_index].detach().cpu(),
+                        torch.tensor(wrong_label, dtype=torch.long),
+                        true_name,
+                        wrong_name,
+                        image_paths[batch_index],
+                        idx_to_class[predicted_label],
+                        float(confidences[batch_index].detach().cpu().item()),
+                    )
+                    if image_selector is not None:
+                        if predicted_label == wrong_label:
+                            best_exact[pair_index] = (wrong_probability, candidate)
+                        else:
+                            best_fallback[pair_index] = (wrong_probability, candidate)
+                        continue
+                    fallback = best_fallback[pair_index]
+                    if fallback is None or wrong_probability > fallback[0]:
+                        best_fallback[pair_index] = (wrong_probability, candidate)
+                    if predicted_label == wrong_label:
+                        exact = best_exact[pair_index]
+                        if exact is None or wrong_probability > exact[0]:
+                            best_exact[pair_index] = (wrong_probability, candidate)
+
+    selected: list[tuple[object, ...]] = []
+    for pair_index, (_true_label, true_name, _wrong_label, wrong_name, image_selector) in enumerate(target_pairs):
+        exact = best_exact[pair_index]
+        fallback = best_fallback[pair_index]
+        chosen = exact if exact is not None else fallback
+        if chosen is None:
+            detail = f" matching {image_selector!r}" if image_selector else ""
+            raise RuntimeError(
+                f"No test images found for requested pair {true_name}:{wrong_name}{detail}."
+            )
+        if exact is None:
+            if image_selector is None:
+                LOGGER.warning(
+                    "No exact %s->%s error found; using highest wrong-class probability fallback.",
+                    true_name,
+                    wrong_name,
+                )
+            else:
+                LOGGER.warning(
+                    "Requested image %s for %s->%s is not an exact top-1 error.",
+                    image_selector,
+                    true_name,
+                    wrong_name,
+                )
+        selected.append(chosen[1])
+
+    images_out = [candidate[0] for candidate in selected]
+    labels_out = [candidate[1] for candidate in selected]
+    wrong_targets_out = [candidate[2] for candidate in selected]
+    true_names = [str(candidate[3]) for candidate in selected]
+    wrong_names = [str(candidate[4]) for candidate in selected]
+    image_paths = [str(candidate[5]) for candidate in selected]
+    predicted_names = [str(candidate[6]) for candidate in selected]
+    confidences = [float(candidate[7]) for candidate in selected]
+
+    for true_name, wrong_name, predicted_name, confidence, image_path in zip(
+        true_names,
+        wrong_names,
+        predicted_names,
+        confidences,
+        image_paths,
+        strict=True,
+    ):
+        LOGGER.info(
+            "Selected target-pair example true=%s wrong=%s actual_pred=%s confidence=%.4f image=%s",
+            true_name,
+            wrong_name,
+            predicted_name,
+            confidence,
+            image_path,
+        )
+
+    return (
+        torch.stack(images_out, dim=0).to(device),
+        torch.stack(labels_out, dim=0).to(device),
+        torch.stack(wrong_targets_out, dim=0).to(device),
+        true_names,
+        wrong_names,
+        image_paths,
+    )
+
+
+def load_legacy_cbm_checkpoint(
+    checkpoint_path: Path,
+    concept_report_path: Path,
+    concept_bank,
+    matrix_kind: str,
+    idx_to_class: dict[int, str],
+    device: torch.device,
+) -> tuple[ConceptBottleneckModel, dict[str, object]]:
+    """Load an old state-only CBM after reconstructing and validating semantics."""
+    checkpoint_path = checkpoint_path.expanduser().resolve()
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    if not isinstance(checkpoint, dict):
+        raise TypeError("Legacy CBM checkpoint must be a dictionary.")
+    state_dict = checkpoint.get("model_state_dict")
+    if not isinstance(state_dict, dict):
+        raise ValueError("Legacy CBM checkpoint is missing model_state_dict.")
+    class_weight = state_dict.get("class_head.weight")
+    concept_weight = state_dict.get("concept_head.1.weight")
+    if not isinstance(class_weight, torch.Tensor) or not isinstance(
+        concept_weight, torch.Tensor
+    ):
+        raise ValueError("Legacy CBM checkpoint has an unsupported architecture.")
+    num_classes, num_concepts = map(int, class_weight.shape)
+    if int(concept_weight.shape[0]) != num_concepts:
+        raise ValueError("Legacy CBM concept-head and class-head dimensions disagree.")
+    if num_classes != len(idx_to_class):
+        raise ValueError(
+            "Legacy CBM class count does not match the current manifest mapping."
+        )
+
+    concept_rows = _read_csv(concept_report_path)
+    if not concept_rows or "concept" not in concept_rows[0]:
+        raise ValueError("Legacy concept report must contain a concept column.")
+    concept_names = [row["concept"] for row in concept_rows]
+    if len(concept_names) != num_concepts or len(set(concept_names)) != num_concepts:
+        raise ValueError(
+            "Legacy concept report does not uniquely match the checkpoint concept dimension."
+        )
+    concept_to_index = {
+        str(name): index for index, name in enumerate(concept_bank.concept_names)
+    }
+    missing = [name for name in concept_names if name not in concept_to_index]
+    if missing:
+        raise ValueError(f"Legacy concept report contains unknown concepts: {missing}")
+    concept_indices = [concept_to_index[name] for name in concept_names]
+
+    model = ConceptBottleneckModel(
+        num_classes=num_classes,
+        num_concepts=num_concepts,
+        pretrained=False,
+        trainable_backbone_layers=("layer4",),
+        dropout=0.15,
+    )
+    model.load_state_dict(state_dict, strict=True)
+    model.to(device)
+    model.eval()
+    metadata: dict[str, object] = {
+        "concept_names": concept_names,
+        "concept_indices": concept_indices,
+        "idx_to_class": idx_to_class,
+        "matrix_kind": matrix_kind,
+    }
+    LOGGER.warning(
+        "Loaded legacy CBM checkpoint using validated concept order from %s.",
+        concept_report_path,
+    )
+    return model, metadata
+
+
 def run_cbm_comparator(
     checkpoint_path: Path,
+    legacy_concept_report: Path,
     metadata_root: Path,
     matrix_kind: str,
     images: torch.Tensor,
@@ -380,25 +671,40 @@ def run_cbm_comparator(
     manifest: Path,
     device: torch.device,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    model, metadata = load_concept_bottleneck_checkpoint(
-        checkpoint_path,
-        device,
-        expected_class_mapping=idx_to_class,
+    manifest_classes = read_manifest_classes(manifest)
+    resolved_metadata_root = find_awa2_metadata_root(
+        [metadata_root, manifest.parent, PROJECT_ROOT / "data" / "AWA2", PROJECT_ROOT / "data"]
     )
+    bank = load_awa2_concepts(resolved_metadata_root, matrix_kind=matrix_kind)
+    bank = align_concept_bank_to_manifest(bank, manifest_classes)
+    try:
+        model, metadata = load_concept_bottleneck_checkpoint(
+            checkpoint_path,
+            device,
+            expected_class_mapping=idx_to_class,
+        )
+    except ValueError as error:
+        if str(error) != "CBM checkpoint is missing model_config metadata.":
+            raise
+        model, metadata = load_legacy_cbm_checkpoint(
+            checkpoint_path=checkpoint_path,
+            concept_report_path=legacy_concept_report,
+            concept_bank=bank,
+            matrix_kind=matrix_kind,
+            idx_to_class=idx_to_class,
+            device=device,
+        )
     concept_names = [str(name) for name in metadata["concept_names"]]
     concept_indices = [int(index) for index in metadata.get("concept_indices", [])]
     if len(concept_indices) != len(concept_names):
         raise ValueError("CBM checkpoint concept indices and names disagree.")
 
-    manifest_classes = read_manifest_classes(manifest)
-    resolved_metadata_root = find_awa2_metadata_root(
-        [metadata_root, manifest.parent, PROJECT_ROOT / "data" / "AWA2", PROJECT_ROOT / "data"]
-    )
-    bank = load_awa2_concepts(
-        resolved_metadata_root,
-        matrix_kind=str(metadata.get("matrix_kind", matrix_kind)),
-    )
-    bank = align_concept_bank_to_manifest(bank, manifest_classes)
+    if str(metadata.get("matrix_kind", matrix_kind)) != matrix_kind:
+        bank = load_awa2_concepts(
+            resolved_metadata_root,
+            matrix_kind=str(metadata.get("matrix_kind", matrix_kind)),
+        )
+        bank = align_concept_bank_to_manifest(bank, manifest_classes)
     prototypes = torch.tensor(
         bank.normalized_matrix()[:, concept_indices],
         dtype=images.dtype,
@@ -486,25 +792,62 @@ def main() -> None:
     load_checkpoint(model, checkpoint, device, expected_class_mapping=idx_to_class)
     model.to(device).eval()
 
-    images, labels, true_names, _stored_predictions, _stored_confidences, image_paths = (
-        collect_correct_examples(
-            model=model,
-            loader=loaders["test"],
-            device=device,
-            idx_to_class=idx_to_class,
-            max_images=args.max_images,
-            max_per_class=args.max_per_class,
-            only_incorrect=True,
-            seed=args.seed,
+    target_pairs = _parse_target_pairs(args.target_pairs, idx_to_class)
+    if target_pairs:
+        images, labels, wrong_targets, true_names, wrong_names, image_paths = (
+            collect_target_pair_examples(
+                model=model,
+                loader=loaders["test"],
+                device=device,
+                target_pairs=target_pairs,
+                idx_to_class=idx_to_class,
+            )
         )
-    )
-    with torch.no_grad():
-        original_logits = model(images)
-        original_probabilities = torch.softmax(original_logits, dim=1)
-        wrong_targets = original_probabilities.argmax(dim=1)
+    else:
+        images, labels, true_names, _stored_predictions, _stored_confidences, image_paths = (
+            collect_correct_examples(
+                model=model,
+                loader=loaders["test"],
+                device=device,
+                idx_to_class=idx_to_class,
+                max_images=args.max_images,
+                max_per_class=args.max_per_class,
+                only_incorrect=True,
+                seed=args.seed,
+            )
+        )
+        with torch.no_grad():
+            original_logits = model(images)
+            original_probabilities = torch.softmax(original_logits, dim=1)
+            wrong_targets = original_probabilities.argmax(dim=1)
+        if torch.any(wrong_targets == labels):
+            raise RuntimeError("Misclassification selection returned a correctly classified image.")
+        wrong_names = [idx_to_class[int(label.item())] for label in wrong_targets]
+    if target_pairs:
+        with torch.no_grad():
+            original_logits = model(images)
+            original_probabilities = torch.softmax(original_logits, dim=1)
+            original_predictions = original_probabilities.argmax(dim=1)
+    else:
+        original_predictions = wrong_targets
     if torch.any(wrong_targets == labels):
-        raise RuntimeError("Misclassification selection returned a correctly classified image.")
-    wrong_names = [idx_to_class[int(label.item())] for label in wrong_targets]
+        raise RuntimeError("Target-pair selection returned a true class as the wrong target.")
+    mismatched_fixed_targets = [
+        (
+            true_names[index],
+            wrong_names[index],
+            idx_to_class[int(original_predictions[index].item())],
+        )
+        for index in range(images.size(0))
+        if int(original_predictions[index].item()) != int(wrong_targets[index].item())
+    ]
+    for true_name, wrong_name, actual_prediction in mismatched_fixed_targets:
+        LOGGER.warning(
+            "Fixed target %s->%s is not the model top-1 for the selected image; actual top-1 is %s.",
+            true_name,
+            wrong_name,
+            actual_prediction,
+        )
     log_tensor_stats("misclassification.original_logits", original_logits)
 
     background_mask, perturbed = apply_perturbation_suite(
@@ -598,6 +941,10 @@ def main() -> None:
             output_path=figure_directory / f"target_contrast_{method}.png",
             background_mask=background_mask,
             top_fraction=args.top_fraction,
+            actual_names=[
+                idx_to_class[int(prediction.item())]
+                for prediction in predictions_by_condition["original"]
+            ],
         )
     save_perturbation_margin_figure(
         images=images,
@@ -618,6 +965,7 @@ def main() -> None:
     if not args.skip_cbm and cbm_checkpoint.exists():
         concept_rows, concept_summary_rows = run_cbm_comparator(
             checkpoint_path=cbm_checkpoint,
+            legacy_concept_report=args.legacy_concept_report,
             metadata_root=args.metadata_root,
             matrix_kind=args.matrix_kind,
             images=images,
