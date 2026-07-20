@@ -228,6 +228,16 @@
       font-size: 1.24rem;
     }
 
+    .method-title {
+      margin-top: 0;
+      font-size: clamp(1.72rem, 2.6vw, 2.18rem);
+      line-height: 1.15;
+    }
+
+    .method-subtitle {
+      font-weight: 400;
+    }
+
     .section-disclosure {
       width: 100%;
     }
@@ -329,6 +339,57 @@
     .overview-intro p:not(.prose-intro) {
       color: var(--muted);
       font-size: 1.02rem;
+    }
+
+    .overview-path {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      margin: 34px 0 0;
+      padding: 0;
+      list-style: none;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .overview-path li {
+      min-height: 158px;
+      padding: 20px 18px 18px 0;
+      border-right: 1px solid var(--line);
+    }
+
+    .overview-path li:not(:first-child) {
+      padding-left: 18px;
+    }
+
+    .overview-path li:last-child {
+      border-right: 0;
+    }
+
+    .overview-step {
+      display: block;
+      margin-bottom: 24px;
+      color: var(--accent);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .overview-path strong {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+
+    .overview-path p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.5;
     }
 
     .analysis-lenses {
@@ -556,6 +617,10 @@
       line-height: 1.45;
     }
 
+    .model-pipeline-figure .pipeline {
+      margin-top: 0;
+    }
+
     .fact-grid,
     .metric-list {
       display: grid;
@@ -575,6 +640,14 @@
       margin: 8px 0 0;
       color: var(--muted);
       font-size: .93rem;
+    }
+
+    .research-questions {
+      margin-top: 38px;
+      padding: clamp(22px, 3vw, 30px);
+      background: #fffdf9;
+      border: 1px solid var(--line);
+      border-radius: 7px;
     }
 
     .metric-guide {
@@ -758,53 +831,77 @@
       gap: 20px;
     }
 
-    .fact-grid--questions .fact {
-      position: relative;
-      min-height: 178px;
-      padding: 24px 24px 22px;
-      overflow: hidden;
-      background: linear-gradient(180deg, #f5faf9 0%, #fff 72%);
-      border: 1px solid #cbdad8;
-      border-top: 5px solid var(--accent);
-      border-radius: 0 0 7px 7px;
+    .research-questions > p {
+      margin: 0 0 18px;
+      color: var(--ink);
+      font-size: clamp(1.18rem, 1.8vw, 1.5rem);
+      font-weight: 780;
+      line-height: 1.3;
     }
 
-    .fact-grid--questions .fact::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 42px;
-      height: 42px;
-      background: linear-gradient(135deg, transparent 50%, rgba(36, 95, 105, .14) 50%);
-      pointer-events: none;
+    .question-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
 
-    .question-label {
+    .question-grid li {
+      min-height: 146px;
+      padding: 16px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 0 0 6px 6px;
+    }
+
+    .question-index {
       display: block;
       margin-bottom: 18px;
       color: var(--accent);
       font-size: .7rem;
       font-weight: 800;
-      letter-spacing: .1em;
+      letter-spacing: .09em;
       line-height: 1;
       text-transform: uppercase;
     }
 
-    .fact-grid--questions h3 {
-      max-width: 28ch;
+    .question-grid strong {
+      display: block;
+      margin-bottom: 7px;
       color: var(--ink);
-      font-size: clamp(1.08rem, 1.5vw, 1.26rem);
-      font-weight: 760;
-      line-height: 1.24;
+      font-size: .98rem;
+      line-height: 1.28;
     }
 
-    .fact-grid--questions .fact p {
-      max-width: 56ch;
-      margin-top: 14px;
+    .question-grid p {
+      margin: 0;
       color: var(--muted);
       font-size: .88rem;
-      line-height: 1.55;
+      line-height: 1.48;
+    }
+
+    .conclusion-list {
+      max-width: 82ch;
+      margin: 0;
+      padding-left: 1.35rem;
+    }
+
+    .conclusion-list li {
+      padding-left: .35rem;
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+    .conclusion-list li + li {
+      margin-top: 18px;
+    }
+
+    .conclusion-list li::marker {
+      color: var(--accent);
+      font-size: 1.15em;
     }
 
     .note,
@@ -836,6 +933,20 @@
       font-size: .93rem;
     }
 
+    .concept-value-banner {
+      align-self: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .concept-value-banner p {
+      max-width: 34ch;
+      font-size: clamp(.98rem, 1.2vw, 1.12rem);
+      line-height: 1.45;
+    }
+
     .method-brief {
       margin: 42px 0 0;
       padding: 30px 0 0;
@@ -844,10 +955,10 @@
 
     .method-brief-header {
       display: grid;
-      grid-template-columns: minmax(210px, .42fr) minmax(0, 1fr);
+      grid-template-columns: minmax(190px, .32fr) minmax(0, 1fr);
       gap: 22px;
       align-items: start;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
     }
 
     .method-brief-eyebrow {
@@ -856,19 +967,17 @@
       font-size: .72rem;
       font-weight: 800;
       letter-spacing: .1em;
+      line-height: 1;
       text-transform: uppercase;
     }
 
     .method-brief-header h3 {
-      grid-column: 2;
-      margin: 0 0 8px;
-      font-size: clamp(1.2rem, 1.65vw, 1.46rem);
-      line-height: 1.24;
+      margin: 0 0 7px;
+      font-size: clamp(1.18rem, 1.8vw, 1.46rem);
+      line-height: 1.22;
     }
 
     .method-brief-header p:not(.method-brief-eyebrow) {
-      grid-column: 2;
-      max-width: 68ch;
       margin: 0;
       color: var(--muted);
       font-size: .94rem;
@@ -895,7 +1004,7 @@
       border-color: rgba(154, 90, 43, .18);
     }
 
-    .method-lens strong {
+    .method-lens > strong {
       display: block;
       margin-bottom: 4px;
       color: var(--ink);
@@ -904,58 +1013,25 @@
       text-transform: uppercase;
     }
 
-    .method-lens p {
+    .method-lens p,
+    .method-lens ul {
       margin: 0;
       color: var(--muted);
       font-size: .88rem;
       line-height: 1.5;
     }
 
-    .method-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: 36px;
-      row-gap: 20px;
-      padding-top: 2px;
+    .method-lens ul {
+      padding-left: 20px;
     }
 
-    .method-item {
-      min-height: 0;
-      padding: 0 0 18px;
-      border-bottom: 1px solid var(--line);
+    .method-lens li + li {
+      margin-top: 7px;
     }
 
-    .method-item:not(:first-child) {
-      padding-left: 0;
-    }
-
-    .method-item:last-child {
-      border-right: 0;
-    }
-
-    .method-tag {
-      display: block;
-      margin: 0 0 7px;
-      color: var(--accent);
-      font-size: .66rem;
-      font-weight: 800;
-      letter-spacing: .1em;
-      line-height: 1;
-      text-transform: uppercase;
-    }
-
-    .method-item h4 {
-      margin: 0 0 5px;
-      font-size: 1rem;
-      line-height: 1.25;
-    }
-
-    .method-item p {
-      max-width: 42ch;
-      margin: 0;
-      color: var(--muted);
-      font-size: .86rem;
-      line-height: 1.48;
+    .method-list-name {
+      color: var(--ink);
+      font-weight: 760;
     }
 
     figure {
@@ -1008,6 +1084,11 @@
 
     .figure-grid figure {
       margin-top: 38px;
+    }
+
+    .figure-heading {
+      margin-bottom: 14px;
+      font-size: 1.16rem;
     }
 
     .stress-flashcards {
@@ -1070,6 +1151,107 @@
 
     .stress-card-grid figure {
       margin-top: 28px;
+    }
+
+    .stress-summary-html {
+      padding: clamp(22px, 3vw, 34px);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: 0 18px 46px rgba(30, 41, 45, .08);
+    }
+
+    .stress-summary-header {
+      display: grid;
+      grid-template-columns: minmax(190px, .28fr) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stress-summary-header h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(1.22rem, 1.8vw, 1.58rem);
+      line-height: 1.18;
+    }
+
+    .stress-summary-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .94rem;
+      line-height: 1.58;
+    }
+
+    .stress-summary-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stress-summary-card {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fffdf9;
+    }
+
+    .stress-summary-card h4 {
+      margin: 0;
+      padding: 12px 14px;
+      color: #fff;
+      background: var(--accent);
+      font-size: .93rem;
+      line-height: 1.25;
+    }
+
+    .stress-summary-card--low h4 {
+      background: #2f5c48;
+    }
+
+    .stress-summary-card--critical h4 {
+      background: #9a5a2b;
+    }
+
+    .stress-summary-card dl {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 14px;
+      margin: 0;
+      padding: 14px;
+      font-size: .88rem;
+      line-height: 1.35;
+    }
+
+    .stress-summary-card dt {
+      color: var(--muted);
+    }
+
+    .stress-summary-card dd {
+      margin: 0;
+      color: var(--ink);
+      font-weight: 760;
+      text-align: right;
+    }
+
+    .stress-summary-card p {
+      margin: 0;
+      padding: 0 14px 14px;
+      color: #334155;
+      font-size: .86rem;
+      line-height: 1.48;
+    }
+
+    .stress-summary-table {
+      margin-top: 24px;
+      font-size: .88rem;
+    }
+
+    .stress-summary-table td:not(:first-child),
+    .stress-summary-table th:not(:first-child) {
+      text-align: right;
     }
 
     .figure-lightbox[hidden] {
@@ -1546,6 +1728,11 @@
       .analysis-lenses {
         max-width: none;
       }
+
+      .overview-path,
+      .question-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 680px) {
@@ -1570,6 +1757,10 @@
       .metric-list,
       .figure-grid,
       .stress-card-grid,
+      .stress-summary-header,
+      .stress-summary-cards,
+      .overview-path,
+      .question-grid,
       .data-strip {
         grid-template-columns: 1fr;
       }
@@ -1578,30 +1769,33 @@
       .metric-question-grid,
       .metric-checklist,
       .error-reading-grid,
-      .method-brief-header,
-      .method-grid {
+      .method-brief-header {
         grid-template-columns: 1fr;
       }
 
-      .objective-card h3 {
-        max-width: none;
+      .method-brief-header {
+        grid-template-columns: 1fr;
+        gap: 10px;
       }
 
-      .method-brief-header h3,
-      .method-brief-header p:not(.method-brief-eyebrow) {
-        grid-column: 1;
-      }
-
-      .method-item,
-      .method-item:not(:first-child) {
-        min-height: auto;
-        padding: 0 0 16px;
+      .overview-path li,
+      .overview-path li:not(:first-child) {
+        min-height: 0;
+        padding: 16px 0;
         border-right: 0;
         border-bottom: 1px solid var(--line);
       }
 
-      .method-item:last-child {
+      .overview-path li:last-child {
         border-bottom: 0;
+      }
+
+      .overview-step {
+        margin-bottom: 8px;
+      }
+
+      .objective-card h3 {
+        max-width: none;
       }
 
       .stress-card {
@@ -1688,7 +1882,6 @@
       <a href="#concepts">Q3 &middot; Representation</a>
       <a href="#bottleneck">Q4 &middot; Mediation</a>
       <a href="#evidence-summary">Evidence</a>
-      <a href="#limitations">Limits</a>
       <a href="#conclusion">Conclusion</a>
     </div>
   </nav>
@@ -1696,109 +1889,94 @@
   <main id="content" class="report">
     <section id="overview" class="report-section" aria-labelledby="overview-title">
       <div class="section-heading">
-        <h2 id="overview-title">The explainability analysis</h2>
+        <h2 id="overview-title">How do we make a prediction understandable?</h2>
       </div>
       <div class="section-content">
         <div class="prose overview-intro">
-          <p class="prose-intro">Our workflow investigates the model's decision-making process by tracking the journey of input
-            images across five crucial stages: <strong>prediction, explanation, intervention, error analysis</strong>
-            and <strong>semantic interpretation</strong>.</p>
-          <p>At each step, we move progressively deeper into the model's black box, from the pixels that seem to
-            matter, to the stability of that evidence, to the semantic concepts that may shape the final decision.</p>
+          <p class="prose-intro">We start from a predicted animal class and ask what supports it. First we inspect the
+            image evidence, then we test whether that evidence is reliable, and finally we check whether the model can
+            be read through human concepts.</p>
         </div>
 
-        <div class="analysis-lenses" aria-label="Explainability workflow lenses">
-          <article class="analysis-lens analysis-lens--spatial">
-            <span class="analysis-lens-index" aria-hidden="true">01</span>
-            <div>
-              <h3>Spatial Attribution <span class="analysis-lens-kicker">The where</span></h3>
-              <p>Hypothesizes where the visual evidence driving the model's decision may be located within the image.</p>
-            </div>
-          </article>
-          <article class="analysis-lens analysis-lens--testing">
-            <span class="analysis-lens-index" aria-hidden="true">02</span>
-            <div>
-              <h3>Controlled Testing <span class="analysis-lens-kicker">The reliability</span></h3>
-              <p>Empirically checks whether the model's focus is stable and faithful, or whether it depends on fragile
-                visual shortcuts.</p>
-            </div>
-          </article>
-          <article class="analysis-lens analysis-lens--concepts">
-            <span class="analysis-lens-index" aria-hidden="true">03</span>
-            <div>
-              <h3>Conceptual Analysis <span class="analysis-lens-kicker">The what</span></h3>
-              <p>Translates activation patterns into human-readable attributes and tests whether the internal
-                representation aligns with semantic concepts.</p>
-            </div>
-          </article>
-        </div>
-
-        <div class="fact-grid fact-grid--questions" aria-label="Four explainability questions">
-          <article class="fact">
-            <span class="question-label">Question 01</span>
-            <h3>Where is evidence located?</h3>
-            <p>Grad-CAM and Integrated Gradients produce spatial maps for a selected class.</p>
-          </article>
-          <article class="fact">
-            <span class="question-label">Question 02</span>
-            <h3>Is the map stable and faithful?</h3>
-            <p>Perturbations and quantitative metrics test whether the highlighted evidence survives controlled checks.</p>
-          </article>
-          <article class="fact">
-            <span class="question-label">Question 03</span>
-            <h3>Which semantic concepts are represented?</h3>
-            <p>AwA2 attributes and TCAV connect activation directions to concepts such as stripes, horns, fur and flippers.</p>
-          </article>
-          <article class="fact">
-            <span class="question-label">Question 04</span>
-            <h3>Can prediction be mediated by concepts?</h3>
-            <p>A Concept Bottleneck Model forces the class prediction through an explicit semantic vector.</p>
-          </article>
-        </div>
+        <ol class="overview-path" aria-label="Explainability reading path">
+          <li>
+            <span class="overview-step">01</span>
+            <strong>Prediction</strong>
+            <p>Start from the top-1 class, its confidence and the image passed to the model.</p>
+          </li>
+          <li>
+            <span class="overview-step">02</span>
+            <strong>Evidence</strong>
+            <p>Use attribution maps to see which regions or pixels support that class score.</p>
+          </li>
+          <li>
+            <span class="overview-step">03</span>
+            <strong>Checks</strong>
+            <p>Change the input and remove highlighted regions to test stability and faithfulness.</p>
+          </li>
+          <li>
+            <span class="overview-step">04</span>
+            <strong>Concepts</strong>
+            <p>Ask whether attributes such as stripes, horns or flippers shape the decision.</p>
+          </li>
+        </ol>
 
         <div class="method-brief" aria-label="Algorithms used in the report">
           <div class="method-brief-header">
-            <p class="method-brief-eyebrow">Methods at a glance</p>
-            <h3>Two ways to make a prediction understandable</h3>
-            <p>The report combines post-hoc explanation methods, which inspect a trained ResNet50 after it predicts,
-              with an interpretable-by-design model, where concepts are built into the prediction path.</p>
+            <p class="method-brief-eyebrow">Methods</p>
+            <div>
+              <h3>Two ways to read the model</h3>
+              <p>Some methods explain a trained ResNet50 after it predicts. The Concept Bottleneck Model changes the
+                prediction path itself, forcing the class decision through named attributes.</p>
+            </div>
           </div>
 
           <div class="method-lenses" aria-label="Post-hoc versus interpretable by design">
             <div class="method-lens">
-              <strong>Post-hoc</strong>
-              <p>Grad-CAM, Integrated Gradients and TCAV do not change the classifier. They ask what evidence the
-                already-trained model appears to use, either in pixels, feature maps or concept directions.</p>
+              <strong>After the prediction</strong>
+              <ul>
+                <li><span class="method-list-name">Grad-CAM</span> &rarr; locates class evidence in late feature maps.</li>
+                <li><span class="method-list-name">Integrated Gradients</span> &rarr; attributes the class score to input pixels.</li>
+                <li><span class="method-list-name">TCAV</span> &rarr; tests sensitivity to semantic concept directions.</li>
+                <li><span class="method-list-name">Stress tests</span> &rarr; evaluate stability and faithfulness.</li>
+              </ul>
             </div>
             <div class="method-lens method-lens--design">
-              <strong>Interpretable by design</strong>
-              <p>The Concept Bottleneck Model changes the architecture: the class decision must pass through explicit
-                semantic variables before the final prediction is made.</p>
+              <strong>In the prediction path</strong>
+              <ul>
+                <li><span class="method-list-name">Concept Bottleneck Model (CBM)</span> &rarr; makes concepts part of the prediction path.</li>
+                <li><span class="method-list-name">Concept head</span> &rarr; predicts 20 semantic attributes.</li>
+                <li><span class="method-list-name">Class head</span> &rarr; predicts the animal only from concepts.</li>
+                <li><span class="method-list-name">Interventions</span> &rarr; test the effect of concept corrections.</li>
+              </ul>
             </div>
           </div>
+        </div>
 
-          <div class="method-grid" aria-label="Explanation algorithms">
-            <article class="method-item">
-              <span class="method-tag">Spatial</span>
-              <h4>Grad-CAM</h4>
-              <p>Uses gradients on late convolutional maps to highlight broad image regions that support a class.</p>
-            </article>
-            <article class="method-item">
-              <span class="method-tag">Pixel path</span>
-              <h4>Integrated Gradients</h4>
-              <p>Accumulates input gradients from a baseline image to estimate pixel-level contribution.</p>
-            </article>
-            <article class="method-item">
-              <span class="method-tag">Concept probe</span>
-              <h4>TCAV</h4>
-              <p>Tests whether a class score is sensitive to directions representing human concepts in activation space.</p>
-            </article>
-            <article class="method-item">
-              <span class="method-tag">Concept model</span>
-              <h4>Concept Bottleneck</h4>
-              <p>Predicts named concepts first, then predicts the class from those concepts.</p>
-            </article>
-          </div>
+        <div class="research-questions" aria-label="Four explainability questions">
+          <p>The report answers four checks</p>
+          <ol class="question-grid">
+            <li>
+              <span class="question-index">Q1</span>
+              <strong>Question 1: where is evidence located?</strong>
+              <p>Compare broad regions from Grad-CAM with pixel-level attribution from Integrated Gradients.</p>
+            </li>
+            <li>
+              <span class="question-index">Q2</span>
+              <strong>Question 2: is the map stable and faithful?</strong>
+              <p>Use perturbations, deletion and insertion to catch fragile or background-driven explanations.</p>
+            </li>
+            <li>
+              <span class="question-index">Q3</span>
+              <strong>Question 3: which semantic concepts are represented?</strong>
+              <p>Use TCAV to test sensitivity to semantic directions in the learned representation.</p>
+            </li>
+            <li>
+              <span class="question-index">Q4</span>
+              <strong>Question 4: can prediction be mediated by concepts?</strong>
+              <p>Use the CBM to test whether predicted attributes can mediate the final animal label.</p>
+            </li>
+          </ol>
         </div>
       </div>
     </section>
@@ -1812,18 +1990,55 @@
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">The explained model is a standard ResNet50.</p>
-          <p>We start from an ImageNet-pretrained ResNet50 and adapt it to the animal classes in our dataset.
-            This transfer-learning setup preserves broadly useful visual features while specialising the model for our
-            classification task. </p>
+          <p class="prose-intro">Before explaining a decision, we first define the model, the signal it produces and
+            the internal representations available for inspection.</p>
+          <p>The baseline is an ImageNet-pretrained ResNet50 adapted to the 20 animal classes in the maintained AwA2
+            subset. It maps each normalized image to one score per class, providing the common prediction target for
+            all post-hoc analyses in this report.</p>
         </div>
-        <figure>
-          <img src="assets/xai-report/resnet50-visual-xai-audit.png"
-            alt="ResNet50 visual representation for the XAI audit." decoding="async">
-          <figcaption><strong>Figure 01</strong> - ResNet50 overview: convolutional stem, residual stages, global
-            average
-            pooling and final class logits.</figcaption>
+
+        <h3 class="subsection-title">From pixels to class probabilities</h3>
+        <div class="prose">
+          <p>ResNet50 progressively compresses spatial information while building higher-level features. Global
+            average pooling converts the final feature maps into a 2048-dimensional vector, and the linear head
+            produces 20 raw class scores, or <em>logits</em>. Softmax then converts those scores into probabilities;
+            the largest probability determines the top-1 prediction.</p>
+        </div>
+
+        <figure class="model-pipeline-figure">
+          <ol class="pipeline" aria-label="ResNet50 path from image to prediction">
+            <li>
+              <strong>Input image</strong>
+              <span>ImageNet-normalized RGB tensor, <code>3 &times; 224 &times; 224</code>.</span>
+            </li>
+            <li>
+              <strong>Frozen features</strong>
+              <span>The stem and <code>layer1</code>&ndash;<code>layer3</code> reuse pretrained visual features.</span>
+            </li>
+            <li>
+              <strong>Fine-tuned features</strong>
+              <span><code>layer4</code> adapts a <code>2048 &times; 7 &times; 7</code> representation to AwA2.</span>
+            </li>
+            <li>
+              <strong>Class scores</strong>
+              <span>Global pooling and the new linear head produce 20 logits.</span>
+            </li>
+            <li>
+              <strong>Prediction</strong>
+              <span>Softmax yields class probabilities and the top-1 animal label.</span>
+            </li>
+          </ol>
+          <figcaption><strong>Figure 01</strong> - The maintained ResNet50 prediction path. Only
+            <code>layer4</code> and the final classification head are updated during baseline fine-tuning.</figcaption>
         </figure>
+
+        <h3 class="subsection-title">How the classifier learns</h3>
+        <div class="prose">
+          <p>During fine-tuning, cross-entropy compares the logits with the ground-truth class. The loss encourages the
+            correct-class logit to exceed the competing scores, while AdamW updates only <code>layer4</code> and the
+            final <code>fc</code> layer.</p>
+        </div>
+
         <article class="objective-card">
           <div>
             <span class="objective-label">Objective</span>
@@ -1871,22 +2086,39 @@
             </div>
           </div>
         </article>
+
+        <h3 class="subsection-title">Why the internal representation matters</h3>
+        <div class="prose">
+          <p>The forward trace below follows a correctly classified antelope through the network. Early activations
+            retain edges, texture and fine spatial detail; deeper stages become smaller and more selective. By
+            <code>layer4</code>, the representation has collapsed to a coarse <code>7 &times; 7</code> grid that responds
+            strongly to the animal region.</p>
+          <p>This progression determines what each explanation method can observe: Integrated Gradients attributes the
+            input pixels, TCAV probes the <code>layer3</code> representation, and Grad-CAM localizes evidence in the
+            final convolutional stage.</p>
+        </div>
+
         <figure>
           <img src="assets/xai-report/resnet-forward.png"
             alt="A real image and its representation at successive stages of ResNet50." loading="lazy" decoding="async">
-          <figcaption><strong>Figure 02</strong> - A forward inspection makes the progressive loss of spatial
-            resolution
-            visible.</figcaption>
+          <figcaption><strong>Figure 02</strong> - For a correct antelope prediction with confidence
+            <code>0.954</code>, spatial detail is progressively compressed from the input to <code>layer4</code>.
+            Grad-CAM is computed from the final convolutional representation.</figcaption>
         </figure>
 
-
+        <div class="note">
+          <strong>What the explanations target</strong>
+          <p>Grad-CAM, Integrated Gradients and TCAV differentiate a selected raw class logit, before softmax.
+            Probabilities summarize confidence and determine the top-1 class, but the attribution target is the class
+            score itself.</p>
+        </div>
 
         <details class="section-disclosure">
           <summary>
             <span>
-              <span class="section-disclosure-title">Experimental setup and reproducibility</span>
-              <span class="section-disclosure-meta">Dataset size, split policy, training hyperparameters,
-                preprocessing and CBM configuration used to contextualize the reported scores.</span>
+              <span class="section-disclosure-title">Baseline setup and reproducibility</span>
+              <span class="section-disclosure-meta">Dataset size, split policy, baseline training hyperparameters and
+                preprocessing used for the explained ResNet50.</span>
             </span>
             <span class="section-disclosure-action" aria-hidden="true"></span>
           </summary>
@@ -1931,13 +2163,6 @@
                       <code>Resize(256)</code>, <code>CenterCrop(224)</code> and ImageNet normalization.
                     </td>
                   </tr>
-                  <tr>
-                    <td>CBM training</td>
-                    <td>ResNet50 backbone initialized from the AwA2 baseline checkpoint, 20 selected AwA2 concepts,
-                      dropout <code>0.15</code>, batch size <code>16</code>, AdamW with learning rate and weight decay
-                      <code>1e-4</code>, 5 epochs, concept and class loss weights both <code>1.0</code>.
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1954,9 +2179,9 @@
         <div class="prose">
           <p class="prose-intro">Grad-CAM and Integrated Gradients locate candidate evidence for one image and one
             selected class.</p>
-          <p>A saliency map is the numerical attribution tensor. <br> A heatmap is its colour-coded visualization over
-            the
-            image. <br> A spatial map answers where attribution is concentrated.</p>
+          <p>&rarr; A saliency map is the numerical attribution tensor.<br>
+            &rarr; A heatmap is its colour-coded visualization over the image.<br>
+            &rarr; A spatial map answers where attribution is concentrated.</p>
 
         </div>
 
@@ -2219,13 +2444,88 @@
           </article>
         </div>
 
-        <figure>
-          <img src="assets/xai-report/background-stress-summary.png"
-            alt="Summary dashboard comparing Grad-CAM and Integrated Gradients under Gaussian noise, colour shift and background replacement stress tests."
-            loading="lazy" decoding="async">
-          <figcaption><strong>Figure 13</strong> &mdash; Aggregate background stress-test summary: all perturbations
-            affect the classifier, but background replacement is the most destructive intervention. Across the
-            maintained checks, Grad-CAM remains more spatially stable than Integrated Gradients.</figcaption>
+        <figure class="stress-summary-html" aria-labelledby="background-stress-summary-title">
+          <div class="stress-summary-header">
+            <h3 id="background-stress-summary-title">Background stress test summary</h3>
+            <p>Values are computed from the current notebook outputs. Stability uses mean top-20% saliency IoU and
+              mean Spearman correlation between the original and perturbed saliency maps; prediction change rate and
+              confidence drop are measured on the fixed four-image audit set.</p>
+          </div>
+          <div class="stress-summary-cards" aria-label="Background perturbation summary cards">
+            <article class="stress-summary-card">
+              <h4>Gaussian noise</h4>
+              <dl>
+                <dt>Prediction change rate</dt>
+                <dd>0.00</dd>
+                <dt>Mean confidence drop</dt>
+                <dd>0.13</dd>
+                <dt>Top-20 IoU, Grad-CAM vs IG</dt>
+                <dd>0.66 vs 0.42</dd>
+                <dt>Spearman, Grad-CAM vs IG</dt>
+                <dd>0.81 vs 0.60</dd>
+              </dl>
+              <p>No prediction flipped in the audited images; Grad-CAM stayed more spatially stable.</p>
+            </article>
+            <article class="stress-summary-card stress-summary-card--low">
+              <h4>Colour shift</h4>
+              <dl>
+                <dt>Prediction change rate</dt>
+                <dd>0.00</dd>
+                <dt>Mean confidence drop</dt>
+                <dd>0.02</dd>
+                <dt>Top-20 IoU, Grad-CAM vs IG</dt>
+                <dd>0.78 vs 0.39</dd>
+                <dt>Spearman, Grad-CAM vs IG</dt>
+                <dd>0.94 vs 0.66</dd>
+              </dl>
+              <p>The class decision was stable, but input-level attribution still moved more than Grad-CAM.</p>
+            </article>
+            <article class="stress-summary-card stress-summary-card--critical">
+              <h4>Background replacement</h4>
+              <dl>
+                <dt>Prediction change rate</dt>
+                <dd>0.25</dd>
+                <dt>Mean confidence drop</dt>
+                <dd>0.34</dd>
+                <dt>Top-20 IoU, Grad-CAM vs IG</dt>
+                <dd>0.65 vs 0.39</dd>
+                <dt>Spearman, Grad-CAM vs IG</dt>
+                <dd>0.74 vs 0.51</dd>
+              </dl>
+              <p>This was the most disruptive perturbation: one of four audited predictions changed.</p>
+            </article>
+          </div>
+          <table class="comparison stress-summary-table">
+            <thead>
+              <tr>
+                <th>Aggregate metric</th>
+                <th>Grad-CAM</th>
+                <th>Integrated Gradients</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mean saliency on animal</td>
+                <td>0.80</td>
+                <td>0.62</td>
+              </tr>
+              <tr>
+                <td>Mean saliency on background</td>
+                <td>0.20</td>
+                <td>0.38</td>
+              </tr>
+              <tr>
+                <td>Mean deletion AUC</td>
+                <td>0.28</td>
+                <td>0.13</td>
+              </tr>
+              <tr>
+                <td>Mean insertion AUC</td>
+                <td>0.84</td>
+                <td>0.75</td>
+              </tr>
+            </tbody>
+          </table>
         </figure>
 
         <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
@@ -2367,15 +2667,18 @@
         <h2 id="concepts-title">Question 3: which semantic concepts are represented?</h2>
       </div>
       <div class="section-content">
+        <h3 class="subsection-title method-title">TCAV (Testing with Concept Activation Vectors)</h3>
         <div class="prose">
-          <p class="prose-intro">AwA2 attributes let the analysis move beyond unnamed pixels and ask whether the
-            ResNet50 representation contains human-readable semantic structure.</p>
+          <p class="prose-intro method-subtitle">We can use the AwA2 attributes to move from pixel-level explanations to
+            semantic concepts and test whether ResNet50 encodes recognizable animal traits.</p>
         </div>
 
         <figure>
-          <img src="assets/xai-report/tcav-theory.png" alt="Diagram of the TCAV concept-direction procedure."
+          <img src="assets/xai-report/tcav-theory.png"
+            alt="TCAV workflow using AwA2 concept-positive and concept-negative classes, directional sensitivity and the TCAV score."
             loading="lazy" decoding="async">
-          <figcaption><strong>Figure 16</strong> - TCAV tests directional concept relevance in activation space.
+          <figcaption><strong>Figure 16</strong> - TCAV learns semantic directions from concept-positive and
+            concept-negative classes, then measures their relevance to a target prediction.
           </figcaption>
         </figure>
 
@@ -2395,24 +2698,23 @@
             <figcaption><strong>Figure 18</strong> &mdash; The class-by-concept matrix summarizes validated TCAV
               sensitivity, conditional on concept coverage and the random controls.</figcaption>
           </figure>
+          <div class="warning concept-value-banner">
+            <p>Some concepts receive high TCAV scores for species that do not possess them in the real world.</p>
+          </div>
         </div>
 
-        <div class="warning">
-          <strong>Concept sensitivity is not concept truth</strong>
-          <p>TCAV asks whether a class score is sensitive to a learned concept direction. It does not prove that the
-            animal visibly contains that concept, and it does not by itself measure dataset correlation. When the AwA2
-            oracle value is low but TCAV remains high, the pair is best read as an audit candidate for an entangled
-            direction: the CAV may contain anatomy, texture, background, habitat and co-occurring class evidence at the
-            same time.</p>
+        <h3 class="subsection-title">Model concept hallucinations</h3>
+        <div class="prose">
+          <p>These mismatches do not mean that the model literally sees nonexistent attributes; they indicate that a
+            learned concept direction may also encode shape, texture, habitat or background cues.</p>
         </div>
-
 
         <figure>
           <img src="assets/xai-report/tcav-spurious-pairs.png"
-            alt="Bar chart comparing TCAV sensitivity scores with AwA2 class-level concept priors."
+            alt="Bar chart comparing TCAV sensitivity scores with real-world concept values."
             loading="lazy" decoding="async">
           <figcaption><strong>Figure 19a</strong> &mdash; The spurious-pair audit ranks concept-class pairs where TCAV
-            sensitivity is high despite a low AwA2 semantic prior for that concept in the target class.</figcaption>
+            sensitivity is high despite a low real-world value for that concept in the target class.</figcaption>
         </figure>
 
         <figure>
@@ -2423,56 +2725,9 @@
             classes share with the target class, after excluding the audited concept itself.</figcaption>
         </figure>
 
-        <div class="comparison-wrap" role="region" aria-label="Bridge concepts behind suspicious TCAV pairs"
-          tabindex="0">
-          <table class="comparison">
-            <thead>
-              <tr>
-                <th>Pair</th>
-                <th>CAV source classes</th>
-                <th>Strong bridge concepts</th>
-                <th>Deeper hypothesis</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>flippers &rarr; polar bear</code></td>
-                <td>blue whale, dolphin, seal, walrus</td>
-                <td><code>fish 0.786</code>, <code>coastal 0.565</code>, <code>arctic 0.547</code>,
-                  <code>water 0.510</code></td>
-                <td>The CAV may be an aquatic-cold-habitat direction. Polar bear has no flippers, but it does share
-                  fish, coastal, arctic and water-related priors with the flipper-positive classes.</td>
-              </tr>
-              <tr>
-                <td><code>horns &rarr; dolphin</code></td>
-                <td>antelope only</td>
-                <td><code>fast 0.684</code>, <code>agility 0.653</code>, <code>group 0.600</code>,
-                  <code>tail 0.575</code></td>
-                <td>This is not a clean horns concept. Since the positive side is only antelope, the direction can
-                  carry a broader antelope-like mobility/body-shape axis.</td>
-              </tr>
-              <tr>
-                <td><code>hooves &rarr; dolphin</code></td>
-                <td>antelope, zebra</td>
-                <td><code>fast 0.684</code>, <code>oldworld 0.603</code>, <code>group 0.600</code>,
-                  <code>tail 0.595</code></td>
-                <td>The high score is more plausibly a shared non-hoof direction than a hoof explanation. It should
-                  trigger image-level checks, not biological interpretation.</td>
-              </tr>
-              <tr>
-                <td><code>hooves &rarr; antelope</code></td>
-                <td>antelope, zebra</td>
-                <td><code>fast 0.826</code>, <code>plains 0.796</code>, <code>grazer 0.786</code>,
-                  <code>quadrapedal 0.762</code></td>
-                <td>This is the useful contrast case: the bridge concepts are coherent with the species and the AwA2
-                  hoof prior is high, so the TCAV result is easier to trust.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="note">
-          <strong>Image-level rerun</strong>
-          <p>The bridge audit is still class-level. To test whether the suspicious directions actually behave on
+        <h3 class="subsection-title">Do concept hallucinations persist under background perturbations?</h3>
+        <div class="prose">
+          <p>To test whether the suspicious directions actually behave on
             individual images, the model was rerun on <code>24</code> target images per pair. For each image the audit
             computes the directional derivative along the CAV before and after background perturbations. This separates
             a stable concept effect from a context-sensitive response.</p>
@@ -2486,64 +2741,6 @@
             directions remain positive after the approximate background is replaced.</figcaption>
         </figure>
 
-        <div class="warning">
-          <strong>Main image-level conclusion</strong>
-          <p>The suspicious pairs do not all mean the same thing. <code>flippers &rarr; polar bear</code> is not a strong
-            hidden flipper concept: the positive-direction rate is only <code>50.0%</code> and falls to
-            <code>16.7%</code> after background replacement. In contrast, <code>horns &rarr; dolphin</code> and
-            <code>hooves &rarr; dolphin</code> remain directionally positive for many images, but the dolphin prediction
-            itself is highly unstable under the same intervention. The result is therefore not "these animals have the
-            wrong attributes"; it is "some TCAV directions are entangled with class/context evidence".</p>
-        </div>
-
-
-        <div class="comparison-wrap" role="region" aria-label="Image-level TCAV audit results" tabindex="0">
-          <table class="comparison">
-            <thead>
-              <tr>
-                <th>Pair</th>
-                <th>Original image-level TCAV</th>
-                <th>After background swap</th>
-                <th>Interpretation</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>flippers &rarr; polar bear</code></td>
-                <td>Positive derivative on <code>50.0%</code> of images; mean target probability <code>0.545</code>.</td>
-                <td>Positive derivative drops to <code>16.7%</code>; target probability changes by <code>-0.228</code>;
-                  prediction changes in <code>33.3%</code>.</td>
-                <td>The flippers direction is not a robust polar-bear concept. It is weak and background-sensitive,
-                  which supports the aquatic/cold-context entanglement hypothesis.</td>
-              </tr>
-              <tr>
-                <td><code>horns &rarr; dolphin</code></td>
-                <td>Positive derivative on <code>95.8%</code> of images.</td>
-                <td>Positive derivative remains <code>100.0%</code>, but target probability changes by
-                  <code>-0.305</code> and prediction changes in <code>83.3%</code>.</td>
-                <td>The direction is strong but semantically implausible. It behaves like an activation-space artifact
-                  or source-class axis, not a dolphin attribute.</td>
-              </tr>
-              <tr>
-                <td><code>hooves &rarr; dolphin</code></td>
-                <td>Positive derivative on <code>79.2%</code> of images.</td>
-                <td>Positive derivative rises to <code>91.7%</code>, while target probability again changes by
-                  <code>-0.305</code> and prediction changes in <code>83.3%</code>.</td>
-                <td>The sign can remain positive even when the decision is unstable. This is a useful warning that TCAV
-                  directionality and class confidence must be read together.</td>
-              </tr>
-              <tr>
-                <td><code>hooves &rarr; antelope</code></td>
-                <td>Positive derivative on <code>75.0%</code> of images.</td>
-                <td>Positive derivative rises to <code>100.0%</code>, but target probability changes by
-                  <code>-0.407</code> and prediction changes in <code>62.5%</code>.</td>
-                <td>Even plausible concepts are not immune to context. This row is the sanity check: semantics align,
-                  but the classifier remains background-sensitive.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
       </div>
     </section>
 
@@ -2552,9 +2749,10 @@
         <h2 id="bottleneck-title">Question 4: can prediction be mediated by concepts?</h2>
       </div>
       <div class="section-content">
+        <h3 class="subsection-title method-title">CBM (Concept Bottleneck Model)</h3>
         <div class="prose">
-          <p class="prose-intro">The bottleneck experiment asks whether prediction can be mediated by named attributes
-            instead of explained only after the fact.</p>
+          <p class="prose-intro method-subtitle">The bottleneck experiment asks whether prediction can be mediated by
+            named attributes instead of explained only after the fact.</p>
         </div>
 
         <figure>
@@ -2565,39 +2763,35 @@
           </figcaption>
         </figure>
 
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Class accuracy</h3>
-            <p>The current CBM reaches approximately <code>0.799</code>, compared with <code>0.857</code> for the
-              ResNet50 baseline.</p>
-          </article>
-          <article class="fact">
-            <h3>Concept accuracy</h3>
-            <p>Binary concept accuracy is approximately <code>0.754</code>. Concept quality varies substantially
-              across
-              attributes.</p>
-          </article>
-          <article class="fact">
-            <h3>Intervention</h3>
-            <p>Changing a predicted concept tests how that semantic variable affects the CBM class head.</p>
-          </article>
-          <article class="fact">
-            <h3>Model boundary</h3>
-            <p>CBM concept contributions explain the CBM pathway: ResNet50 backbone, concept head and class head. They
-              are a semantic comparator, not an explanation of the separate end-to-end ResNet50 baseline used for
-              local
-              attribution maps.</p>
-          </article>
-        </div>
+        <details class="section-disclosure">
+          <summary>
+            <span>
+              <span class="section-disclosure-title">CBM training configuration</span>
+              <span class="section-disclosure-meta">Backbone initialization, semantic bottleneck and optimization used
+                for the concept-mediated model.</span>
+            </span>
+            <span class="section-disclosure-action" aria-hidden="true"></span>
+          </summary>
+          <div class="section-disclosure-body">
+            <div class="prose">
+              <p>The CBM backbone starts from the AwA2 baseline checkpoint and fine-tunes <code>layer4</code>. Its
+                bottleneck contains 20 selected AwA2 concepts with dropout <code>0.15</code>. Training uses batch size
+                <code>16</code>, AdamW with learning rate and weight decay <code>1e-4</code>, five epochs, and equal
+                weights of <code>1.0</code> for the concept and class losses.</p>
+            </div>
+          </div>
+        </details>
 
         <div class="figure-grid">
           <figure>
+            <h3 class="figure-heading">Loss in Accuracy, but a Gain in Explainability</h3>
             <img src="assets/xai-report/cbm-summary.png" alt="Summary of concept and class performance for the CBM."
               loading="lazy" decoding="async">
             <figcaption><strong>Figure 21</strong> &mdash; The CBM report connects class accuracy with the quality of
               the predicted semantic bottleneck.</figcaption>
           </figure>
           <figure>
+            <h3 class="figure-heading">Oracle Intervention</h3>
             <img src="assets/xai-report/concept-interventions.png"
               alt="Changes in class predictions after interventions on bottleneck concepts." loading="lazy"
               decoding="async">
@@ -2606,57 +2800,8 @@
           </figure>
         </div>
 
-        <h3 class="subsection-title">What is an oracle intervention?</h3>
-        <div class="prose">
-          <p class="prose-intro">An oracle intervention is a controlled edit of the bottleneck, not an edit of the
-            image.</p>
-          <p>For an image with true class <code>y</code>, the CBM first predicts a concept vector
-            <code>c&#770;(x)</code>. AwA2 supplies a class-level reference profile <code>c*(y)</code>. A one-concept
-            oracle intervention replaces one predicted coordinate <code>c&#770;<sub>j</sub>(x)</code> with the
-            corresponding reference value <code>c*<sub>j</sub>(y)</code>, keeps every other predicted concept fixed,
-            and runs the edited vector through the same class head.</p>
-        </div>
-
-        <div class="fact-grid" aria-label="Oracle intervention interpretation">
-          <article class="fact">
-            <h3>Why “oracle”?</h3>
-            <p>The evaluator uses privileged knowledge of the true class and its AwA2 attribute profile. The model
-              does not receive this information during normal inference.</p>
-          </article>
-          <article class="fact">
-            <h3>What is measured?</h3>
-            <p>The audit measures changes in the true-class probability, the predicted-versus-true logit margin and
-              the final top-1 class after the semantic coordinate is corrected.</p>
-          </article>
-          <article class="fact">
-            <h3>What it does not prove</h3>
-            <p>It is not a pixel-level causal edit and not an image-specific ground-truth annotation. AwA2 targets are
-              class-level, and edited vectors can lie outside the distribution seen by the class head during
-              training.</p>
-          </article>
-          <article class="fact">
-            <h3>Single versus full oracle</h3>
-            <p>A single intervention changes one concept and isolates its local effect. A full intervention replaces
-              the complete predicted vector and stress-tests whether the class head can recognize the true-class
-              AwA2 profile.</p>
-          </article>
-        </div>
-
-        <div class="note">
-          <strong>Probability and rank can move differently</strong>
-          <p>In a multiclass softmax, a correction can make the true class top-1 even if its absolute probability
-            decreases, provided that the competing classes decrease by more. For this reason the report reads
-            <code>&Delta;p(true)</code>, the wrong-versus-true margin and the final predicted class together.</p>
-        </div>
-
-        <h3 class="subsection-title">CBM real error decomposition: bobcat &rarr; hippopotamus</h3>
-        <div class="prose">
-          <p class="prose-intro">This case is selected directly from the CBM error report with
-            <code>cbm_correct = False</code>, ranked by mean absolute concept error.</p>
-          <p>The true class is <code>bobcat</code>, while the Concept Bottleneck Model predicts
-            <code>hippopotamus</code>. The contrast class is therefore the CBM's own wrong top-1 prediction, not a
-            manually fixed comparator.</p>
-        </div>
+        <h3 class="subsection-title">Concepts that make CBM wrong</h3>
+        <p class="method-subtitle">Error analysis on the case bobcat &rarr; hippopotamus</p>
 
         <figure>
           <img src="assets/xai-report/cbm-real-error-case-1.png"
@@ -2668,87 +2813,38 @@
             one-concept corrections.</figcaption>
         </figure>
 
-        <h3 class="subsection-title">CBM real error decomposition: polar bear &rarr; sheep</h3>
-        <div class="prose">
-          <p class="prose-intro">This is the second strongest real CBM error under the same ranking rule.</p>
-          <p>The true class is <code>polar+bear</code>, while the Concept Bottleneck Model predicts
-            <code>sheep</code>. Here the oracle class-level concept vector would recover <code>polar+bear</code>,
-            so the error is consistent with a bottleneck concept-prediction failure.</p>
-        </div>
-
-        <figure>
-          <img src="assets/xai-report/cbm-real-error-case-2.png"
-            alt="Four-panel CBM error decomposition for a polar bear image classified as sheep, showing concept errors, linear class-head contributions and oracle interventions."
-            loading="lazy" decoding="async">
-          <figcaption><strong>Figure 24</strong> &mdash; CBM decomposition for the true <code>polar+bear</code> class
-            versus the predicted <code>sheep</code> class. The lower-left panel decomposes the exact
-            <code>sheep &minus; polar+bear</code> logit margin.</figcaption>
-        </figure>
-
-        <div class="warning">
-          <strong>Class-level supervision</strong>
-          <p>AwA2 attributes are class-level rather than image-specific. Every image from one class receives the same
-            target concept vector, even when an attribute is occluded or not visible.</p>
-        </div>
       </div>
     </section>
 
-
-    <section id="limitations" class="report-section" aria-labelledby="limitations-title">
-      <div class="section-heading">
-        <h2 id="limitations-title">Limitations and future work</h2>
-      </div>
-      <div class="section-content">
-        <div class="prose">
-          <p class="prose-intro">The report is intentionally conservative: every result is interpreted only at the
-            level supported by the experiment that produced it.</p>
-        </div>
-
-
-    </section>
 
     <section id="conclusion" class="report-section" aria-labelledby="conclusion-title">
       <div class="section-heading">
         <h2 id="conclusion-title">Conclusion</h2>
       </div>
       <div class="section-content">
-
-        <div class="comparison-wrap" role="region" aria-label="Answers to the four research questions" tabindex="0">
-          <table class="comparison">
-            <thead>
-              <tr>
-                <th>Question</th>
-                <th>Answer supported by the project</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1. Where is evidence located?</td>
-                <td>Grad-CAM and IG provide different spatial hypotheses for a selected class.</td>
-              </tr>
-              <tr>
-                <td>2. Is the map stable and faithful?</td>
-                <td>Only partially. Background interventions and deletion expose instability, shared evidence and
-                  contextual sensitivity.</td>
-              </tr>
-              <tr>
-                <td>3. Which concepts are represented?</td>
-                <td>Validated TCAV identifies measurable semantic sensitivity, subject to concept coverage and random
-                  controls.</td>
-              </tr>
-              <tr>
-                <td>4. Can concepts mediate prediction?</td>
-                <td>The CBM creates an explicit concept path, with lower class accuracy and imperfect concept
-                  prediction.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="warning">
-          <p>The strongest defensible conclusion remains conservative: saliency maps are useful diagnostic tools, but
-            they should not be presented alone as faithful explanations of a deep visual classifier.</p>
-        </div>
+        <ul class="conclusion-list">
+          <li>The project shows that heatmaps, perturbations, faithfulness metrics, error analysis and concept-based
+            methods must be interpreted together. Pixel-wise and concept-based methods answer complementary questions:
+            Grad-CAM and Integrated Gradients show where evidence appears, while TCAV and the CBM help inspect which
+            semantic information may be involved.</li>
+          <li>Background stress tests reveal that the model can rely on contextual evidence rather than animal
+            morphology alone. This affects both predictions and explanations, so saliency maps should be treated as
+            hypotheses to validate.</li>
+          <li>Faithfulness checks and error analysis are essential: a heatmap can look plausible and still explain a
+            wrong decision.</li>
+          <li>Every method has assumptions: Grad-CAM is coarse, Integrated Gradients is baseline-sensitive, TCAV can
+            capture correlated latent patterns, and the CBM depends on concept quality.</li>
+          <li>The analysis is further limited by approximate background masks, class-level AwA2 concepts and the use of
+            a controlled subset of the dataset.</li>
+          <li>Interpretability remains partial: explanations highlight relevant associations but do not guarantee a
+            causal understanding of model behavior.</li>
+          <li>In high-stakes domains such as medical imaging, this workflow could support model auditing by checking
+            not only whether a prediction is correct, but whether it is supported by clinically meaningful evidence.
+            In radiology, explanations should highlight lesions, tissue abnormalities or relevant anatomical regions
+            rather than scanner artifacts, text markers, acquisition differences or hospital-specific shortcuts.
+            Perturbation tests, faithfulness metrics and concept-level analysis can help distinguish predictions that
+            are correct for valid clinical reasons from predictions driven by spurious dataset biases.</li>
+        </ul>
       </div>
     </section>
 
@@ -2799,16 +2895,11 @@
     const tocLinks = [...document.querySelectorAll('.toc a')];
     const reportSections = [...document.querySelectorAll('.report-section')];
     const figureCommentary = {
-      "assets/xai-report/resnet50-visual-xai-audit.png": {
-        "title": "Figure 01 - ResNet50 architecture overview",
-        "paragraphs": [
-          "ResNet50 progressively transforms the image from a pixel-level representation into a semantic representation. In the first layers, it detects edges and textures; in the intermediate layers, it combines parts and patterns; in the final layers, it represents more abstract evidence related to the target class. The final classification is produced from a 2048-dimensional feature vector obtained through global average pooling and then transformed into logits. This is fundamental for XAI: Grad-CAM operates on the last convolutional feature space, so it is semantic but coarse; Integrated Gradients operates on the input, so it is more detailed but also more unstable."
-        ]
-      },
       "assets/xai-report/resnet-forward.png": {
         "title": "Figure 02 - Forward inspection of the ResNet50 backbone",
         "paragraphs": [
-          "The layer-by-layer activation sequence makes visible, the resolution collapse from the early convolutional stages down to the final low-resolution representation. In the early stages the activation can still trace broad contours and texture transitions; from the middle residual blocks onward the response condenses into a smaller set of high-level regions."
+          "This trace follows a correctly classified antelope with confidence 0.954. The layer-by-layer sequence shows spatial resolution collapsing from 112 × 112 after the first convolution to 7 × 7 at layer4. Early responses retain contours and texture transitions, while deeper responses condense around a smaller set of class-relevant regions.",
+          "The final panel connects the representation to the explanation: Grad-CAM is computed on layer4[-1], so its displayed localization is an upsampled view of a coarse semantic grid rather than a pixel-resolution measurement."
         ]
       },
       "assets/xai-report/gradcam-theory.png": {
@@ -2965,15 +3056,6 @@
           "When prediction transition, confidence drop and saliency movement occur together, the example supports the report's central claim: post-hoc maps must be audited under interventions before being treated as evidence of model reasoning."
         ]
       },
-      "assets/xai-report/background-stress-summary.png": {
-        "title": "Figure 13 - Background stress-test summary",
-        "paragraphs": [
-          "This dashboard condenses the three background interventions into one reading point before the report moves to error analysis. It compares the model response, measured by prediction-change rate, with the explanation response, measured by top-k IoU and Spearman rank stability.",
-          "Gaussian noise and colour shift produce moderate prediction changes, but they still move the attribution maps. Background replacement is the strongest intervention: the prediction-change rate rises to 0.75, showing that replacing only the approximate background can often alter the final class decision.",
-          "The comparison between Grad-CAM and Integrated Gradients is deliberately conservative. Grad-CAM has higher IoU and Spearman values across the three perturbations, so it is more spatially stable in this run. Integrated Gradients remains useful as a pixel-level attribution method, but it is more sensitive to background changes and baseline-dependent high-frequency effects.",
-          "The lower table links stability with faithfulness checks. Grad-CAM assigns more saliency mass to the animal region and obtains higher insertion AUC, while Integrated Gradients places more mass on the background and shows lower insertion AUC. The conclusion is not that Grad-CAM is a proof of correct reasoning, but that it is the more robust local diagnostic under these specific stress tests."
-        ]
-      },
       "assets/xai-report/advanced-gradcam-deletion.png": {
         "title": "Figure 10 - Grad-CAM deletion and insertion curves",
         "paragraphs": [
@@ -3063,10 +3145,10 @@
       "assets/xai-report/tcav-theory.png": {
         "title": "Figure 16 - TCAV concept-direction procedure",
         "paragraphs": [
-          "TCAV moves from spatial attribution to semantic probing in activation space. The first step defines a human concept, such as stripes, using positive examples and compares those examples with unrelated reference images. Both sets are passed through a chosen layer of the trained CNN.",
+          "TCAV moves from spatial attribution to semantic probing in activation space. In this project, a real CAV is learned by contrasting images from AwA2 classes that are positive for an attribute with images from classes that are negative for that attribute. The five concepts are stripes, furry, hooves, horns and flippers.",
           "A linear separator is fitted in that activation space. Its normal direction is the Concept Activation Vector, which points toward the region of the representation associated with the concept. This turns a semantic idea into a measurable direction inside the model.",
-          "For a target class, TCAV computes a directional sensitivity: it checks whether moving the representation along the concept direction increases or decreases the class score. The final TCAV score is the fraction of target-class images whose directional derivative is positive.",
-          "The method is useful because it asks whether the model representation contains a concept-level direction, not merely where a heatmap is located. Its limitation is methodological: the concept must be well defined, linearly recoverable at the chosen layer and tested against held-out validation plus random-concept controls."
+          "For a target class, TCAV computes the directional sensitivity shown in the central panel: the gradient of the target-class score with respect to the layer activation is projected onto the CAV. The TCAV score is then the fraction of target images for which that sensitivity is positive, meaning that the concept direction increases the class score.",
+          "Matched random CAVs do not define the real concept direction here. They are trained separately as statistical controls, allowing the measured sensitivity to be compared with random directions."
         ]
       },
       "assets/xai-report/concept-validation-summary.png": {
@@ -3088,7 +3170,7 @@
       "assets/xai-report/tcav-spurious-pairs.png": {
         "title": "Figure 19a - TCAV spurious concept-species audit",
         "paragraphs": [
-          "This audit does not claim that a concept and a species are statistically correlated. It compares TCAV sensitivity with the AwA2 oracle value for the same species and concept, so it highlights mismatches between model response and semantic expectation.",
+          "This audit does not claim that a concept and a species are statistically correlated. It compares TCAV sensitivity with the real-world value for the same species and concept, so it highlights mismatches between model response and semantic expectation.",
           "For flippers and polar bear, the useful hypothesis is representation entanglement: the flippers CAV is trained from aquatic mammal examples, so it may encode water, coast, smooth body texture or dataset context in addition to anatomical flippers.",
           "The point marker shows the class-level AwA2 prior, while the bar shows TCAV sensitivity. Large gaps are therefore triage signals for follow-up inspection, especially when background stress tests already show that the classifier responds to contextual evidence."
         ]
@@ -3109,14 +3191,6 @@
           "For horns and dolphin, the derivative remains positive for nearly all images, but the dolphin probability and prediction are highly unstable under the same intervention. This separates activation-space directionality from reliable semantic evidence."
         ]
       },
-      "assets/xai-report/tcav-image-level-examples.png": {
-        "title": "Figure 19d - Optional image examples for manual inspection",
-        "paragraphs": [
-          "This grid is a qualitative audit trail, not the main result. It shows the target images with the largest directional derivatives and the approximate background region used by the stress intervention.",
-          "Use it to ask whether top-scoring images contain visible water, ice, coastline, pose, animal scale or background texture that could explain an entangled CAV response.",
-          "The quantitative conclusion should come from Figure 19c and the summary table. Figure 19d only helps make those numbers inspectable at the image level."
-        ]
-      },
       "assets/xai-report/tcav-top-scores.png": {
         "title": "TCAV effects relative to random controls",
         "paragraphs": [
@@ -3128,8 +3202,8 @@
       "assets/xai-report/concept-bottleneck-theory.png": {
         "title": "Figure 20 - Concept Bottleneck Model architecture",
         "paragraphs": [
-          "A Concept Bottleneck Model is not a post-hoc explanation. It changes the prediction path: instead of mapping image features directly to an animal class, the model first predicts a vector of human-readable concepts and then predicts the class from those concepts:<span class=\"comment-formula\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mrow><mover accent=\"true\"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>f</mi><mtext>concept</mtext></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>,</mo><mspace width=\"0.7em\"/><mi>p</mi><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi mathvariant=\"normal\">softmax</mi><mo>(</mo><mi>g</mi><mo>(</mo><mover accent=\"true\"><mi>c</mi><mo>^</mo></mover><mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo><mo>)</mo></mrow></math></span>",
-          "The figure contrasts this path with a standard black-box classifier. The CBM path creates an explicit semantic interface: the predicted concept vector can be inspected, evaluated and, in controlled settings, edited before the final class prediction.",
+          "A Concept Bottleneck Model is not a post-hoc explanation. It changes the prediction path: instead of mapping image features directly to an animal class, the model first predicts a vector of human-readable concepts and then predicts the class from those concepts.",
+          "The CBM path creates an explicit semantic interface: the predicted concept vector can be inspected, evaluated and, in controlled settings, edited before the final class prediction.",
           "This is different from Grad-CAM or Integrated Gradients. A heatmap explains a decision after a black-box classifier has already made it; a CBM constrains the decision itself to pass through concepts. The trade-off is that the bottleneck can reduce accuracy and inherits any errors or incompleteness in the chosen concept vocabulary."
         ]
       },
@@ -3159,17 +3233,6 @@
           "<strong>Class-head evidence:</strong> <code>hairless</code>, <code>flippers</code>, <code>hooves</code> and <code>meatteeth</code> contribute positive evidence toward the wrong <code>hippopotamus</code> class over <code>bobcat</code>.",
           "<strong>Single-concept oracle:</strong> the best one-concept correction is <code>hairless</code>, but it still does not recover the true class.",
           "<strong>Full-vector oracle:</strong> replacing all concepts with the class-level AwA2 bobcat profile predicts <code>lion</code>, not <code>bobcat</code>. This indicates both bottleneck error and a concept-to-class head limitation."
-        ]
-      },
-      "assets/xai-report/cbm-real-error-case-2.png": {
-        "title": "Figure 24 - CBM polar-bear-to-sheep error decomposition",
-        "bullets": [
-          "<strong>Real CBM error:</strong> this image is selected from rows with <code>cbm_correct = False</code>. The true class is <code>polar+bear</code>, while the CBM predicts <code>sheep</code>.",
-          "<strong>Margin:</strong> <code>p(sheep)=0.090</code> and <code>p(polar+bear)=0.066</code>, with a <code>sheep &minus; polar+bear</code> logit margin of <code>+0.311</code>.",
-          "<strong>Largest concept errors:</strong> <code>paws</code>, <code>walks</code> and <code>meatteeth</code> are underpredicted relative to the AwA2 polar-bear profile, while <code>hooves</code> is overpredicted.",
-          "<strong>Class-head evidence:</strong> <code>claws</code>, <code>stripes</code> and <code>water</code> support the wrong <code>sheep</code> class, while <code>walks</code> pushes back toward <code>polar+bear</code>.",
-          "<strong>Single-concept oracle:</strong> the best one-concept correction is <code>meatteeth</code>, but it still does not recover the true class.",
-          "<strong>Full-vector oracle:</strong> replacing all concepts with the class-level AwA2 polar-bear profile recovers <code>polar+bear</code>, so this case is consistent with a bottleneck concept-prediction failure."
         ]
       }
     };
