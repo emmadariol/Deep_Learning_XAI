@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 
 <head>
@@ -569,6 +569,183 @@
       margin: 8px 0 0;
       color: var(--muted);
       font-size: .93rem;
+    }
+
+    .metric-guide {
+      margin: 42px 0 0;
+      padding-top: 28px;
+      border-top: 1px solid var(--line);
+    }
+
+    .metric-guide-header {
+      max-width: 78ch;
+      margin-bottom: 22px;
+    }
+
+    .metric-guide-eyebrow,
+    .metric-check-type {
+      color: var(--accent);
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .metric-guide-eyebrow {
+      margin: 0 0 10px;
+    }
+
+    .metric-guide-header h3 {
+      margin: 0 0 8px;
+      font-size: clamp(1.22rem, 1.7vw, 1.52rem);
+      line-height: 1.22;
+    }
+
+    .metric-guide-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .95rem;
+      line-height: 1.6;
+    }
+
+    .metric-question-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 24px 0 26px;
+    }
+
+    .metric-question {
+      padding: 17px 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--accent);
+      border-radius: 0 0 6px 6px;
+    }
+
+    .metric-question--faithfulness {
+      border-top-color: var(--warning);
+    }
+
+    .metric-question--faithfulness .metric-check-type,
+    .metric-question--faithfulness .metric-question-label {
+      color: var(--warning);
+    }
+
+    .metric-question-label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .metric-question h4,
+    .metric-check h4 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.28;
+    }
+
+    .metric-question p,
+    .metric-check p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.52;
+    }
+
+    .metric-checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 34px;
+      row-gap: 0;
+    }
+
+    .metric-check {
+      padding: 16px 0 17px;
+      border-top: 1px solid var(--line);
+    }
+
+    .metric-check-type {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .metric-check-type--faithfulness {
+      color: var(--warning);
+    }
+
+    .error-intro {
+      margin: 18px 0 0;
+      padding: 22px 0 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .error-intro-lead {
+      max-width: 76ch;
+      margin: 0 0 20px;
+      color: var(--ink);
+      font-size: clamp(1.06rem, 1.45vw, 1.24rem);
+      font-weight: 620;
+      line-height: 1.45;
+    }
+
+    .error-reading-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .error-reading-card {
+      padding: 17px 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+
+    .error-reading-card--predicted {
+      border-top: 3px solid var(--warning);
+    }
+
+    .error-reading-card--true {
+      border-top: 3px solid var(--accent);
+    }
+
+    .error-reading-label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .error-reading-card--predicted .error-reading-label {
+      color: var(--warning);
+    }
+
+    .error-reading-card--true .error-reading-label {
+      color: var(--accent);
+    }
+
+    .error-reading-card h4 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.28;
+    }
+
+    .error-reading-card p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.52;
     }
 
     .fact-grid--questions {
@@ -1375,6 +1552,9 @@
       }
 
       .objective-card,
+      .metric-question-grid,
+      .metric-checklist,
+      .error-reading-grid,
       .method-brief-header,
       .method-grid {
         grid-template-columns: 1fr;
@@ -1848,40 +2028,55 @@
           </figure>
         </div>
 
-        <h3 class="subsection-title">Stability and faithfulness metrics</h3>
-        <div class="prose">
-          <p>IoU and Spearman measure whether the explanation remains spatially consistent. Deletion and insertion
-            test whether highly ranked pixels actually control the target score. These checks answer different parts
-            of the reliability question and must be interpreted together.</p>
-        </div>
-        <div class="data-strip" aria-label="Project method counts">
-          <div class="data-point"><strong>2</strong><span>local attribution methods</span></div>
-          <div class="data-point"><strong>2</strong><span>concept-level methods</span></div>
-          <div class="data-point"><strong>3</strong><span>background interventions</span></div>
-        </div>
+        <div class="metric-guide" aria-labelledby="metric-guide-title">
+          <div class="metric-guide-header">
+            <p class="metric-guide-eyebrow">Reliability checks</p>
+            <h3 id="metric-guide-title">Stability and faithfulness metrics</h3>
+            <p>These measures are read together because they answer two different questions: whether the explanation
+              stays consistent under controlled changes, and whether the highlighted evidence actually affects the
+              target score.</p>
+          </div>
 
-        <div class="metric-list">
-          <article class="metric">
-            <h3>Top-k IoU</h3>
-            <p>Does the most salient spatial support remain in the same region? Higher overlap indicates more stable
-              localization.</p>
-          </article>
-          <article class="metric">
-            <h3>Spearman rank</h3>
-            <p>Does the full pixel-importance ordering remain similar? Constant maps are treated as undefined rather
-              than as artificial agreement.</p>
-          </article>
-          <article class="metric">
-            <h3>Deletion and insertion</h3>
-            <p>Do salient pixels actually affect the target score? A faithful map should delete evidence quickly and
-              recover it early during insertion.</p>
-          </article>
-          <article class="metric">
-            <h3>Region allocation</h3>
-            <p>How much normalized saliency lies on the approximate animal region compared with the background?</p>
-          </article>
+          <div class="metric-question-grid" aria-label="Stability versus faithfulness">
+            <article class="metric-question metric-question--stability">
+              <span class="metric-question-label">Stability</span>
+              <h4>Does the map stay similar when the input changes?</h4>
+              <p>It checks whether attribution remains in the same regions, or at least keeps a similar importance
+                ranking, after controlled background interventions.</p>
+            </article>
+            <article class="metric-question metric-question--faithfulness">
+              <span class="metric-question-label">Faithfulness</span>
+              <h4>Do the highlighted pixels actually matter for the score?</h4>
+              <p>It checks whether removing or inserting salient evidence changes the target class score in the
+                expected direction.</p>
+            </article>
+          </div>
 
-
+          <div class="metric-checklist" aria-label="Metric definitions">
+            <article class="metric-check">
+              <span class="metric-check-type">Stability</span>
+              <h4>Top-k IoU</h4>
+              <p>Asks whether the most salient spatial support remains in the same region. Higher overlap means more
+                stable localization.</p>
+            </article>
+            <article class="metric-check">
+              <span class="metric-check-type">Stability</span>
+              <h4>Spearman rank</h4>
+              <p>Asks whether the full pixel-importance ordering remains similar. Constant maps are treated as
+                undefined rather than artificial agreement.</p>
+            </article>
+            <article class="metric-check">
+              <span class="metric-check-type metric-check-type--faithfulness">Faithfulness</span>
+              <h4>Deletion and insertion</h4>
+              <p>Asks whether salient pixels control the target score. A faithful map should lose evidence quickly and
+                recover it early during insertion.</p>
+            </article>
+            <article class="metric-check">
+              <span class="metric-check-type metric-check-type--faithfulness">Faithfulness</span>
+              <h4>Region allocation</h4>
+              <p>Asks how much normalized saliency lies on the approximate animal region compared with the background.</p>
+            </article>
+          </div>
         </div>
 
 
@@ -2011,14 +2206,25 @@
         </figure>
 
         <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
-        <div class="prose">
-          <p class="prose-intro">Misclassifications are useful because they force the explanation to account for a
-            decision that is visibly incorrect.</p>
-          <p>An attribution for the predicted class asks which evidence increased the score the network actually
-            chose.
-            An attribution for the true class asks a different question: which regions would need to support the
-            correct
-            class more strongly?</p>
+        <div class="error-intro" aria-label="How to read misclassification explanations">
+          <p class="error-intro-lead">Misclassifications are useful because the model made a visibly wrong decision:
+            the explanation must therefore show what pushed the network toward that wrong class, not just where the
+            heatmap looks plausible.</p>
+
+          <div class="error-reading-grid">
+            <article class="error-reading-card error-reading-card--predicted">
+              <span class="error-reading-label">Predicted class</span>
+              <h4>What evidence supported the model's wrong choice?</h4>
+              <p>This attribution explains the class the network actually selected. It reveals the visual cues that
+                increased the wrong score.</p>
+            </article>
+            <article class="error-reading-card error-reading-card--true">
+              <span class="error-reading-label">True class</span>
+              <h4>What evidence would need to support the correct class?</h4>
+              <p>This attribution asks where stronger evidence for the ground-truth class should appear, and whether
+                the model is missing the animal cues that matter.</p>
+            </article>
+          </div>
         </div>
 
         <figure>
