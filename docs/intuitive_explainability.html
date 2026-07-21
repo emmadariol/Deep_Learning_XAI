@@ -343,7 +343,7 @@
 
     .overview-path {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0;
       margin: 34px 0 0;
       padding: 0;
@@ -353,7 +353,7 @@
     }
 
     .overview-path li {
-      min-height: 158px;
+      min-height: 210px;
       padding: 20px 18px 18px 0;
       border-right: 1px solid var(--line);
     }
@@ -364,6 +364,18 @@
 
     .overview-path li:last-child {
       border-right: 0;
+    }
+
+    .overview-path li:nth-child(odd) {
+      padding-left: 0;
+    }
+
+    .overview-path li:nth-child(even) {
+      border-right: 0;
+    }
+
+    .overview-path li:nth-child(-n+2) {
+      border-bottom: 1px solid var(--line);
     }
 
     .overview-step {
@@ -390,6 +402,21 @@
       color: var(--muted);
       font-size: .9rem;
       line-height: 1.5;
+    }
+
+    .overview-question {
+      margin-top: 16px;
+    }
+
+    .overview-question+.overview-question {
+      margin-top: 10px;
+    }
+
+    .overview-path .overview-question>strong {
+      margin-bottom: 6px;
+      font-size: .92rem;
+      letter-spacing: 0;
+      text-transform: none;
     }
 
     .analysis-lenses {
@@ -493,65 +520,20 @@
       line-height: 1.35;
     }
 
-    .formula--compact {
-      margin: 14px 0 0;
-      padding: 10px 12px;
-      border-left-width: 1px;
-    }
-
-    .formula--compact math {
-      font-size: 1rem;
-    }
-
-    .objective-card {
-      display: grid;
-      grid-template-columns: minmax(220px, .42fr) minmax(0, 1fr);
-      gap: clamp(20px, 4vw, 46px);
-      align-items: center;
-      margin: 34px 0 0;
-      padding: clamp(22px, 3vw, 32px);
-      background: #f7f3ea;
-      border: 1px solid #d8cbb7;
-      border-radius: 7px;
-    }
-
-    .objective-label {
-      display: block;
-      margin-bottom: 12px;
-      color: var(--warning);
-      font-size: .72rem;
-      font-weight: 800;
-      letter-spacing: .1em;
-      line-height: 1;
-      text-transform: uppercase;
-    }
-
-    .objective-card h3 {
-      max-width: 18ch;
-      margin: 0;
-      font-size: clamp(1.32rem, 2vw, 1.78rem);
-      line-height: 1.12;
-    }
-
-    .objective-card p {
-      max-width: 62ch;
-      margin: 0 0 16px;
-      color: #4f5a5e;
-      font-size: .95rem;
-      line-height: 1.58;
-    }
-
-    .objective-card .formula {
-      margin: 0;
-      padding: 18px 20px;
-      background: rgba(255, 255, 255, .62);
-      border: 1px solid #dfd3c1;
+    .formula--centered {
+      width: fit-content;
+      max-width: 100%;
+      margin: 20px auto 0;
+      padding: 14px 20px;
       border-left: 0;
-      border-radius: 5px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      text-align: center;
     }
 
-    .objective-card .formula math {
-      font-size: clamp(1.05rem, 1.7vw, 1.32rem);
+    .formula--centered math {
+      display: inline-block;
+      font-size: clamp(1.08rem, 1.55vw, 1.3rem);
     }
 
     .matrix-block {
@@ -566,59 +548,6 @@
       font-size: .82rem;
       line-height: 1.45;
       white-space: pre;
-    }
-
-    .pipeline {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 0;
-      margin: 42px 0 8px;
-      padding: 0;
-      list-style: none;
-      counter-reset: pipeline;
-      border-top: 1px solid var(--line-strong);
-    }
-
-    .pipeline li {
-      min-height: 146px;
-      padding: 18px 18px 14px 0;
-      border-right: 1px solid var(--line);
-      counter-increment: pipeline;
-    }
-
-    .pipeline li:not(:first-child) {
-      padding-left: 18px;
-    }
-
-    .pipeline li:last-child {
-      border-right: 0;
-    }
-
-    .pipeline li::before {
-      display: block;
-      margin-bottom: 26px;
-      color: var(--accent);
-      content: "0" counter(pipeline);
-      font-size: .73rem;
-      font-weight: 760;
-      letter-spacing: .1em;
-    }
-
-    .pipeline strong {
-      display: block;
-      margin-bottom: 5px;
-      font-size: .93rem;
-    }
-
-    .pipeline span {
-      display: block;
-      color: var(--muted);
-      font-size: .85rem;
-      line-height: 1.45;
-    }
-
-    .model-pipeline-figure .pipeline {
-      margin-top: 0;
     }
 
     .fact-grid,
@@ -640,14 +569,6 @@
       margin: 8px 0 0;
       color: var(--muted);
       font-size: .93rem;
-    }
-
-    .research-questions {
-      margin-top: 38px;
-      padding: clamp(22px, 3vw, 30px);
-      background: #fffdf9;
-      border: 1px solid var(--line);
-      border-radius: 7px;
     }
 
     .metric-guide {
@@ -825,62 +746,6 @@
       color: var(--muted);
       font-size: .88rem;
       line-height: 1.52;
-    }
-
-    .fact-grid--questions {
-      gap: 20px;
-    }
-
-    .research-questions>p {
-      margin: 0 0 18px;
-      color: var(--ink);
-      font-size: clamp(1.18rem, 1.8vw, 1.5rem);
-      font-weight: 780;
-      line-height: 1.3;
-    }
-
-    .question-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .question-grid li {
-      min-height: 146px;
-      padding: 16px;
-      background: #fff;
-      border: 1px solid var(--line);
-      border-top: 4px solid var(--accent);
-      border-radius: 0 0 6px 6px;
-    }
-
-    .question-index {
-      display: block;
-      margin-bottom: 18px;
-      color: var(--accent);
-      font-size: .7rem;
-      font-weight: 800;
-      letter-spacing: .09em;
-      line-height: 1;
-      text-transform: uppercase;
-    }
-
-    .question-grid strong {
-      display: block;
-      margin-bottom: 7px;
-      color: var(--ink);
-      font-size: .98rem;
-      line-height: 1.28;
-    }
-
-    .question-grid p {
-      margin: 0;
-      color: var(--muted);
-      font-size: .88rem;
-      line-height: 1.48;
     }
 
     .conclusion-list {
@@ -1064,14 +929,13 @@
     }
 
     .method-lenses {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
       margin: 0 0 24px;
     }
 
     .method-lens {
-      flex: 1 1 280px;
       padding: 14px 16px;
       background: rgba(36, 95, 105, .055);
       border: 1px solid rgba(36, 95, 105, .14);
@@ -1085,9 +949,9 @@
 
     .method-lens>strong {
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       color: var(--ink);
-      font-size: .84rem;
+      font-size: .92rem;
       letter-spacing: .04em;
       text-transform: uppercase;
     }
@@ -1115,12 +979,16 @@
     .method-lens ul {
       margin: 0;
       color: var(--muted);
-      font-size: .88rem;
+      font-size: .96rem;
       line-height: 1.5;
     }
 
     .method-lens ul {
       padding-left: 20px;
+    }
+
+    .method-lens p+ul {
+      margin-top: 12px;
     }
 
     .method-lens li+li {
@@ -1155,6 +1023,20 @@
       border-color: var(--accent);
       box-shadow: 0 16px 34px rgba(30, 41, 45, .14);
       transform: translateY(-1px);
+    }
+
+    .model-pipeline-figure img {
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+    }
+
+    main .model-pipeline-figure img:hover,
+    main .model-pipeline-figure img:focus-visible {
+      border-color: transparent;
+      box-shadow: none;
+      transform: none;
     }
 
     figcaption {
@@ -1562,6 +1444,13 @@
       font-size: .89rem;
     }
 
+    .table-title {
+      margin: 36px 0 -18px;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
     .comparison th,
     .comparison td {
       padding: 14px 12px;
@@ -1802,30 +1691,6 @@
         border-left: 0;
       }
 
-      .pipeline {
-        grid-template-columns: 1fr;
-      }
-
-      .pipeline li,
-      .pipeline li:not(:first-child) {
-        min-height: 0;
-        padding: 16px 0;
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .pipeline li::before {
-        display: inline-block;
-        width: 36px;
-        margin: 0;
-        vertical-align: top;
-      }
-
-      .pipeline strong,
-      .pipeline span {
-        margin-left: 36px;
-      }
-
       .analysis-lenses {
         max-width: none;
       }
@@ -1868,7 +1733,6 @@
         grid-template-columns: 1fr;
       }
 
-      .objective-card,
       .metric-question-grid,
       .metric-checklist,
       .error-reading-grid,
@@ -1895,10 +1759,6 @@
 
       .overview-step {
         margin-bottom: 8px;
-      }
-
-      .objective-card h3 {
-        max-width: none;
       }
 
       .stress-card {
@@ -1995,48 +1855,66 @@
         <h2 id="overview-title">How do we make a prediction understandable?</h2>
       </div>
       <div class="section-content">
+        <div class="prose overview-intro">
+          <p class="prose-intro">A prediction becomes understandable through four checks.</p>
+        </div>
 
         <ol class="overview-path" aria-label="Explainability reading path">
           <li>
             <span class="overview-step">01</span>
             <strong>PREDICTION</strong>
-            <p> We start from a predicted animal class and ask what supports it.</p>
+            <p>We start from a predicted animal class and ask what supports it.</p>
+            <article class="method-lens overview-question">
+              <strong>Starting point</strong>
+              <p>The model outputs a top-1 animal label and a confidence score; that predicted class becomes the target
+                for the explanation.</p>
+            </article>
           </li>
           <li>
             <span class="overview-step">02</span>
             <strong>EVIDENCE</strong>
-            <p>Inspection of the
-              image evidence: attribution maps to see which regions/pixels support that class score.</p>
+            <p>Inspection of the image evidence: attribution maps to see which regions/pixels support that class
+              score.</p>
+            <article class="method-lens overview-question">
+              <strong>Question 1: where is evidence located?</strong>
+              <p>Compare broad regions from Grad-CAM with pixel-level attribution from Integrated Gradients.</p>
+            </article>
           </li>
           <li>
             <span class="overview-step">03</span>
             <strong>CHECKS</strong>
             <p>Test whether that evidence is reliable: change the input/remove highlighted regions to test stability
               and faithfulness.</p>
+            <article class="method-lens overview-question">
+              <strong>Question 2: is the map stable and faithful?</strong>
+              <p>Use perturbations, deletion and insertion to catch fragile or background-driven explanations.</p>
+            </article>
           </li>
           <li>
             <span class="overview-step">04</span>
             <strong>CONCEPTS</strong>
             <p>Check whether the model can
               be read through human concepts: can attributes such as stripes, horns or flippers shape the decision?</p>
+            <article class="method-lens overview-question">
+              <strong>Question 3: which semantic concepts are represented?</strong>
+              <p>Use TCAV to test sensitivity to semantic directions in the learned representation.</p>
+            </article>
+            <article class="method-lens method-lens--design overview-question">
+              <strong>Question 4: can prediction be mediated by concepts?</strong>
+              <p>Use the CBM to test whether predicted attributes can mediate the final animal label.</p>
+            </article>
           </li>
         </ol>
 
         <div class="method-brief" aria-label="Algorithms used in the report">
           <div class="method-brief-header">
             <p class="method-brief-eyebrow">Methods</p>
-            <div>
-              <p><strong>Post-hoc methods</strong>: analyse a trained net after a prediction has already been
-                produced. <br>
-                <strong>Interpretable by design</strong>: it changes the prediction path itself, forcing the
-                class decision through named attributes.
-              </p>
-            </div>
           </div>
 
           <div class="method-lenses" aria-label="Post-hoc versus interpretable by design">
             <div class="method-lens">
               <strong>After the prediction <span class="method-lens-tag">post-hoc</span></strong>
+              <p><em>Analyse a trained network after a prediction has already been produced.</em></p>
               <ul>
                 <li><span class="method-list-name">Grad-CAM</span> &rarr; locates class evidence in late feature maps.
                 </li>
@@ -2049,11 +1927,10 @@
             </div>
             <div class="method-lens method-lens--design">
               <strong>In the prediction path <span class="method-lens-tag">interpretable by design</span></strong>
+              <p><em>Change the prediction path itself, forcing the class decision through named attributes.</em></p>
               <ul>
                 <li><span class="method-list-name">Concept Bottleneck Model (CBM)</span> &rarr; makes concepts part of
                   the prediction path.</li>
-                <li><span class="method-list-name">Concept head</span> &rarr; predicts 20 semantic attributes.</li>
-                <li><span class="method-list-name">Class head</span> &rarr; predicts the animal only from concepts.</li>
                 <li><span class="method-list-name">Interventions</span> &rarr; test the effect of concept corrections.
                 </li>
               </ul>
@@ -2061,31 +1938,6 @@
           </div>
         </div>
 
-        <div class="research-questions" aria-label="Four explainability questions">
-          <p>The report answers four checks</p>
-          <ol class="question-grid">
-            <li>
-              <span class="question-index">Q1</span>
-              <strong>Question 1: where is evidence located?</strong>
-              <p>Compare broad regions from Grad-CAM with pixel-level attribution from Integrated Gradients.</p>
-            </li>
-            <li>
-              <span class="question-index">Q2</span>
-              <strong>Question 2: is the map stable and faithful?</strong>
-              <p>Use perturbations, deletion and insertion to catch fragile or background-driven explanations.</p>
-            </li>
-            <li>
-              <span class="question-index">Q3</span>
-              <strong>Question 3: which semantic concepts are represented?</strong>
-              <p>Use TCAV to test sensitivity to semantic directions in the learned representation.</p>
-            </li>
-            <li>
-              <span class="question-index">Q4</span>
-              <strong>Question 4: can prediction be mediated by concepts?</strong>
-              <p>Use the CBM to test whether predicted attributes can mediate the final animal label.</p>
-            </li>
-          </ol>
-        </div>
       </div>
     </section>
 
@@ -2114,87 +1966,58 @@
         </div>
 
         <figure class="model-pipeline-figure">
-          <ol class="pipeline" aria-label="ResNet50 path from image to prediction">
-            <li>
-              <strong>Input image</strong>
-              <span>ImageNet-normalized RGB tensor, <code>3 &times; 224 &times; 224</code>.</span>
-            </li>
-            <li>
-              <strong>Frozen features</strong>
-              <span>The stem and <code>layer1</code>&ndash;<code>layer3</code> reuse pretrained visual features.</span>
-            </li>
-            <li>
-              <strong>Fine-tuned features</strong>
-              <span><code>layer4</code> adapts a <code>2048 &times; 7 &times; 7</code> representation to AwA2.</span>
-            </li>
-            <li>
-              <strong>Class scores</strong>
-              <span>Global pooling and the new linear head produce 20 logits.</span>
-            </li>
-            <li>
-              <strong>Prediction</strong>
-              <span>Softmax yields class probabilities and the top-1 animal label.</span>
-            </li>
-          </ol>
+          <img src="assets/xai-report/resnet50-prediction-path-clean.png"
+            alt="Transparent diagram of the maintained ResNet50 prediction path from RGB input through frozen stem and layer1 to layer3, trainable layer4 and FC head, then softmax probabilities."
+            loading="lazy" decoding="async">
           <figcaption><strong>Figure 01</strong> - The maintained ResNet50 prediction path. Only
             <code>layer4</code> and the final classification head are updated during baseline fine-tuning.
           </figcaption>
         </figure>
 
-        <h3 class="subsection-title">How the classifier learns</h3>
+        <h3 class="subsection-title">How does the classifier learn?</h3>
         <div class="prose">
-          <p>During fine-tuning, cross-entropy compares the logits with the ground-truth class. The loss encourages the
-            correct-class logit to exceed the competing scores, while AdamW updates only <code>layer4</code> and the
-            final <code>fc</code> layer.</p>
+          <p>The objective is the <strong>cross-entropy loss</strong>: it compares the model's class logits with the
+            ground-truth label. Minimizing this loss pushes the correct-class logit above the competing scores, while
+            AdamW updates only <code>layer4</code> and the final <code>fc</code> layer.</p>
         </div>
 
-        <article class="objective-card">
-          <div>
-            <span class="objective-label">Objective</span>
-            <h3>Cross-entropy training signal</h3>
-          </div>
-          <div class="objective-body">
-            <p><code>CrossEntropyLoss</code> compares class logits with the ground-truth label. AdamW then updates the
-              trainable parameters with weight decay.</p>
-            <div class="formula formula--compact" role="math"
-              aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
-              <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <div class="formula formula--centered" role="math"
+          aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+            <mrow>
+              <mi>L</mi>
+              <mo>=</mo>
+              <mo>−</mo>
+              <mi mathvariant="normal">log</mi>
+              <mo>(</mo>
+              <mfrac>
                 <mrow>
-                  <mi>L</mi>
-                  <mo>=</mo>
-                  <mo>−</mo>
-                  <mi mathvariant="normal">log</mi>
+                  <mi mathvariant="normal">exp</mi>
                   <mo>(</mo>
-                  <mfrac>
-                    <mrow>
-                      <mi mathvariant="normal">exp</mi>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>z</mi>
-                        <mi>y</mi>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                    <mrow>
-                      <msub>
-                        <mo>∑</mo>
-                        <mi>j</mi>
-                      </msub>
-                      <mi mathvariant="normal">exp</mi>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>z</mi>
-                        <mi>j</mi>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mfrac>
+                  <msub>
+                    <mi>z</mi>
+                    <mi>y</mi>
+                  </msub>
                   <mo>)</mo>
                 </mrow>
-              </math>
-            </div>
-          </div>
-        </article>
+                <mrow>
+                  <msub>
+                    <mo>∑</mo>
+                    <mi>j</mi>
+                  </msub>
+                  <mi mathvariant="normal">exp</mi>
+                  <mo>(</mo>
+                  <msub>
+                    <mi>z</mi>
+                    <mi>j</mi>
+                  </msub>
+                  <mo>)</mo>
+                </mrow>
+              </mfrac>
+              <mo>)</mo>
+            </mrow>
+          </math>
+        </div>
 
         <h3 class="subsection-title">Why the internal representation matters</h3>
         <div class="prose">
@@ -2217,13 +2040,6 @@
             Grad-CAM is computed from the final convolutional representation.
           </figcaption>
         </figure>
-
-        <div class="note">
-          <strong>What the explanations target</strong>
-          <p>Grad-CAM, Integrated Gradients and TCAV differentiate a selected raw class logit, before softmax.
-            Probabilities summarize confidence and determine the top-1 class, but the attribution target is the class
-            score itself.</p>
-        </div>
 
         <details class="section-disclosure">
           <summary>
@@ -2278,6 +2094,58 @@
                 </tbody>
               </table>
             </div>
+
+            <h3 class="table-title">Training results</h3>
+            <div class="comparison-wrap" role="region" aria-label="Baseline training results" tabindex="0">
+              <table class="comparison">
+                <thead>
+                  <tr>
+                    <th>Epoch</th>
+                    <th>Train loss</th>
+                    <th>Train accuracy</th>
+                    <th>Validation loss</th>
+                    <th>Validation accuracy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>1.500</td>
+                    <td>72.03%</td>
+                    <td>0.305</td>
+                    <td>90.60%</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>0.245</td>
+                    <td>93.10%</td>
+                    <td>0.203</td>
+                    <td>93.96%</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>0.116</td>
+                    <td>96.73%</td>
+                    <td>0.173</td>
+                    <td>93.46%</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>0.088</td>
+                    <td>97.38%</td>
+                    <td>0.165</td>
+                    <td>92.95%</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>0.048</td>
+                    <td>98.78%</td>
+                    <td>0.213</td>
+                    <td>93.96%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </details>
       </div>
@@ -2289,12 +2157,15 @@
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">Grad-CAM and Integrated Gradients locate candidate evidence for one image and one
-            selected class.</p>
-          <p>&rarr; A saliency map is the numerical attribution tensor.<br>
-            &rarr; A heatmap is its colour-coded visualization over the image.<br>
-            &rarr; A spatial map answers where attribution is concentrated.</p>
-
+          <p class="prose-intro">For one image and one selected class, Grad-CAM and Integrated Gradients estimate where
+            the class score draws its visual evidence from.</p>
+          <p>Both algorithms use the model's gradients for the selected score; we read their outputs through three
+            terms:</p>
+          <ul>
+            <li><strong>Saliency map:</strong> the numerical attribution tensor over image regions or pixels.</li>
+            <li><strong>Heatmap:</strong> the colour-coded overlay used to inspect that saliency on the image.</li>
+            <li><strong>Spatial evidence:</strong> where attribution concentrates for the selected class score.</li>
+          </ul>
         </div>
 
         <div class="figure-grid">
@@ -2378,6 +2249,14 @@
             metric is interpreted.</figcaption>
         </figure>
 
+        <div class="note">
+          <strong>Current background audit</strong>
+          <p>Across the four-image background audit, Gaussian noise and colour shift did not change the predicted
+            class. Background replacement changed <code>1 / 4</code> predictions, with the flipped case moving from
+            <code>seal</code> to <code>walrus</code>. This is a hypothesis generator: background statistics may
+            redirect the classifier toward context-correlated labels, but the current run does not support a broad
+            class-attractor claim on its own.</p>
+        </div>
 
         <div class="figure-grid">
           <figure>
@@ -2984,6 +2863,14 @@
     const tocLinks = [...document.querySelectorAll('.toc a')];
     const reportSections = [...document.querySelectorAll('.report-section')];
     const figureCommentary = {
+      "assets/xai-report/resnet50-prediction-path-clean.png": {
+        "title": "Figure 01 - Maintained ResNet50 prediction path",
+        "paragraphs": [
+          "This diagram shows the actual baseline path used for the explained classifier. The input is an ImageNet-normalized RGB image, the low and mid-level ResNet blocks remain frozen, and only the final high-level feature block and class head are updated for the AwA2 animal classes.",
+          "The maintained fine-tuning setup freezes the stem, layer1, layer2 and layer3. Layer4 adapts the 2048 x 7 x 7 representation to the dataset, then global average pooling and the trainable fully connected head produce 20 raw class logits.",
+          "Softmax converts those logits into class probabilities and the top-1 animal prediction. The explanations in the report start from this predicted class score: Grad-CAM reads the final convolutional representation, Integrated Gradients attributes the input pixels, and TCAV probes an internal concept direction."
+        ]
+      },
       "assets/xai-report/resnet-forward.png": {
         "title": "Figure 02 - Forward inspection of the ResNet50 backbone",
         "paragraphs": [
@@ -3166,7 +3053,7 @@
         "paragraphs": [
           "This case study is the numerical counterpart of the stress grids. The fixed-target confidence panel shows whether the same class score is weakened after the intervention rather than merely relabelled.",
           "The attribution panels report top-k IoU and Spearman for the selected example. These values should be read from the current figure: low overlap or rank correlation indicates that the explanation moved substantially after the perturbation, while higher values indicate partial preservation of the original saliency structure.",
-          "The case supports contextual sensitivity only when score movement and attribution movement occur together. It also connects back to the attractor hypothesis introduced by Figure 06: background changes can weaken the original target while still pushing the model toward another spurious or visually unexpected class."
+          "The case supports contextual sensitivity only when score movement and attribution movement occur together. It connects back to the current background audit: background changes can weaken the original target while occasionally redirecting the model toward another spurious or visually unexpected class."
         ]
       },
       "assets/xai-report/incorrect-attributions.png": {
