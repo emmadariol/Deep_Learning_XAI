@@ -2497,9 +2497,9 @@
             </header>
             <figure>
               <img src="assets/xai-report/stress-metric-background-replacement.png"
-                alt="Figure-09-style metric dashboard for the elephant background-replacement stress." loading="lazy"
+                alt="Figure-09-style metric dashboard for the batch-level background-replacement stress." loading="lazy"
                 decoding="async">
-              <figcaption><strong>Figure 09c</strong> - Figure-09-style dashboard for the elephant background-replacement
+              <figcaption><strong>Figure 09c</strong> - Figure-09-style dashboard for the batch-level background-replacement
                 intervention.</figcaption>
             </figure>
             <div class="stress-card-grid">
@@ -2530,9 +2530,9 @@
         <figure class="stress-summary-html" aria-labelledby="background-stress-summary-title">
           <div class="stress-summary-header">
             <h3 id="background-stress-summary-title">Background stress test summary</h3>
-            <p>Values are computed from the elephant-only stress outputs. Stability uses mean top-20% saliency IoU and
-              mean Spearman correlation between the original and perturbed saliency maps; prediction change rate and
-              confidence drop are measured on the fixed elephant audit case.</p>
+            <p>Values are computed from the inspected stress outputs. Stability uses mean top-20% saliency IoU and
+              mean Spearman correlation between the original and perturbed saliency maps; prediction change rate is
+              measured as the fraction of inspected examples whose top class changes.</p>
           </div>
           <div class="stress-summary-cards" aria-label="Background perturbation summary cards">
             <article class="stress-summary-card">
@@ -2547,7 +2547,7 @@
                 <dt>Spearman, Grad-CAM vs IG</dt>
                 <dd>0.60 vs 0.50</dd>
               </dl>
-              <p>The elephant prediction stayed stable; Grad-CAM retained slightly stronger spatial stability.</p>
+              <p>Gaussian noise did not change the predicted class, but it strongly reduced confidence and made the explanations less stable.</p>
             </article>
             <article class="stress-summary-card stress-summary-card--low">
               <h4>Colour shift</h4>
@@ -2561,21 +2561,21 @@
                 <dt>Spearman, Grad-CAM vs IG</dt>
                 <dd>0.69 vs 0.52</dd>
               </dl>
-              <p>The elephant decision was stable, while Integrated Gradients moved more than Grad-CAM.</p>
+              <p>Colour shift did not change the predicted class and had a smaller confidence effect, but Integrated Gradients was less spatially stable than Grad-CAM.</p>
             </article>
             <article class="stress-summary-card stress-summary-card--critical">
               <h4>Background replacement</h4>
               <dl>
                 <dt>Prediction change rate</dt>
-                <dd>0.00</dd>
+                <dd>0.25</dd>
                 <dt>Mean confidence drop</dt>
-                <dd>0.54</dd>
+                <dd>0.39</dd>
                 <dt>Top-20 IoU, Grad-CAM vs IG</dt>
-                <dd>0.42 vs 0.30</dd>
+                <dd>0.50 vs 0.35</dd>
                 <dt>Spearman, Grad-CAM vs IG</dt>
-                <dd>0.40 vs 0.42</dd>
+                <dd>0.66 vs 0.42</dd>
               </dl>
-              <p>This was the strongest confidence drop for the elephant case, even though the top prediction stayed elephant.</p>
+              <p>Background replacement changed 25% of predictions and reduced confidence, making it the clearest sign that background context can affect the decision.</p>
             </article>
           </div>
           <table class="comparison stress-summary-table">
