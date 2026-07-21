@@ -2389,25 +2389,24 @@
             <article class="metric-check">
               <span class="metric-check-type">Stability</span>
               <h4>Top-k IoU</h4>
-              <p>Asks whether the most salient spatial support remains in the same region. Higher overlap means more
+              <p>Measures how well the top highlighted areas overlap before and after perturbations. Higher overlap means more
                 stable localization.</p>
             </article>
             <article class="metric-check">
               <span class="metric-check-type">Stability</span>
               <h4>Spearman rank</h4>
-              <p>Asks whether the full pixel-importance ordering remains similar. Constant maps are treated as
-                undefined rather than artificial agreement.</p>
+              <p>Evaluates if the list of pixels, sorted by importance, stays consistent.</p>
             </article>
             <article class="metric-check">
               <span class="metric-check-type metric-check-type--faithfulness">Faithfulness</span>
               <h4>Deletion and insertion</h4>
-              <p>Asks whether salient pixels control the target score. A faithful map should lose evidence quickly and
+              <p>Salient pixels control the score prediction? A faithful map should lose evidence quickly and
                 recover it early during insertion.</p>
             </article>
             <article class="metric-check">
               <span class="metric-check-type metric-check-type--faithfulness">Faithfulness</span>
               <h4>Region allocation</h4>
-              <p>Asks how much normalized saliency lies on the approximate animal region compared with the background.
+              <p>Is it looking at the right thing? Calculates the percentage of the model's focus that lands on the animal compared to the background.
               </p>
             </article>
           </div>
