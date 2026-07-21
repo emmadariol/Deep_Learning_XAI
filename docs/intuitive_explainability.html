@@ -3353,7 +3353,23 @@
       const url = new URL(src, window.location.href);
       const docsMarker = '/docs/';
       const docsIndex = url.pathname.indexOf(docsMarker);
-      return docsIndex >= 0 ? decodeURIComponent(url.pathname.slice(docsIndex + docsMarker.length)) : decodeURIComponent(url.pathname.split('/').pop());
+      if (docsIndex >= 0) return decodeURIComponent(url.pathname.slice(docsIndex + docsMarker.length));
+
+      const assetsMarker = '/assets/';
+      const assetsIndex = url.pathname.indexOf(assetsMarker);
+      if (assetsIndex >= 0) return decodeURIComponent(url.pathname.slice(assetsIndex + 1));
+
+      return decodeURIComponent(url.pathname.split('/').pop());
+    }
+
+    function resolveFigureCommentary(src) {
+      const normalized = normalizedSrc(src);
+      if (figureCommentary[normalized]) return figureCommentary[normalized];
+
+      const matchingKey = Object.keys(figureCommentary).find((key) => (
+        normalized.endsWith(key) || key.endsWith(normalized)
+      ));
+      return matchingKey ? figureCommentary[matchingKey] : null;
     }
 
     function splitCommentaryIntoBullets(items) {
@@ -3368,8 +3384,7 @@
 
     function openFigureLightbox(image) {
       const figure = image.closest('figure');
-      const src = normalizedSrc(image.getAttribute('src'));
-      const commentary = figureCommentary[src] || {
+      const commentary = resolveFigureCommentary(image.getAttribute('src')) || {
         title: 'Figure commentary',
         paragraphs: ['This figure is part of the explainability audit. Read it together with its caption and the surrounding section to understand what question it supports.']
       };
