@@ -571,6 +571,72 @@
       font-size: .93rem;
     }
 
+    .intervention-section,
+    .response-section {
+      margin-top: 42px;
+    }
+
+    .intervention-section .subsection-title,
+    .response-section .subsection-title {
+      margin-top: 0;
+    }
+
+    .intervention-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .intervention-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .intervention-index {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      color: var(--ink);
+      font-size: .82rem;
+      font-weight: 700;
+    }
+
+    .response-panel {
+      display: grid;
+      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+      gap: 28px;
+      align-items: start;
+      padding: 24px 0;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .response-panel p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .response-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .response-list li {
+      padding-left: 16px;
+      border-left: 2px solid var(--line-strong);
+      color: var(--muted);
+      font-size: .94rem;
+      line-height: 1.55;
+    }
+
     .metric-guide {
       margin: 42px 0 0;
       padding-top: 28px;
@@ -1729,7 +1795,8 @@
       .overview-path,
       .question-grid,
       .q2-takeaway-grid,
-      .data-strip {
+      .data-strip,
+      .response-panel {
         grid-template-columns: 1fr;
       }
 
@@ -2200,46 +2267,74 @@
       </div>
       <div class="section-content">
         <div class="prose">
-          <p class="prose-intro">A map is plausible when evidence survives
-            perturbations and controls the class prediction.</p>
-          <p>The analysis first changes the approximate background, then quantifies map stability and faithfulness,
-            and finally applies the same logic to misclassified images.</p>
+          <p class="prose-intro">A map is plausible if its evidence resists perturbations and drives the prediction.</p>
+          <p>The evaluation involves three steps:</p>
+          <ol>
+              <li>Modifying the image background.</li>
+              <li>Quantifying map stability and faithfulness.</li>
+              <li>Applying the analysis to misclassified images.</li>
+          </ol>
         </div>
 
         <div class="metric-question-grid" aria-label="Stability versus faithfulness">
             <article class="metric-question metric-question--stability">
               <span class="metric-question-label">Stability</span>
               <h4>Does the map stay similar when the input changes?</h4>
-              <p>It checks whether attribution remains in the same regions, or at least keeps a similar importance
-                ranking, after controlled background interventions.</p>
+              <p>Ensures the highlighted regions remain consistent after background interventions.</p>
             </article>
             <article class="metric-question metric-question--faithfulness">
               <span class="metric-question-label">Faithfulness</span>
-              <h4>Do the highlighted pixels actually matter for the score?</h4>
-              <p>It checks whether removing or inserting salient evidence changes the target class score in the
-                expected direction.</p>
+              <h4>Do the highlighted pixels actually affect the score?</h4>
+              <p>Verifies that removing or adding salient evidence changes the score as expected.</p>
             </article>
           </div>
 
-        <h3 class="subsection-title">Background interventions</h3>
-        <div class="fact-grid">
-          <article class="fact">
-            <h3>Gaussian noise</h3>
-            <p>Add random noise only outside the approximate animal mask.</p>
-          </article>
-          <article class="fact">
-            <h3>Colour shift</h3>
-            <p>Shift background RGB channels while leaving the animal region intact.</p>
-          </article>
-          <article class="fact">
-            <h3>Background replacement</h3>
-            <p>Replace the approximate background with controlled random texture.</p>
-          </article>
-          <article class="fact">
-            <h3>Measured response</h3>
-            <p>Track prediction transitions, fixed-target confidence and spatial similarity between saliency maps.</p>
-          </article>
-        </div>
+        <section class="intervention-section" aria-labelledby="background-interventions-title">
+          <h3 id="background-interventions-title" class="subsection-title">Background interventions</h3>
+
+          <div class="fact-grid intervention-grid">
+            <article class="fact intervention-card">
+              <span class="intervention-index" aria-hidden="true">01</span>
+              <div>
+                <h3>Gaussian noise</h3>
+                <p>Add random noise only outside the approximate animal mask.</p>
+              </div>
+            </article>
+
+            <article class="fact intervention-card">
+              <span class="intervention-index" aria-hidden="true">02</span>
+              <div>
+                <h3>Colour shift</h3>
+                <p>Shift background RGB channels while leaving the animal region intact.</p>
+              </div>
+            </article>
+
+            <article class="fact intervention-card">
+              <span class="intervention-index" aria-hidden="true">03</span>
+              <div>
+                <h3>Background replacement</h3>
+                <p>Replace the approximate background with controlled random texture.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="response-section" aria-labelledby="measured-response-title">
+          <h3 id="measured-response-title" class="subsection-title">Measured response</h3>
+
+          <div class="response-panel">
+            <div>
+              <h3>What is measured after each intervention?</h3>
+            
+            </div>
+
+            <ul class="response-list">
+              <li>Prediction transitions between the original image and each perturbed version.</li>
+              <li>Fixed-target confidence for the same class before and after perturbation.</li>
+              <li>Spatial similarity between the original and perturbed saliency maps.</li>
+            </ul>
+          </div>
+        </section>
 
         <figure>
           <img src="assets/xai-report/background-perturbations.png"
@@ -2249,14 +2344,6 @@
             metric is interpreted.</figcaption>
         </figure>
 
-        <div class="note">
-          <strong>Current background audit</strong>
-          <p>Across the four-image background audit, Gaussian noise and colour shift did not change the predicted
-            class. Background replacement changed <code>1 / 4</code> predictions, with the flipped case moving from
-            <code>seal</code> to <code>walrus</code>. This is a hypothesis generator: background statistics may
-            redirect the classifier toward context-correlated labels, but the current run does not support a broad
-            class-attractor claim on its own.</p>
-        </div>
 
         <div class="figure-grid">
           <figure>
@@ -2277,9 +2364,6 @@
           <div class="metric-guide-header">
             <p class="metric-guide-eyebrow">Reliability checks</p>
             <h3 id="metric-guide-title">Stability and faithfulness metrics</h3>
-            <p>These measures are read together because they answer two different questions: whether the explanation
-              stays consistent under controlled changes, and whether the highlighted evidence actually affects the
-              target score.</p>
           </div>
 
 
