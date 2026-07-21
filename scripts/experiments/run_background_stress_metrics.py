@@ -131,6 +131,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-percent", type=open_percentage_float, default=20.0)
     parser.add_argument("--allow-incorrect", action="store_true")
     parser.add_argument(
+        "--target-class",
+        type=str,
+        default=None,
+        help="Optional true class to keep when selecting stress-test examples, e.g. elephant.",
+    )
+    parser.add_argument(
         "--mask-strategy",
         choices=["center_ellipse", "center_box", "global"],
         default="center_ellipse",
@@ -345,6 +351,7 @@ def main() -> None:
         idx_to_class=idx_to_class,
         max_images=args.max_images,
         allow_incorrect=args.allow_incorrect,
+        target_class=args.target_class,
         seed=args.seed,
     )
 

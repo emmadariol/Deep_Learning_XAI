@@ -80,6 +80,7 @@ def collect_correct_examples(
     idx_to_class: dict[int, str] | None = None,
     allow_incorrect: bool = False,
     only_incorrect: bool = False,
+    target_class: str | None = None,
     seed: int = 42,
 ) -> tuple[torch.Tensor, torch.Tensor, list[str], list[str], list[float], list[str]]:
     """Select a reproducible, class-balanced sample from eligible examples."""
@@ -108,6 +109,15 @@ def collect_correct_examples(
         indices_by_class: dict[int, list[int]] = {}
         for index, sample in enumerate(dataset_samples):
             indices_by_class.setdefault(int(sample.label), []).append(index)
+        if target_class is not None:
+            target_labels = [
+                label
+                for label in indices_by_class
+                if class_names_by_label.get(label) == target_class
+            ]
+            if not target_labels:
+                raise RuntimeError(f"No samples found for target class: {target_class}")
+            indices_by_class = {label: indices_by_class[label] for label in target_labels}
 
         index_rng = random.Random(seed)
         class_order = sorted(indices_by_class)
@@ -150,6 +160,16 @@ def collect_correct_examples(
                 selected = torch.ones_like(labels, dtype=torch.bool)
             else:
                 selected = preds == labels
+            if target_class is not None:
+                target_mask = torch.tensor(
+                    [
+                        class_names_by_label[int(label.item())] == target_class
+                        for label in labels
+                    ],
+                    dtype=torch.bool,
+                    device=device,
+                )
+                selected = selected & target_mask
 
             for idx in selected.nonzero(as_tuple=False).flatten().tolist():
                 label_value = int(labels[idx].item())
