@@ -122,6 +122,12 @@ def parse_args() -> argparse.Namespace:
         default=Path("outputs/reports/stress_metric_dashboard_summary.csv"),
         help="Aggregated per-perturbation metrics CSV.",
     )
+    parser.add_argument(
+        "--target-class",
+        type=str,
+        default=None,
+        help="Optional true class to keep in Figure-09-to-12 assets, e.g. elephant.",
+    )
     return parser.parse_args()
 
 
@@ -246,6 +252,27 @@ def load_advanced_detail(advanced_detail_csv: Path) -> pd.DataFrame:
     for column in numeric_columns:
         df[column] = pd.to_numeric(df[column], errors="raise")
     return df
+
+
+def summarize_advanced_detail(advanced_detail: pd.DataFrame) -> pd.DataFrame:
+    summary = (
+        advanced_detail.groupby("method", as_index=False)
+        .agg(
+            examples=("index", "nunique"),
+            mean_deletion_auc=("deletion_auc", "mean"),
+            mean_insertion_auc=("insertion_auc", "mean"),
+            mean_animal_saliency_ratio=("animal_saliency_ratio", "mean"),
+            mean_background_saliency_ratio=("background_saliency_ratio", "mean"),
+        )
+        .set_index("method")
+        .reindex(METHOD_NAMES)
+        .reset_index()
+    )
+    if summary["mean_deletion_auc"].isna().any():
+        missing = summary[summary["mean_deletion_auc"].isna()]["method"].tolist()
+        raise ValueError(f"Missing advanced-audit detail rows for methods: {missing}")
+    summary["label"] = summary["method"].map(METHOD_NAMES)
+    return summary
 
 
 def add_bar_labels(ax: plt.Axes, bars, offset: float = 0.025) -> None:
@@ -731,8 +758,19 @@ def copy_to_docs(source: Path, docs_output_dir: Path, asset_name: str) -> None:
 def main() -> None:
     args = parse_args()
     stress_metrics, iou_column = load_stress_metrics(args.metrics_csv)
+    if args.target_class is not None:
+        stress_metrics = stress_metrics[stress_metrics["true_class"].eq(args.target_class)].copy()
+        if stress_metrics.empty:
+            raise ValueError(f"No stress metric rows found for target class: {args.target_class}")
     stress_summary = summarize_stress_metrics(stress_metrics, iou_column)
-    advanced_summary = load_advanced_summary(args.advanced_summary_csv)
+    if args.target_class is None:
+        advanced_summary = load_advanced_summary(args.advanced_summary_csv)
+    else:
+        advanced_detail = load_advanced_detail(args.advanced_detail_csv)
+        advanced_detail = advanced_detail[advanced_detail["true_class"].eq(args.target_class)].copy()
+        if advanced_detail.empty:
+            raise ValueError(f"No advanced-audit rows found for target class: {args.target_class}")
+        advanced_summary = summarize_advanced_detail(advanced_detail)
 
     args.summary_output.parent.mkdir(parents=True, exist_ok=True)
     stress_summary.to_csv(args.summary_output, index=False)

@@ -101,6 +101,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--noise-std", type=nonnegative_float, default=0.25)
     parser.add_argument("--allow-incorrect", action="store_true")
     parser.add_argument(
+        "--target-class",
+        type=str,
+        default=None,
+        help="Optional true class to keep when selecting examples, e.g. elephant.",
+    )
+    parser.add_argument(
         "--figure-dir",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "figures" / "stress_deletion_insertion",
@@ -160,6 +166,7 @@ def main() -> None:
         idx_to_class=idx_to_class,
         max_images=args.max_images,
         allow_incorrect=args.allow_incorrect,
+        target_class=args.target_class,
         seed=args.seed,
     )
     images = images.to(device)
