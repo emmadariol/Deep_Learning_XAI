@@ -2,6 +2,9 @@
 
 Stress testing saliency and concept-based explanations on AwA2.
 
+The interactive HTML report is available via GitHub Pages:
+[open the XAI audit report](https://emmadariol.github.io/Deep_Learning_XAI/).
+
 ## Directory Setup
 
 ```text
