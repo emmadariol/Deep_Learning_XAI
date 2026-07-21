@@ -831,7 +831,7 @@
       gap: 20px;
     }
 
-    .research-questions > p {
+    .research-questions>p {
       margin: 0 0 18px;
       color: var(--ink);
       font-size: clamp(1.18rem, 1.8vw, 1.5rem);
@@ -895,7 +895,7 @@
       line-height: 1.65;
     }
 
-    .conclusion-list li + li {
+    .conclusion-list li+li {
       margin-top: 18px;
     }
 
@@ -1004,13 +1004,32 @@
       border-color: rgba(154, 90, 43, .18);
     }
 
-    .method-lens > strong {
+    .method-lens>strong {
       display: block;
       margin-bottom: 4px;
       color: var(--ink);
       font-size: .84rem;
       letter-spacing: .04em;
       text-transform: uppercase;
+    }
+
+    .method-lens-tag {
+      display: inline-flex;
+      margin-left: 8px;
+      padding: 2px 7px;
+      color: var(--accent);
+      background: #fff;
+      border: 1px solid rgba(36, 95, 105, .2);
+      border-radius: 999px;
+      font-size: .64rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      vertical-align: middle;
+    }
+
+    .method-lens--design .method-lens-tag {
+      color: var(--warning);
+      border-color: rgba(154, 90, 43, .24);
     }
 
     .method-lens p,
@@ -1025,7 +1044,7 @@
       padding-left: 20px;
     }
 
-    .method-lens li + li {
+    .method-lens li+li {
       margin-top: 7px;
     }
 
@@ -1351,27 +1370,30 @@
       border-top: 1px solid var(--line);
     }
 
-    .figure-lightbox-body p {
-      margin: 0 0 14px;
-      font-size: .93rem;
-      line-height: 1.62;
-    }
-
-    .figure-lightbox-body p:last-child {
-      margin-bottom: 0;
-    }
-
     .figure-lightbox-list {
       display: grid;
-      gap: 12px;
+      gap: 11px;
       margin: 0;
-      padding-left: 1.25rem;
+      padding: 0;
+      list-style: none;
     }
 
     .figure-lightbox-list li {
-      padding-left: 3px;
+      position: relative;
+      padding: 0 0 0 24px;
       font-size: .93rem;
       line-height: 1.58;
+    }
+
+    .figure-lightbox-list li::before {
+      position: absolute;
+      top: .72em;
+      left: 0;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      content: "";
     }
 
     .comment-formula {
@@ -1892,32 +1914,30 @@
         <h2 id="overview-title">How do we make a prediction understandable?</h2>
       </div>
       <div class="section-content">
-        <div class="prose overview-intro">
-          <p class="prose-intro">We start from a predicted animal class and ask what supports it. First we inspect the
-            image evidence, then we test whether that evidence is reliable, and finally we check whether the model can
-            be read through human concepts.</p>
-        </div>
 
         <ol class="overview-path" aria-label="Explainability reading path">
           <li>
             <span class="overview-step">01</span>
-            <strong>Prediction</strong>
-            <p>Start from the top-1 class, its confidence and the image passed to the model.</p>
+            <strong>PREDICTION</strong>
+            <p> We start from a predicted animal class and ask what supports it.</p>
           </li>
           <li>
             <span class="overview-step">02</span>
-            <strong>Evidence</strong>
-            <p>Use attribution maps to see which regions or pixels support that class score.</p>
+            <strong>EVIDENCE</strong>
+            <p>Inspection of the
+              image evidence: attribution maps to see which regions/pixels support that class score.</p>
           </li>
           <li>
             <span class="overview-step">03</span>
-            <strong>Checks</strong>
-            <p>Change the input and remove highlighted regions to test stability and faithfulness.</p>
+            <strong>CHECKS</strong>
+            <p>Test whether that evidence is reliable: change the input/remove highlighted regions to test stability
+              and faithfulness.</p>
           </li>
           <li>
             <span class="overview-step">04</span>
-            <strong>Concepts</strong>
-            <p>Ask whether attributes such as stripes, horns or flippers shape the decision.</p>
+            <strong>CONCEPTS</strong>
+            <p>Check whether the model can
+              be read through human concepts: can attributes such as stripes, horns or flippers shape the decision?</p>
           </li>
         </ol>
 
@@ -1925,29 +1945,36 @@
           <div class="method-brief-header">
             <p class="method-brief-eyebrow">Methods</p>
             <div>
-              <h3>Two ways to read the model</h3>
-              <p>Some methods explain a trained ResNet50 after it predicts. The Concept Bottleneck Model changes the
-                prediction path itself, forcing the class decision through named attributes.</p>
+              <p><strong>Post-hoc methods</strong>: analyse a trained net after a prediction has already been
+                produced. <br>
+                <strong>Interpretable by design</strong>: it changes the prediction path itself, forcing the
+                class decision through named attributes.
+              </p>
             </div>
           </div>
 
           <div class="method-lenses" aria-label="Post-hoc versus interpretable by design">
             <div class="method-lens">
-              <strong>After the prediction</strong>
+              <strong>After the prediction <span class="method-lens-tag">post-hoc</span></strong>
               <ul>
-                <li><span class="method-list-name">Grad-CAM</span> &rarr; locates class evidence in late feature maps.</li>
-                <li><span class="method-list-name">Integrated Gradients</span> &rarr; attributes the class score to input pixels.</li>
-                <li><span class="method-list-name">TCAV</span> &rarr; tests sensitivity to semantic concept directions.</li>
+                <li><span class="method-list-name">Grad-CAM</span> &rarr; locates class evidence in late feature maps.
+                </li>
+                <li><span class="method-list-name">Integrated Gradients</span> &rarr; attributes the class score to
+                  input pixels.</li>
+                <li><span class="method-list-name">TCAV</span> &rarr; tests sensitivity to semantic concept directions.
+                </li>
                 <li><span class="method-list-name">Stress tests</span> &rarr; evaluate stability and faithfulness.</li>
               </ul>
             </div>
             <div class="method-lens method-lens--design">
-              <strong>In the prediction path</strong>
+              <strong>In the prediction path <span class="method-lens-tag">interpretable by design</span></strong>
               <ul>
-                <li><span class="method-list-name">Concept Bottleneck Model (CBM)</span> &rarr; makes concepts part of the prediction path.</li>
+                <li><span class="method-list-name">Concept Bottleneck Model (CBM)</span> &rarr; makes concepts part of
+                  the prediction path.</li>
                 <li><span class="method-list-name">Concept head</span> &rarr; predicts 20 semantic attributes.</li>
                 <li><span class="method-list-name">Class head</span> &rarr; predicts the animal only from concepts.</li>
-                <li><span class="method-list-name">Interventions</span> &rarr; test the effect of concept corrections.</li>
+                <li><span class="method-list-name">Interventions</span> &rarr; test the effect of concept corrections.
+                </li>
               </ul>
             </div>
           </div>
@@ -2029,7 +2056,8 @@
             </li>
           </ol>
           <figcaption><strong>Figure 01</strong> - The maintained ResNet50 prediction path. Only
-            <code>layer4</code> and the final classification head are updated during baseline fine-tuning.</figcaption>
+            <code>layer4</code> and the final classification head are updated during baseline fine-tuning.
+          </figcaption>
         </figure>
 
         <h3 class="subsection-title">How the classifier learns</h3>
@@ -2049,40 +2077,40 @@
               trainable parameters with weight decay.</p>
             <div class="formula formula--compact" role="math"
               aria-label="L equals negative log of exp of z sub y divided by the sum over j of exp of z sub j">
-            <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-              <mrow>
-                <mi>L</mi>
-                <mo>=</mo>
-                <mo>−</mo>
-                <mi mathvariant="normal">log</mi>
-                <mo>(</mo>
-                <mfrac>
-                  <mrow>
-                    <mi mathvariant="normal">exp</mi>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>z</mi>
-                      <mi>y</mi>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                  <mrow>
-                    <msub>
-                      <mo>∑</mo>
-                      <mi>j</mi>
-                    </msub>
-                    <mi mathvariant="normal">exp</mi>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>z</mi>
-                      <mi>j</mi>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mfrac>
-                <mo>)</mo>
-              </mrow>
-            </math>
+              <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+                <mrow>
+                  <mi>L</mi>
+                  <mo>=</mo>
+                  <mo>−</mo>
+                  <mi mathvariant="normal">log</mi>
+                  <mo>(</mo>
+                  <mfrac>
+                    <mrow>
+                      <mi mathvariant="normal">exp</mi>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>z</mi>
+                        <mi>y</mi>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                    <mrow>
+                      <msub>
+                        <mo>∑</mo>
+                        <mi>j</mi>
+                      </msub>
+                      <mi mathvariant="normal">exp</mi>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>z</mi>
+                        <mi>j</mi>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mfrac>
+                  <mo>)</mo>
+                </mrow>
+              </math>
             </div>
           </div>
         </article>
@@ -2091,8 +2119,10 @@
         <div class="prose">
           <p>The forward trace below follows a correctly classified antelope through the network. Early activations
             retain edges, texture and fine spatial detail; deeper stages become smaller and more selective. By
-            <code>layer4</code>, the representation has collapsed to a coarse <code>7 &times; 7</code> grid that responds
-            strongly to the animal region.</p>
+            <code>layer4</code>, the representation has collapsed to a coarse <code>7 &times; 7</code> grid that
+            responds
+            strongly to the animal region.
+          </p>
           <p>This progression determines what each explanation method can observe: Integrated Gradients attributes the
             input pixels, TCAV probes the <code>layer3</code> representation, and Grad-CAM localizes evidence in the
             final convolutional stage.</p>
@@ -2103,7 +2133,8 @@
             alt="A real image and its representation at successive stages of ResNet50." loading="lazy" decoding="async">
           <figcaption><strong>Figure 02</strong> - For a correct antelope prediction with confidence
             <code>0.954</code>, spatial detail is progressively compressed from the input to <code>layer4</code>.
-            Grad-CAM is computed from the final convolutional representation.</figcaption>
+            Grad-CAM is computed from the final convolutional representation.
+          </figcaption>
         </figure>
 
         <div class="note">
@@ -2252,12 +2283,12 @@
         </figure>
 
         <div class="note">
-          <strong>Quantified walrus-attractor hypothesis</strong>
-          <p> Across the unique perturbed examples in Figure 06, <code>5 / 12</code> prediction transitions
-            ended in <code>walrus</code>. Under background replacement alone, <code>3 / 4</code> examples ended in
-            <code>walrus</code>. The
-            repeated appearance of <code>walrus</code> under textured background interventions is strong enough to
-            motivate a systematic scan.
+          <strong>Class-attractor hypothesis</strong>
+          <p>Across the perturbed examples in Figure 06, prediction transitions should be read from the current
+            regenerated run rather than treated as fixed constants. The repeated emergence of visually unexpected
+            target classes under textured background interventions is used here as a hypothesis generator: background
+            statistics may redirect the classifier toward context-correlated labels instead of simply lowering
+            confidence.
           </p>
         </div>
 
@@ -2322,7 +2353,8 @@
             <article class="metric-check">
               <span class="metric-check-type metric-check-type--faithfulness">Faithfulness</span>
               <h4>Region allocation</h4>
-              <p>Asks how much normalized saliency lies on the approximate animal region compared with the background.</p>
+              <p>Asks how much normalized saliency lies on the approximate animal region compared with the background.
+              </p>
             </article>
           </div>
         </div>
@@ -2711,16 +2743,16 @@
 
         <figure>
           <img src="assets/xai-report/tcav-spurious-pairs.png"
-            alt="Bar chart comparing TCAV sensitivity scores with real-world concept values."
-            loading="lazy" decoding="async">
+            alt="Bar chart comparing TCAV sensitivity scores with real-world concept values." loading="lazy"
+            decoding="async">
           <figcaption><strong>Figure 19a</strong> &mdash; The spurious-pair audit ranks concept-class pairs where TCAV
             sensitivity is high despite a low real-world value for that concept in the target class.</figcaption>
         </figure>
 
         <figure>
           <img src="assets/xai-report/tcav-bridge-concepts.png"
-            alt="Heatmap of bridge concepts shared by suspicious TCAV source classes and target species."
-            loading="lazy" decoding="async">
+            alt="Heatmap of bridge concepts shared by suspicious TCAV source classes and target species." loading="lazy"
+            decoding="async">
           <figcaption><strong>Figure 19b</strong> &mdash; The bridge-concept audit asks what else the CAV source
             classes share with the target class, after excluding the audited concept itself.</figcaption>
         </figure>
@@ -2777,7 +2809,8 @@
               <p>The CBM backbone starts from the AwA2 baseline checkpoint and fine-tunes <code>layer4</code>. Its
                 bottleneck contains 20 selected AwA2 concepts with dropout <code>0.15</code>. Training uses batch size
                 <code>16</code>, AdamW with learning rate and weight decay <code>1e-4</code>, five epochs, and equal
-                weights of <code>1.0</code> for the concept and class losses.</p>
+                weights of <code>1.0</code> for the concept and class losses.
+              </p>
             </div>
           </div>
         </details>
@@ -2809,7 +2842,8 @@
             loading="lazy" decoding="async">
           <figcaption><strong>Figure 23</strong> &mdash; CBM decomposition for the true <code>bobcat</code> class versus
             the predicted <code>hippopotamus</code> class. Predicted concepts are compared with the AwA2 bobcat
-            profile, then decomposed into exact contributions to the <code>hippopotamus &minus; bobcat</code> logit margin and tested with
+            profile, then decomposed into exact contributions to the <code>hippopotamus &minus; bobcat</code> logit
+            margin and tested with
             one-concept corrections.</figcaption>
         </figure>
 
@@ -2823,27 +2857,42 @@
       </div>
       <div class="section-content">
         <ul class="conclusion-list">
-          <li>The project shows that heatmaps, perturbations, faithfulness metrics, error analysis and concept-based
-            methods must be interpreted together. Pixel-wise and concept-based methods answer complementary questions:
-            Grad-CAM and Integrated Gradients show where evidence appears, while TCAV and the CBM help inspect which
-            semantic information may be involved.</li>
-          <li>Background stress tests reveal that the model can rely on contextual evidence rather than animal
-            morphology alone. This affects both predictions and explanations, so saliency maps should be treated as
-            hypotheses to validate.</li>
-          <li>Faithfulness checks and error analysis are essential: a heatmap can look plausible and still explain a
-            wrong decision.</li>
-          <li>Every method has assumptions: Grad-CAM is coarse, Integrated Gradients is baseline-sensitive, TCAV can
-            capture correlated latent patterns, and the CBM depends on concept quality.</li>
-          <li>The analysis is further limited by approximate background masks, class-level AwA2 concepts and the use of
-            a controlled subset of the dataset.</li>
-          <li>Interpretability remains partial: explanations highlight relevant associations but do not guarantee a
-            causal understanding of model behavior.</li>
-          <li>In high-stakes domains such as medical imaging, this workflow could support model auditing by checking
-            not only whether a prediction is correct, but whether it is supported by clinically meaningful evidence.
-            In radiology, explanations should highlight lesions, tissue abnormalities or relevant anatomical regions
-            rather than scanner artifacts, text markers, acquisition differences or hospital-specific shortcuts.
-            Perturbation tests, faithfulness metrics and concept-level analysis can help distinguish predictions that
-            are correct for valid clinical reasons from predictions driven by spurious dataset biases.</li>
+          <li>The project shows that <strong>heatmaps</strong>, <strong>perturbations</strong>, <strong>faithfulness
+              metrics</strong>, <strong>error analysis</strong> and <strong>concept-based methods</strong> must be
+            interpreted together. Pixel-wise and concept-based methods answer complementary questions:
+            <strong>Grad-CAM</strong> and <strong>Integrated Gradients</strong> show where evidence appears, while
+            <strong>TCAV</strong> and the <strong>CBM</strong> help inspect which semantic information may be involved.
+          </li>
+
+          <li><strong>Background stress tests</strong> reveal that the model can rely on <strong>contextual
+              evidence</strong> rather than animal morphology alone. This affects both predictions and explanations, so
+            <strong>saliency maps</strong> should be treated as hypotheses to validate.
+          </li>
+
+          <li><strong>Faithfulness checks</strong> and <strong>error analysis</strong> are essential: a heatmap can look
+            plausible and still explain a wrong decision.</li>
+
+          <li>Every method has assumptions: <strong>Grad-CAM</strong> is coarse, <strong>Integrated Gradients</strong>
+            is baseline-sensitive, <strong>TCAV</strong> can capture correlated latent patterns, and the
+            <strong>CBM</strong> depends on concept quality.
+          </li>
+
+          <li>The analysis is further limited by <strong>approximate background masks</strong>, <strong>class-level AwA2
+              concepts</strong> and the use of a <strong>controlled subset</strong> of the dataset.</li>
+
+          <li><strong>Interpretability remains partial</strong>: explanations highlight relevant associations but do not
+            guarantee a causal understanding of model behavior.</li>
+
+          <li>In <strong>high-stakes domains</strong> such as <strong>medical imaging</strong>, this workflow could
+            support model auditing by checking not only whether a prediction is correct, but whether it is supported by
+            <strong>clinically meaningful evidence</strong>. In radiology, explanations should highlight
+            <strong>lesions</strong>, <strong>tissue abnormalities</strong> or <strong>relevant anatomical
+              regions</strong> rather than <strong>scanner artifacts</strong>, <strong>text markers</strong>,
+            <strong>acquisition differences</strong> or <strong>hospital-specific shortcuts</strong>.
+            <strong>Perturbation tests</strong>, <strong>faithfulness metrics</strong> and <strong>concept-level
+              analysis</strong> can help distinguish predictions that are correct for valid clinical reasons from
+            predictions driven by <strong>spurious dataset biases</strong>.
+          </li>
         </ul>
       </div>
     </section>
@@ -2964,15 +3013,15 @@
         "title": "Figure 09a - Gaussian-noise stress dashboard",
         "paragraphs": [
           "This figure keeps the same four-panel logic as Figure 09, but isolates the Gaussian-noise background intervention. The upper-left panel reports where the saliency mass falls in the unperturbed audit: animal versus background. The lower-left panel reports deletion and insertion AUC, so it remains the behavioral faithfulness reference for both methods.",
-          "The upper-right panel is the stress-specific stability check. It compares the original saliency map with the map after random noise is added only to the background. Grad-CAM keeps higher Top-20 IoU and Spearman than Integrated Gradients, meaning its highlighted region and saliency ranking move less under this intervention.",
-          "The lower-right panel combines stress-test IoU with prediction-change rate. For Gaussian noise, the class changes in a smaller fraction of examples than under background replacement, but the explanation still becomes less stable, especially for Integrated Gradients. The relevant interpretation is not that noise alone explains the model, but that background pixels can perturb both confidence and attribution."
+          "The upper-right panel is the stress-specific stability check. It compares the original saliency map with the map after random noise is added only to the background. The method with higher Top-20 IoU and Spearman is the one whose highlighted region and saliency ranking moved less under this intervention.",
+          "The lower-right panel combines stress-test IoU with prediction-change rate. The current values show whether Gaussian noise mostly perturbs the explanation, the class decision, or both. The relevant interpretation is not that noise alone explains the model, but that background pixels can perturb confidence and attribution even when the animal region is preserved."
         ]
       },
       "assets/xai-report/stress-metric-colour-shift.png": {
         "title": "Figure 09b - Colour-shift stress dashboard",
         "paragraphs": [
           "This dashboard repeats the Figure 09 structure for the colour-shift intervention. Only background RGB values are shifted while the approximate animal region is preserved, so the test asks whether colour/context changes outside the animal are enough to move the explanation or the prediction.",
-          "The saliency-mass and AUC panels provide the same global references as Figure 09. The stress-specific panel shows that Grad-CAM remains more stable than Integrated Gradients in both Top-20 IoU and Spearman. This is consistent with Grad-CAM's late-layer, coarse localization and Integrated Gradients' higher sensitivity to pixel-level input changes.",
+          "The saliency-mass and AUC panels provide the same global references as Figure 09. The stress-specific panel reports which method remains more stable in Top-20 IoU and Spearman for this run. A coarse late-layer method and an input-gradient method can respond differently because they represent evidence at different spatial and semantic scales.",
           "The stress-test panel should be read as model response plus explanation response. The prediction-change rate indicates whether the classifier output changes; the IoU indicates whether the spatial support of the explanation changes. If colour shift modifies the heatmap even when the foreground is untouched, the explanation is not purely morphology-driven."
         ]
       },
@@ -2980,8 +3029,8 @@
         "title": "Figure 09c - Background-replacement stress dashboard",
         "paragraphs": [
           "This is the strongest stress dashboard because the background is replaced with controlled random texture while the approximate animal region is kept. The four panels preserve the Figure 09 logic: saliency allocation, map stability, deletion/insertion faithfulness, and stress-specific prediction response.",
-          "The stability panel shows the largest degradation among the background interventions. Grad-CAM remains more stable than Integrated Gradients, but both methods lose overlap and rank correlation compared with the original maps. This means the explanation changes substantially even though the intended semantic foreground is preserved.",
-          "The stress-test panel is the key result: background replacement produces a high prediction-change rate while the saliency IoU drops. This links two facts that must be interpreted together: the model changes class after a background intervention, and the explanation also moves. That is the strongest evidence in this section that the classifier is sensitive to contextual/background evidence rather than only animal morphology."
+          "The stability panel should be compared with the Gaussian-noise and colour-shift dashboards. If background replacement produces lower overlap or rank correlation, the explanation changes substantially even though the intended semantic foreground is preserved.",
+          "The stress-test panel is the key result because it links prediction movement with saliency movement. When background replacement changes the predicted class and lowers saliency IoU, the classifier is showing sensitivity to contextual or background evidence rather than only animal morphology."
         ]
       },
       "assets/xai-report/stress-curve-gaussian-noise-gradcam.png": {
@@ -3075,9 +3124,9 @@
       "assets/xai-report/case-summary.png": {
         "title": "Figure 13 - Case study linking behavior and explanation",
         "paragraphs": [
-          "This case study is the numerical counterpart of the stress grids. The fixed-target confidence falls from 0.34 to 0.08 after the intervention, so the same class score is being weakened rather than simply relabelled.",
-          "The attribution movement is moderate rather than total collapse: the reported top-k IoU values are 0.39 and 0.38, while Spearman rank correlations are 0.38 and 0.44. This means the maps changed substantially but retained part of their original ranking structure.",
-          "The case supports contextual sensitivity, not full recovery of the correct decision. It also connects back to the walrus-attractor hypothesis introduced by Figure 06: background changes can weaken the original target while still pushing the model toward another spurious class."
+          "This case study is the numerical counterpart of the stress grids. The fixed-target confidence panel shows whether the same class score is weakened after the intervention rather than merely relabelled.",
+          "The attribution panels report top-k IoU and Spearman for the selected example. These values should be read from the current figure: low overlap or rank correlation indicates that the explanation moved substantially after the perturbation, while higher values indicate partial preservation of the original saliency structure.",
+          "The case supports contextual sensitivity only when score movement and attribution movement occur together. It also connects back to the attractor hypothesis introduced by Figure 06: background changes can weaken the original target while still pushing the model toward another spurious or visually unexpected class."
         ]
       },
       "assets/xai-report/incorrect-attributions.png": {
@@ -3109,11 +3158,11 @@
         "paragraphs": [
           "Figure 15C isolates the role of the background in misclassified examples by measuring how the model's decision changes when only the approximate background is perturbed. The key quantity is the fixed <code>wrong − true</code> logit margin: a positive value means that the originally predicted wrong class still receives stronger evidence than the ground-truth class, while a negative value means that the ground-truth class has overtaken the original wrong target.",
 
-          "The figure shows that the background is not a neutral visual component. In the <code>wolf → antelope</code> example, background perturbations substantially reduce the probability and margin of the wrong class, especially under background replacement. However, the margin remains positive, meaning that the intervention weakens the wrong decision without fully correcting it. This suggests that the error is not caused by the background alone: the model is likely combining contextual cues with animal-level features such as pose, scale, texture, or silhouette.",
+          "The figure shows that the background is not a neutral visual component. For each row, compare the original point with the three background interventions. If the wrong-target probability or the <code>wrong − true</code> margin decreases after perturbing only the background, the wrong decision was partly supported by contextual evidence. If the margin remains positive, the intervention weakens the wrong decision without fully correcting it, suggesting that the model combines contextual cues with animal-level features such as pose, scale, texture or silhouette.",
 
-          "The <code>polar bear → tiger</code> example shows an even stronger background effect. Gaussian noise and colour shift progressively reduce the advantage of the wrong class, and background replacement flips the <code>wrong − true</code> margin below zero. In other words, after changing the background, <code>polar bear</code> receives more evidence than the originally predicted <code>tiger</code>. This indicates that the original wrong prediction was strongly supported by scene-level statistics rather than by animal morphology alone.",
+          "A stronger background effect appears when the intervention flips the <code>wrong − true</code> margin below zero. In that case, the ground-truth class receives more evidence than the originally predicted wrong class after the background is changed. This does not prove that the corrected prediction is fully morphology-driven, but it does show that the original wrong prediction was strongly supported by scene-level statistics.",
 
-          "The most important observation is that changing the background does not simply reveal the correct class. In some cases, the model moves toward another wrong class, such as <code>walrus</code>. This means that background interventions reorganize the whole decision landscape: they can weaken the original wrong class, strengthen the true class, or redirect the prediction toward a third spurious class. The background therefore acts as an active source of evidence, not merely as visual noise.",
+          "The most important observation is that changing the background does not simply reveal the correct class. In some cases, the model can move toward another wrong class. This means that background interventions reorganize the whole decision landscape: they can weaken the original wrong class, strengthen the true class, or redirect the prediction toward a third spurious class. The background therefore acts as an active source of evidence, not merely as visual noise.",
 
           "This is a central limitation for post-hoc saliency methods. A heatmap may look plausible on the original image, but if the decision margin changes sharply after modifying only the background, then the explanation must be interpreted together with the stress test. Figure 15C shows that the model is not purely morphology-driven: background statistics can support, weaken, or redirect class evidence. For this reason, saliency maps should be treated as diagnostic hypotheses rather than standalone proof of correct visual reasoning."
         ]
@@ -3163,7 +3212,7 @@
         "title": "Figure 18 - Validated TCAV class-by-concept matrix",
         "paragraphs": [
           "The heatmap summarizes mean TCAV sensitivity by class and concept, conditional on validation and random-control checks. It moves the analysis from spatial pixels to semantic attributes such as stripes, horns, hooves, fur and flippers.",
-          "The clearest audit cases are the unexpected dolphin associations: dolphin-hooves reaches 0.81* and dolphin-horns reaches 0.80*. These are not biologically plausible concept explanations, so they should be treated as evidence of entangled activation directions.",
+          "The clearest audit cases are the unexpected concept-class associations. Biologically implausible pairs should not be read as literal semantic explanations; they are evidence that a CAV direction may be entangled with correlated texture, background, pose or dataset structure.",
           "Use the stars as a triage signal for concept pairs to inspect, not as a semantic endorsement. The final interpretation boundary is stated in the warning box below."
         ]
       },
@@ -3211,9 +3260,9 @@
       "assets/xai-report/cbm-summary.png": {
         "title": "Figure 21 - Direct classifier versus Concept Bottleneck Model",
         "paragraphs": [
-          "This figure connects class accuracy with concept accuracy. The CBM reaches about 0.799 class accuracy versus 0.857 for the direct ResNet50 baseline, trading some predictive performance for an explicit concept interface.",
-          "The CBM / baseline agreement is about 0.73. That means more than one quarter of evaluated decisions differ between the two pathways, so the CBM should be treated as an independent semantic comparator rather than as a transparent copy of the direct ResNet.",
-          "Concept binary accuracy is about 0.754. This is the bottleneck's practical ceiling: if concepts are predicted imperfectly, class errors can originate before the final class head."
+          "This figure compares two different prediction pathways. The direct ResNet50 predicts the animal class from latent visual features, while the CBM first predicts AwA2 concepts and then predicts the class from those concepts. The comparison is therefore not only about accuracy, but about the cost of forcing the decision through an interpretable bottleneck.",
+          "The exact values should be read from the bars in the figure. The important interpretation is the trade-off: the CBM deliberately restricts the information available to the final classifier. In exchange, it exposes an intermediate semantic layer that can be inspected, compared with AwA2 attributes and intervened on.",
+          "Concept binary accuracy measures the quality of the predicted bottleneck itself. This is the practical limit of the CBM: if the concept predictor overestimates or underestimates attributes such as stripes, horns, hooves or flippers, the final class head receives imperfect evidence and can produce errors before class reasoning even begins."
         ]
       },
       "assets/xai-report/concept-interventions.png": {
@@ -3271,6 +3320,16 @@
       return docsIndex >= 0 ? decodeURIComponent(url.pathname.slice(docsIndex + docsMarker.length)) : decodeURIComponent(url.pathname.split('/').pop());
     }
 
+    function splitCommentaryIntoBullets(items) {
+      return items.flatMap((item) => {
+        if (item.includes('comment-formula')) return [item];
+        return item
+          .split(/(?<=[.!?])\s+(?=[A-Z])/)
+          .map((part) => part.trim())
+          .filter(Boolean);
+      });
+    }
+
     function openFigureLightbox(image) {
       const figure = image.closest('figure');
       const src = normalizedSrc(image.getAttribute('src'));
@@ -3285,24 +3344,15 @@
       lightboxImage.alt = image.alt || commentary.title;
       lightboxTitle.textContent = commentary.title;
       lightboxCaption.textContent = caption;
-      const commentaryElements = (commentary.paragraphs || []).map((paragraph) => {
-        const element = document.createElement('p');
-        element.innerHTML = paragraph;
-        return element;
+
+      const commentaryList = document.createElement('ul');
+      commentaryList.className = 'figure-lightbox-list';
+      splitCommentaryIntoBullets([...(commentary.paragraphs || []), ...(commentary.bullets || [])]).forEach((paragraph) => {
+        const item = document.createElement('li');
+        item.innerHTML = paragraph;
+        commentaryList.append(item);
       });
-
-      if (commentary.bullets?.length) {
-        const list = document.createElement('ul');
-        list.className = 'figure-lightbox-list';
-        commentary.bullets.forEach((bullet) => {
-          const item = document.createElement('li');
-          item.innerHTML = bullet;
-          list.append(item);
-        });
-        commentaryElements.push(list);
-      }
-
-      lightboxBody.replaceChildren(...commentaryElements);
+      lightboxBody.replaceChildren(commentaryList);
 
       lightbox.hidden = false;
       lightbox.setAttribute('aria-hidden', 'false');
