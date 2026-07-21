@@ -884,24 +884,69 @@
     }
 
     .conclusion-list {
-      max-width: 82ch;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
       margin: 0;
-      padding-left: 1.35rem;
+      padding: 0;
+      list-style: none;
+      counter-reset: conclusion;
     }
 
     .conclusion-list li {
-      padding-left: .35rem;
-      font-size: 1rem;
-      line-height: 1.65;
+      position: relative;
+      min-height: 100%;
+      padding: 22px 22px 22px 56px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: 0 16px 38px rgba(30, 41, 45, .07);
+      counter-increment: conclusion;
+      font-size: .96rem;
+      line-height: 1.58;
     }
 
-    .conclusion-list li+li {
-      margin-top: 18px;
+    .conclusion-list li::before {
+      position: absolute;
+      top: 22px;
+      left: 20px;
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      color: #fff;
+      background: var(--accent);
+      border-radius: 50%;
+      content: counter(conclusion);
+      font-size: .78rem;
+      font-weight: 800;
+      line-height: 1;
     }
 
-    .conclusion-list li::marker {
-      color: var(--accent);
-      font-size: 1.15em;
+    .conclusion-list li:nth-child(2),
+    .conclusion-list li:nth-child(3) {
+      border-top-color: var(--warning);
+    }
+
+    .conclusion-list li:nth-child(2)::before,
+    .conclusion-list li:nth-child(3)::before {
+      background: var(--warning);
+    }
+
+    .conclusion-list li:last-child {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #fff, var(--accent-soft));
+    }
+
+    .conclusion-list strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: .84rem;
+      letter-spacing: .045em;
+      line-height: 1.32;
+      text-transform: uppercase;
     }
 
     .note,
@@ -1783,6 +1828,7 @@
       .stress-summary-cards,
       .overview-path,
       .question-grid,
+      .conclusion-list,
       .data-strip {
         grid-template-columns: 1fr;
       }
@@ -2857,42 +2903,27 @@
       </div>
       <div class="section-content">
         <ul class="conclusion-list">
-          <li>The project shows that <strong>heatmaps</strong>, <strong>perturbations</strong>, <strong>faithfulness
-              metrics</strong>, <strong>error analysis</strong> and <strong>concept-based methods</strong> must be
-            interpreted together. Pixel-wise and concept-based methods answer complementary questions:
-            <strong>Grad-CAM</strong> and <strong>Integrated Gradients</strong> show where evidence appears, while
-            <strong>TCAV</strong> and the <strong>CBM</strong> help inspect which semantic information may be involved.
-          </li>
+          <li><strong>Triangulation is necessary.</strong> No single XAI method validates a classifier. Spatial maps,
+            concept analysis, perturbations and faithfulness metrics must be read together.</li>
 
-          <li><strong>Background stress tests</strong> reveal that the model can rely on <strong>contextual
-              evidence</strong> rather than animal morphology alone. This affects both predictions and explanations, so
-            <strong>saliency maps</strong> should be treated as hypotheses to validate.
-          </li>
+          <li><strong>Backgrounds matter.</strong> Stress tests show that predictions and explanations can shift when
+            only the background is changed, revealing shortcut learning beyond animal morphology.</li>
 
-          <li><strong>Faithfulness checks</strong> and <strong>error analysis</strong> are essential: a heatmap can look
-            plausible and still explain a wrong decision.</li>
+          <li><strong>Visual plausibility is not proof.</strong> A heatmap can look coherent while explaining a wrong or
+            shortcut-driven decision. Error analysis, deletion and insertion tests are essential.</li>
 
-          <li>Every method has assumptions: <strong>Grad-CAM</strong> is coarse, <strong>Integrated Gradients</strong>
-            is baseline-sensitive, <strong>TCAV</strong> can capture correlated latent patterns, and the
-            <strong>CBM</strong> depends on concept quality.
-          </li>
+          <li><strong>Each method has bias.</strong> Grad-CAM is coarse, Integrated Gradients is baseline-sensitive,
+            TCAV can capture latent correlations, and CBMs depend on concept quality.</li>
 
-          <li>The analysis is further limited by <strong>approximate background masks</strong>, <strong>class-level AwA2
-              concepts</strong> and the use of a <strong>controlled subset</strong> of the dataset.</li>
+          <li><strong>The audit has boundaries.</strong> Results depend on approximate background masks, class-level AwA2
+            concepts and a controlled dataset subset.</li>
 
-          <li><strong>Interpretability remains partial</strong>: explanations highlight relevant associations but do not
-            guarantee a causal understanding of model behavior.</li>
+          <li><strong>Interpretability is not causality.</strong> These methods expose learned associations, but they do
+            not prove robust causal understanding of animal features.</li>
 
-          <li>In <strong>high-stakes domains</strong> such as <strong>medical imaging</strong>, this workflow could
-            support model auditing by checking not only whether a prediction is correct, but whether it is supported by
-            <strong>clinically meaningful evidence</strong>. In radiology, explanations should highlight
-            <strong>lesions</strong>, <strong>tissue abnormalities</strong> or <strong>relevant anatomical
-              regions</strong> rather than <strong>scanner artifacts</strong>, <strong>text markers</strong>,
-            <strong>acquisition differences</strong> or <strong>hospital-specific shortcuts</strong>.
-            <strong>Perturbation tests</strong>, <strong>faithfulness metrics</strong> and <strong>concept-level
-              analysis</strong> can help distinguish predictions that are correct for valid clinical reasons from
-            predictions driven by <strong>spurious dataset biases</strong>.
-          </li>
+          <li><strong>High-stakes use requires evidence checks.</strong> In medical imaging, the same workflow can verify
+            whether predictions rely on pathology and anatomy rather than scanner artifacts, text markers or
+            site-specific shortcuts.</li>
         </ul>
       </div>
     </section>
