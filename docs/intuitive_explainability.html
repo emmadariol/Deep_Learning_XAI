@@ -2287,11 +2287,11 @@
         <div class="prose">
           <p class="prose-intro">A map is plausible if its evidence resists perturbations and drives the prediction.</p>
           <p>The evaluation involves three steps:</p>
-          <ol>
+          <ul>
               <li>Modifying the image background.</li>
               <li>Quantifying map stability and faithfulness.</li>
               <li>Applying the analysis to misclassified images.</li>
-          </ol>
+          </ul>
         </div>
 
         <div class="metric-question-grid" aria-label="Stability versus faithfulness">
@@ -2583,22 +2583,18 @@
 
         <h3 id="error-analysis" class="subsection-title">Error analysis</h3>
         <div class="error-intro" aria-label="How to read misclassification explanations">
-          <p class="error-intro-lead">Misclassifications are useful because the model made a visibly wrong decision:
-            the explanation must therefore show what pushed the network toward that wrong class, not just where the
-            heatmap looks plausible.</p>
+          <p class="error-intro-lead">Misclassifications are key: the explanation must show what pushed the network toward the wrong class, rather than just where it looked.</p>
 
           <div class="error-reading-grid">
             <article class="error-reading-card error-reading-card--predicted">
               <span class="error-reading-label">Predicted class</span>
               <h4>What evidence supported the model's wrong choice?</h4>
-              <p>This attribution explains the class the network actually selected. It reveals the visual cues that
-                increased the wrong score.</p>
+              <p>Highlights the exact features that tricked the model into making a mistake.</p>
             </article>
             <article class="error-reading-card error-reading-card--true">
               <span class="error-reading-label">True class</span>
               <h4>What evidence would need to support the correct class?</h4>
-              <p>This attribution asks where stronger evidence for the ground-truth class should appear, and whether
-                the model is missing the animal cues that matter.</p>
+              <p>Shows where evidence for the correct prediction should be, or what it failed to see.</p>
             </article>
           </div>
         </div>
@@ -2686,6 +2682,9 @@
 
 
 
+        <p><strong>Analysis of background changes</strong></p>
+        <p>It reveals how they weaken, reinforce, or redirect the wrong prediction.</p>
+
         <figure>
           <img src="assets/xai-report/error-perturbation-margins.png"
             alt="Wrong-class and true-class probabilities and their logit margin before and after background perturbations."
@@ -2695,6 +2694,7 @@
           </figcaption>
         </figure>
 
+        <p style="margin-top: 2rem; margin-bottom: 0.9rem;"><strong>Deletion test: checking if highlighted regions affect the prediction</strong></p>
         <div>
           <figure>
             <img src="assets/xai-report/error-deletion-curves.png"
@@ -2711,19 +2711,19 @@
         <div class="q2-takeaway-grid" aria-label="Question 2 main takeaways">
           <article class="q2-takeaway">
             <strong>Result 1</strong>
-            <p>Explanations must be tested, not only inspected.</p>
+            <p>Explanations must be tested, not only inspected</p>
           </article>
           <article class="q2-takeaway">
             <strong>Result 2</strong>
-            <p>Background changes affect confidence and attribution.</p>
+            <p>Background changes affect confidence and attribution</p>
           </article>
           <article class="q2-takeaway">
             <strong>Result 3</strong>
-            <p>Grad-CAM is steadier; IG is more pixel-sensitive.</p>
+            <p>Grad-CAM is steadier; IG is more pixel-sensitive</p>
           </article>
           <article class="q2-takeaway">
             <strong>Result 4</strong>
-            <p>A faithful map can still explain a wrong decision.</p>
+            <p>A faithful map can still explain a wrong decision</p>
           </article>
         </div>
     </section>
